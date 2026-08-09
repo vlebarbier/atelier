@@ -19,6 +19,7 @@ export interface ReseauEntry {
 export interface BrouillonDetail extends Brouillon {
   notes: string;
   reseaux: Record<string, ReseauEntry>;
+  sourceHtml?: string | null;
 }
 
 async function handle<T>(res: Response): Promise<T> {

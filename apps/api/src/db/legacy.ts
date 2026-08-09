@@ -18,6 +18,7 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
       statut TEXT NOT NULL DEFAULT 'brouillon',
       notes TEXT NOT NULL DEFAULT '',
       reseaux TEXT NOT NULL DEFAULT '{}',
+      source_html TEXT,
       updated_at TEXT
     );
     CREATE TABLE IF NOT EXISTS slides (
@@ -27,4 +28,9 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
       position INTEGER NOT NULL
     );
   `);
+  // Migration douce : ajoute source_html si la table existait sans cette colonne.
+  const cols = sqlite.prepare(`PRAGMA table_info(brouillons)`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === 'source_html')) {
+    sqlite.exec(`ALTER TABLE brouillons ADD COLUMN source_html TEXT;`);
+  }
 }

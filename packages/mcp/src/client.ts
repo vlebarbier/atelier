@@ -76,6 +76,14 @@ export class AtelierClient {
     });
   }
 
+  /** POST /api/brouillon/:id {sourceHtml} — dépose la source HTML du document. */
+  async setSource(id: string, sourceHtml: string): Promise<unknown> {
+    return this.request(`/api/brouillon/${encodeURIComponent(id)}`, {
+      method: 'POST',
+      body: JSON.stringify({ sourceHtml })
+    });
+  }
+
   /** POST /api/brouillon/:id {reseaux:{reseau:{caption,hashtags}}} */
   async setLegende(id: string, reseau: string, caption: string, hashtags: string): Promise<unknown> {
     return this.request(`/api/brouillon/${encodeURIComponent(id)}`, {

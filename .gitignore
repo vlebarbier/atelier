@@ -33,3 +33,5 @@ web-*.png
 accent-*.png
 moodboard-*.png
 atelier-*.png
+.vercel
+.env*

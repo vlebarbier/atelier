@@ -10,6 +10,8 @@ export const brouillons = sqliteTable('brouillons', {
   statut: text('statut').notNull().default('brouillon'),
   notes: text('notes').notNull().default(''),
   reseaux: text('reseaux').notNull().default('{}'),
+  /** Source HTML du document (le vrai "réceptacle" : l'agent produit du HTML, les PNG sont dérivés). */
+  sourceHtml: text('source_html'),
   updatedAt: text('updated_at')
 });
 

@@ -4,7 +4,7 @@ const { spawn } = require('node:child_process');
 
 const server = spawn('node', ['dist/index.js'], {
   cwd: __dirname,
-  env: { ...process.env, ATELIER_API_URL: 'http://localhost:4320' },
+  env: { ...process.env, ATELIER_API_URL: 'http://localhost:4310' },
   stdio: ['pipe', 'pipe', 'pipe']
 });
 
@@ -71,7 +71,7 @@ setTimeout(() => {
   const parsed = text ? JSON.parse(text) : null;
   console.log('liste_brouillons →', Array.isArray(parsed) ? `${parsed.length} brouillon(s)` : 'ERREUR: ' + text.slice(0, 150));
 
-  const ok = init?.result && toolNames.length === 7 && Array.isArray(parsed);
+  const ok = init?.result && toolNames.length === 8 && Array.isArray(parsed);
   console.log(ok ? '✅ MCP STDIO OK' : '❌ PROBLEME');
   if (stderrLog.length) console.log('stderr:', stderrLog[0]);
   server.kill();
