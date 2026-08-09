@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5173",
-    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build": "node ../../packages/tokens/build.mjs && tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview --port 5173",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test:e2e": "VITE_API_PORT=4320 playwright test",
