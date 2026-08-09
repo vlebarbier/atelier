@@ -1,0 +1,10 @@
+{
+  "titre": "Exemple — Carrousel de présentation (v1)",
+  "statut": "a-valider",
+  "notes": "9 slides · 3 sujets · slide 8 = méthode · slide 9 = preuve sociale. À valider avant brouillon Postiz.",
+  "reseaux": {
+    "instagram": { "caption": "", "hashtags": "", "statut": "brouillon" },
+    "linkedin": { "caption": "", "hashtags": "", "statut": "brouillon" },
+    "facebook": { "caption": "", "hashtags": "", "statut": "brouillon" }
+  }
+}

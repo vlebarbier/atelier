@@ -1,0 +1,21 @@
+{
+  "name": "@atelier/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Design tokens Atelier, source unique de verite (DA Linear du contenu social, accent cyan)",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/tokens.json",
+  "exports": {
+    ".": "./dist/tokens.json",
+    "./css": "./dist/tokens.css"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "style-dictionary": "^4.4.0",
+    "vitest": "^3.2.4"
+  }
+}

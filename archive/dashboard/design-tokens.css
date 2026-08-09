@@ -1,0 +1,99 @@
+/* ═══════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM — ATELIER (production de contenu avec agents IA)
+   Direction : "l'atelier éditorial chaud" — crème chaud, espresso, terracotta
+   Fraunces (display) + Plus Jakarta Sans (UI). Light/dark natif.
+   Référence complète : DESIGN.md (règles, anti-patterns, double-bezel)
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Palette (mode clair) ─────────────────────────────────────── */
+  --paper:        #FBF9F6;   /* fond : crème chaud */
+  --surface:      #FFFFFF;   /* cartes, panneaux (core du double-bezel) */
+  --surface-2:    #F4F1EA;   /* shells, hover */
+  --ink:          #211D19;   /* texte principal : espresso */
+  --ink-2:        #6B6459;   /* texte secondaire */
+  --ink-3:        #9A9184;   /* texte tertiaire, légendes */
+  --line:         #E7E1D6;   /* hairlines (jamais de gris neutre) */
+  --line-2:       #D5CCBB;   /* hairlines fortes, focus */
+  --accent:       #C2410C;   /* terracotta — actions, focus, sélection */
+  --accent-hover: #9A3412;   /* terracotta foncé */
+  --accent-soft:  #FBEBD9;   /* fond accent doux (badges à-valider) */
+  --ok:           #4D7C0F;   /* validé */
+  --ok-soft:      #EFF5E2;
+  --warn:         #B45309;   /* à valider */
+  --warn-soft:    #FDF3E3;
+  --err:          #B91C1C;   /* erreur */
+  --err-soft:     #FCE8E8;
+
+  /* ── Typographie ──────────────────────────────────────────────── */
+  --font-display: 'Fraunces', 'Georgia', serif;
+  --font-ui:      'Plus Jakarta Sans', 'Helvetica Neue', sans-serif;
+
+  /* ── Espacements (échelle 4px) ────────────────────────────────── */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+
+  /* ── Rayons (double-bezel : shell > core) ─────────────────────── */
+  --r-shell: 18px;
+  --r-core: 14px;   /* = shell - 4px de padding */
+  --r-sm: 8px;      /* inputs, chips */
+  --r-full: 999px;  /* boutons pilule */
+
+  /* ── Ombres : diffuses, jamais dures ──────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(33, 29, 25, 0.04);
+  --shadow-md: 0 4px 24px rgba(33, 29, 25, 0.06);
+  --shadow-lg: 0 16px 48px rgba(33, 29, 25, 0.09);
+
+  /* ── Motion : mass-spring, jamais linear ──────────────────────── */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 180ms;
+  --dur-med: 400ms;
+  --dur-slow: 700ms;
+
+  /* ── Typo scale ───────────────────────────────────────────────── */
+  --fs-xs: 12px; --fs-sm: 13px; --fs-base: 14px; --fs-md: 16px;
+  --fs-lg: 20px; --fs-xl: 28px; --fs-2xl: 40px;
+
+  /* ── Structure ────────────────────────────────────────────────── */
+  --header-h: 60px;
+  --sidebar-w: 248px;
+}
+
+/* ── Mode sombre : natif (suit l'écran) ──────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:        #121110;   /* fond : espresso profond */
+    --surface:      #1B1A18;   /* cartes, panneaux */
+    --surface-2:    #262422;   /* shells, hover */
+    --ink:          #F2EFE9;   /* texte principal : crème clair */
+    --ink-2:        #A89F91;   /* texte secondaire */
+    --ink-3:        #6E675C;   /* texte tertiaire */
+    --line:         #34312C;   /* hairlines */
+    --line-2:       #4A463F;   /* hairlines fortes */
+    --accent:       #F97316;   /* terracotta clair — lisible sur fond sombre */
+    --accent-hover: #FB923C;
+    --accent-soft:  #3A2415;
+    --ok:           #A3C97F;
+    --ok-soft:      #1E2A16;
+    --warn:         #E9B96C;
+    --warn-soft:    #33260F;
+    --err:          #F08787;
+    --err-soft:     #331A1A;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PRINCIPES UX — "pas de superflu" (voir DESIGN.md)
+   1. Une seule couleur d'accent (terracotta), jamais de dégradés
+   2. Ombres diffuses uniquement ; élévation par contraste de surface
+   3. Hairlines teintées (jamais de gris neutre) ; double-bezel sur les cartes
+   4. Motion : cubic-bezier partout, transform/opacity uniquement
+   5. Grain subtil (0.03) en overlay fixed pointer-events-none
+   6. Focus clair (accent) pour l'accessibilité clavier
+   7. Mode sombre natif via prefers-color-scheme
+   ═══════════════════════════════════════════════════════════════════ */

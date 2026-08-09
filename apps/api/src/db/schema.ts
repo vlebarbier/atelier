@@ -1,0 +1,27 @@
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+
+/**
+ * Table brouillons : un brouillon de contenu (carrousel, post, story, article).
+ * reseaux est stocke en JSON serialise (structure libre par reseau).
+ */
+export const brouillons = sqliteTable('brouillons', {
+  id: text('id').primaryKey(),
+  titre: text('titre').notNull(),
+  statut: text('statut').notNull().default('brouillon'),
+  notes: text('notes').notNull().default(''),
+  reseaux: text('reseaux').notNull().default('{}'),
+  updatedAt: text('updated_at')
+});
+
+/**
+ * Table slides : les visuels d'un brouillon, ordonnes par position.
+ */
+export const slides = sqliteTable('slides', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  brouillonId: text('brouillon_id').notNull(),
+  fichier: text('fichier').notNull(),
+  position: integer('position').notNull()
+});
+
+export type Brouillon = typeof brouillons.$inferSelect;
+export type Slide = typeof slides.$inferSelect;

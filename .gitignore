@@ -1,0 +1,35 @@
+# Secrets, jamais commites
+.env
+.env.local
+*.env
+figma.env
+postiz.env
+cli.env
+
+# Dependances
+node_modules/
+
+# Build
+dist/
+apps/web/dist/
+apps/api/dist/
+packages/*/dist/
+
+# Donnees locales
+apps/api/data/
+apps/api/uploads/
+brouillons/
+slides/
+
+# OS
+.DS_Store
+
+# Journaux
+*.log
+npm-debug.log*
+
+# Captures temporaires
+web-*.png
+accent-*.png
+moodboard-*.png
+atelier-*.png

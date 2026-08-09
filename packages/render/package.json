@@ -1,0 +1,15 @@
+{
+  "name": "@atelier/render",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pipeline de rendu HTML vers PNG (carrousels, slides), adapte du prototype Bordeluche",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/render.mjs",
+  "scripts": {
+    "render": "node src/render.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.49.1"
+  }
+}
