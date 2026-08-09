@@ -1,7 +1,12 @@
 // packages/tokens/build.mjs
 // Genere dist/tokens.css (variables CSS dark-first + override light) et dist/tokens.json
 // a partir de tokens.json (format DTCG, $value + $extensions.light).
+// IMPORTANT : tous les chemins sont resolus depuis ce fichier (import.meta.dirname),
+// jamais depuis le cwd du processus appelant (Vercel lance ce script depuis apps/web).
 import StyleDictionary from 'style-dictionary';
+import path from 'node:path';
+
+const here = import.meta.dirname;
 
 StyleDictionary.registerFormat({
   name: 'css/atelier-vars',
@@ -52,17 +57,17 @@ StyleDictionary.registerFormat({
 });
 
 const sd = new StyleDictionary({
-  source: ['tokens.json'],
+  source: [path.join(here, 'tokens.json')],
   usesDtcg: true,
   platforms: {
     css: {
       transformGroup: 'css',
-      buildPath: 'dist/',
+      buildPath: path.join(here, 'dist/'),
       files: [{ destination: 'tokens.css', format: 'css/atelier-vars' }]
     },
     json: {
       transformGroup: 'js',
-      buildPath: 'dist/',
+      buildPath: path.join(here, 'dist/'),
       files: [{ destination: 'tokens.json', format: 'json/atelier-flat' }]
     }
   }
