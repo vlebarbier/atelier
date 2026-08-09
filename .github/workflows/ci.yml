@@ -16,6 +16,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Build tokens (dist/ requis par web et api)
+        run: npm run build -w packages/tokens
       - name: Lint (tsc)
         run: npm run lint
       - name: Tests unitaires (API + tokens)
