@@ -18,10 +18,18 @@ export const updateBrouillonSchema = z
   .object({
     statut: statutSchema.optional(),
     notes: z.string().optional(),
-    reseaux: reseauxSchema.optional()
+    reseaux: reseauxSchema.optional(),
+    sourceHtml: z.string().optional()
   })
-  .refine((data) => data.statut !== undefined || data.notes !== undefined || data.reseaux !== undefined, {
-    message: 'Au moins un champ (statut, notes ou reseaux) est requis'
-  });
+  .refine(
+    (data) =>
+      data.statut !== undefined ||
+      data.notes !== undefined ||
+      data.reseaux !== undefined ||
+      data.sourceHtml !== undefined,
+    {
+      message: 'Au moins un champ (statut, notes, reseaux ou sourceHtml) est requis'
+    }
+  );
 
 export type UpdateBrouillonInput = z.infer<typeof updateBrouillonSchema>;

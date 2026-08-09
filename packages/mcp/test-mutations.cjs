@@ -3,7 +3,7 @@ const { spawn } = require('node:child_process');
 
 const server = spawn('node', ['dist/index.js'], {
   cwd: __dirname,
-  env: { ...process.env, ATELIER_API_URL: 'http://localhost:4320' },
+  env: { ...process.env, ATELIER_API_URL: 'http://localhost:4310' },
   stdio: ['pipe', 'pipe', 'pipe']
 });
 

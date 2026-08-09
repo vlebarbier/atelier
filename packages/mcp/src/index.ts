@@ -144,6 +144,23 @@ server.tool(
 // ═════════════════ POSTIZ ═══════════════════════════════════════════════
 
 server.tool(
+  'set_source',
+  'Dépose la source HTML d\'un brouillon (le document de travail produit par l\'agent : carrousel, post, story, article). Le HTML est la source de vérité, les PNG sont régénérés depuis lui via regenerer_slides.',
+  {
+    id: z.string().describe('Identifiant du brouillon (crée-le d\'abord si besoin)'),
+    source_html: z.string().describe('Le document HTML complet produit par l\'agent')
+  },
+  async ({ id, source_html }) => {
+    try {
+      await client.setSource(id, source_html);
+      return rep(true, { id, source_html: source_html.slice(0, 80) });
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
+server.tool(
   'creer_brouillon_postiz',
   'Crée un brouillon Postiz pour un brouillon donné : uploade les slides puis crée le post en statut draft (jamais publié automatiquement, workflow brouillon → validation → publication).',
   {

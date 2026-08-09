@@ -73,6 +73,7 @@ export function createApp(db: AppDb, options: AppOptions) {
       titre: row.titre,
       statut: row.statut,
       notes: row.notes,
+      sourceHtml: row.sourceHtml || null,
       reseaux,
       updated: row.updatedAt,
       slideCount: fichiers.length,
@@ -103,15 +104,28 @@ export function createApp(db: AppDb, options: AppOptions) {
     const updatedAt = new Date().toISOString();
     const nextStatut = patch.statut ?? row.statut;
     const nextNotes = patch.notes ?? row.notes;
+    const nextSourceHtml = patch.sourceHtml !== undefined ? patch.sourceHtml : row.sourceHtml;
 
     db.update(brouillons)
-      .set({ statut: nextStatut, notes: nextNotes, reseaux: JSON.stringify(nextReseaux), updatedAt })
+      .set({
+        statut: nextStatut,
+        notes: nextNotes,
+        reseaux: JSON.stringify(nextReseaux),
+        sourceHtml: nextSourceHtml,
+        updatedAt
+      })
       .where(eq(brouillons.id, id))
       .run();
 
     return c.json({
       ok: true,
-      meta: { statut: nextStatut, notes: nextNotes, reseaux: nextReseaux, updated: updatedAt }
+      meta: {
+        statut: nextStatut,
+        notes: nextNotes,
+        reseaux: nextReseaux,
+        sourceHtml: nextSourceHtml,
+        updated: updatedAt
+      }
     });
   });
 

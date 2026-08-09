@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight,
+  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, Code, CheckCircle, FileCode,
   InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
@@ -29,6 +29,7 @@ export function DraftDetail({ id, onClose }: DraftDetailProps) {
   const [error, setError] = useState<string | null>(null);
   const [slide, setSlide] = useState(0);
   const [reseauActif, setReseauActif] = useState<string>('instagram');
+  const [showSource, setShowSource] = useState(false);
   const [notes, setNotes] = useState('');
   const [savedFlash, setSavedFlash] = useState(false);
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -42,6 +43,7 @@ export function DraftDetail({ id, onClose }: DraftDetailProps) {
       setNotes(data.notes || '');
       setSlide(0);
       setReseauActif('instagram');
+      setShowSource(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
@@ -186,7 +188,35 @@ export function DraftDetail({ id, onClose }: DraftDetailProps) {
         </div>
 
         <div className="panel">
-          <h3>Legendes et declinaisons</h3>
+          <div className="panel-head">
+            <h3>Legendes et declinaisons</h3>
+            <button
+              type="button"
+              className={`source-toggle${showSource ? ' on' : ''}`}
+              onClick={() => setShowSource((s) => !s)}
+              title="Afficher la source HTML du document"
+            >
+              <Code size={13} /> Source
+            </button>
+          </div>
+          {showSource ? (
+            <div className="source-panel">
+              {brouillon.sourceHtml ? (
+                <>
+                  <div className="source-meta">
+                    <CheckCircle size={13} /> Document HTML de l'agent, {brouillon.sourceHtml.length} caracteres
+                  </div>
+                  <pre className="source-code">{brouillon.sourceHtml.slice(0, 6000)}</pre>
+                </>
+              ) : (
+                <div className="source-empty">
+                  <FileCode size={20} />
+                  <p>Aucune source HTML. L'agent peut la deposer via set_source (MCP).</p>
+                </div>
+              )}
+            </div>
+          ) : (
+          <>
           <div className="reseau-tabs">
             {RESEAUX.map((r) => {
               const Icon = RESEAU_ICONES[r] || InstagramLogo;
@@ -260,6 +290,8 @@ export function DraftDetail({ id, onClose }: DraftDetailProps) {
           <div className={`saved${savedFlash ? ' show' : ''}`}>
             <Check size={13} weight="bold" /> Enregistre
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>
