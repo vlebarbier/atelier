@@ -18,9 +18,13 @@
   "dependencies": {
     "@atelier/tokens": "*",
     "@hono/node-server": "^1.13.7",
+    "@types/pg": "^8.21.0",
+    "@vercel/blob": "^2.7.0",
     "better-sqlite3": "^11.8.1",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.38.3",
     "hono": "^4.6.16",
+    "pg": "^8.23.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

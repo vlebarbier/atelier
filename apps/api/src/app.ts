@@ -1,11 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { eq } from 'drizzle-orm';
 import path from 'node:path';
 import fs from 'node:fs';
-import { brouillons, slides } from './db/schema.js';
 import { updateBrouillonSchema } from './validation.js';
-import type { AppDb } from './db/client.js';
+import type { Repo } from './db/repo.js';
 
 const RESEAUX_DEFAUT = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok'];
 
@@ -18,50 +16,51 @@ const MIME: Record<string, string> = {
 };
 
 export interface AppOptions {
-  /** Dossier racine ou vivent les brouillons (un sous-dossier par id, avec slides/). */
+  /** Dossier racine ou vivent les brouillons (un sous-dossier par id, avec slides/). Utilise en mode local uniquement. */
   dataDir: string;
 }
 
-function slideFichiersDe(db: AppDb, brouillonId: string): string[] {
-  return db
-    .select()
-    .from(slides)
-    .where(eq(slides.brouillonId, brouillonId))
-    .all()
-    .sort((a, b) => a.position - b.position)
-    .map((s) => s.fichier);
+async function slideFichiersDe(repo: Repo, brouillonId: string): Promise<string[]> {
+  const rows = await repo.listSlides(brouillonId);
+  return rows.sort((a, b) => a.position - b.position).map((s) => s.fichier);
 }
 
-/** Cree l'app Hono. Prend db + options en parametres pour rester testable en memoire. */
-export function createApp(db: AppDb, options: AppOptions) {
+/**
+ * Cree l'app Hono. Prend le repository (couche d'acces donnees, SQLite ou
+ * Postgres) + options en parametres pour rester testable en memoire et
+ * independante du driver de stockage.
+ */
+export function createApp(repo: Repo, options: AppOptions) {
   const app = new Hono();
 
   app.use('*', cors({ origin: '*' }));
 
-  app.get('/api/brouillons', (c) => {
-    const rows = db.select().from(brouillons).all();
-    const result = rows
-      .map((row) => {
-        const fichiers = slideFichiersDe(db, row.id);
-        return {
-          id: row.id,
-          titre: row.titre,
-          statut: row.statut,
-          slideCount: fichiers.length,
-          slides: fichiers,
-          updated: row.updatedAt
-        };
-      })
-      .sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
+  app.get('/api/brouillons', async (c) => {
+    const rows = await repo.listBrouillons();
+    const result = (
+      await Promise.all(
+        rows.map(async (row) => {
+          const fichiers = await slideFichiersDe(repo, row.id);
+          return {
+            id: row.id,
+            titre: row.titre,
+            statut: row.statut,
+            slideCount: fichiers.length,
+            slides: fichiers,
+            updated: row.updatedAt
+          };
+        })
+      )
+    ).sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
     return c.json(result);
   });
 
-  app.get('/api/brouillon/:id', (c) => {
+  app.get('/api/brouillon/:id', async (c) => {
     const id = c.req.param('id');
-    const row = db.select().from(brouillons).where(eq(brouillons.id, id)).get();
+    const row = await repo.getBrouillon(id);
     if (!row) return c.json({ error: 'Inconnu' }, 404);
 
-    const fichiers = slideFichiersDe(db, id);
+    const fichiers = await slideFichiersDe(repo, id);
     const reseauxParsed: Record<string, unknown> = JSON.parse(row.reseaux || '{}');
     const reseaux: Record<string, unknown> = { ...reseauxParsed };
     for (const r of RESEAUX_DEFAUT) {
@@ -83,7 +82,7 @@ export function createApp(db: AppDb, options: AppOptions) {
 
   app.post('/api/brouillon/:id', async (c) => {
     const id = c.req.param('id');
-    const row = db.select().from(brouillons).where(eq(brouillons.id, id)).get();
+    const row = await repo.getBrouillon(id);
     if (!row) return c.json({ error: 'Inconnu' }, 404);
 
     let body: unknown;
@@ -106,16 +105,13 @@ export function createApp(db: AppDb, options: AppOptions) {
     const nextNotes = patch.notes ?? row.notes;
     const nextSourceHtml = patch.sourceHtml !== undefined ? patch.sourceHtml : row.sourceHtml;
 
-    db.update(brouillons)
-      .set({
-        statut: nextStatut,
-        notes: nextNotes,
-        reseaux: JSON.stringify(nextReseaux),
-        sourceHtml: nextSourceHtml,
-        updatedAt
-      })
-      .where(eq(brouillons.id, id))
-      .run();
+    await repo.updateBrouillon(id, {
+      statut: nextStatut,
+      notes: nextNotes,
+      reseaux: JSON.stringify(nextReseaux),
+      sourceHtml: nextSourceHtml,
+      updatedAt
+    });
 
     return c.json({
       ok: true,
@@ -129,12 +125,42 @@ export function createApp(db: AppDb, options: AppOptions) {
     });
   });
 
-  app.get('/b/:id/*', (c) => {
+  app.get('/b/:id/*', async (c) => {
     const id = c.req.param('id');
     // `param('*')` ne fonctionne pas dans cette version de Hono → extraire de c.req.path
     const prefix = `/b/${id}/`;
     const rest = c.req.path.startsWith(prefix) ? c.req.path.slice(prefix.length) : '';
-    const safe = path.normalize(rest).replace(/^(\\.\\.[/\\\\])+/, '');
+
+    // Mode cloud : le fichier a ete uploade vers Vercel Blob au seed. Store privé
+    // → on genere une URL presignee (token de lecture limite au pathname, expire en 1h)
+    // puis on redirige. Pas de disque persistant en serverless.
+    const slide = await repo.findSlideByFichier(id, rest);
+    if (slide?.blobUrl) {
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        const { issueSignedToken, presignUrl } = await import('@vercel/blob');
+        try {
+          // pathname SANS slash initial : presignUrl ajoute le sien, sinon double slash → 404
+          const pathname = new URL(slide.blobUrl).pathname.replace(/^\//, '');
+          const signedToken = await issueSignedToken({
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+            pathname,
+            operations: ['get']
+          });
+          const { presignedUrl } = await presignUrl(signedToken, {
+            pathname,
+            access: 'private',
+            operation: 'get'
+          });
+          return c.redirect(presignedUrl, 302);
+        } catch (err) {
+          return c.json({ error: `Blob sign: ${err instanceof Error ? err.message : err}` }, 500);
+        }
+      }
+      return c.redirect(slide.blobUrl, 302);
+    }
+
+    // Mode local : lecture disque classique.
+    const safe = path.normalize(rest).replace(/^(\.\.[/\\])+/, '');
     const baseDir = path.join(options.dataDir, id);
     const filePath = path.join(baseDir, safe);
 
@@ -148,3 +174,49 @@ export function createApp(db: AppDb, options: AppOptions) {
 
   return app;
 }
+
+// ═════════════════ ENTRÉE SERVERLESS VERCEL ═══════════════════════════════
+// Vercel (framework Hono) lit src/app.ts comme module d'entrée et exige un
+// default export qui est une fonction ou un serveur. Pas de top-level await
+// (l'export deviendrait une Promise → "Invalid export"). Le repo est construit
+// paresseusement au premier appel et mis en cache sur l'instance (Fluid compute).
+
+let repoPromise: Promise<Repo> | null = null;
+
+async function getRepo(): Promise<Repo> {
+  if (!repoPromise) {
+    const { createDbPg, createPgPool, isPostgres, createDb, openSqlite } = await import('./db/client.js');
+    const { ensurePgTables } = await import('./db/migrate-pg.js');
+    const { ensureLegacyTables } = await import('./db/legacy.js');
+    const { migrateWithDrizzle } = await import('./db/migrate.js');
+    const { createPgRepo } = await import('./db/repo-pg.js');
+    const { createSqliteRepo } = await import('./db/repo-sqlite.js');
+
+    repoPromise = (async () => {
+      if (isPostgres()) {
+        const pool = createPgPool();
+        await ensurePgTables(pool);
+        const db = createDbPg(pool);
+        return createPgRepo(db);
+      }
+      const DB_PATH = process.env.API_DB_PATH || '/tmp/atelier.db';
+      const sqlite = openSqlite(DB_PATH);
+      ensureLegacyTables(sqlite);
+      migrateWithDrizzle(sqlite);
+      const db = createDb(sqlite);
+      return createSqliteRepo(db);
+    })();
+  }
+  return repoPromise;
+}
+
+const vercelApp = new Hono();
+
+vercelApp.use('*', async (c, next) => {
+  const repo = await getRepo();
+  const app = createApp(repo, { dataDir: process.env.API_DATA_DIR || '/tmp/atelier-data' });
+  const res = await app.fetch(c.req.raw, c.env);
+  return res;
+});
+
+export default vercelApp;

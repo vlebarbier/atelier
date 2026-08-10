@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { brouillons, slides } from './db/schema.js';
-import type { AppDb } from './db/client.js';
+import type { Repo } from './db/repo.js';
+import { storeSlide } from './storage/blob.js';
 
 interface PrototypeMeta {
   titre?: string;
@@ -13,9 +13,10 @@ interface PrototypeMeta {
 
 /**
  * Importe les brouillons existants du prototype (dossier <sourceDir>/<id>/{slides/,meta.json})
- * vers la base SQLite + dataDir (copie physique des PNG). Idempotent : ignore les id deja presents.
+ * vers le repository (SQLite ou Postgres) + stockage image actif (disque local ou
+ * Vercel Blob). Idempotent : ignore les id deja presents en base.
  */
-export function seedFromPrototype(db: AppDb, sourceDir: string, dataDir: string): number {
+export async function seedFromPrototype(repo: Repo, sourceDir: string, dataDir: string): Promise<number> {
   if (!fs.existsSync(sourceDir)) return 0;
 
   let imported = 0;
@@ -23,8 +24,7 @@ export function seedFromPrototype(db: AppDb, sourceDir: string, dataDir: string)
 
   for (const entry of entries) {
     const id = entry.name;
-    const existing = db.select().from(brouillons).all().find((b) => b.id === id);
-    if (existing) continue;
+    if (await repo.brouillonExists(id)) continue;
 
     const srcDir = path.join(sourceDir, id);
     const metaPath = path.join(srcDir, 'meta.json');
@@ -38,37 +38,39 @@ export function seedFromPrototype(db: AppDb, sourceDir: string, dataDir: string)
     }
 
     const srcSlidesDir = path.join(srcDir, 'slides');
-    const destDir = path.join(dataDir, id);
-    const destSlidesDir = path.join(destDir, 'slides');
     let fichiers: string[] = [];
+    const blobUrls = new Map<string, string | null>();
 
     if (fs.existsSync(srcSlidesDir)) {
-      fs.mkdirSync(destSlidesDir, { recursive: true });
       fichiers = fs
         .readdirSync(srcSlidesDir)
         .filter((f) => /\.(png|jpe?g|webp)$/i.test(f))
         .sort();
       for (const f of fichiers) {
-        fs.copyFileSync(path.join(srcSlidesDir, f), path.join(destSlidesDir, f));
+        const buffer = fs.readFileSync(path.join(srcSlidesDir, f));
+        const stored = await storeSlide(id, `slides/${f}`, buffer, dataDir);
+        blobUrls.set(stored.fichier, stored.blobUrl);
       }
     }
 
-    db.insert(brouillons)
-      .values({
-        id,
-        titre: meta.titre || id.replace(/[-_]/g, ' '),
-        statut: meta.statut || 'brouillon',
-        notes: meta.notes || '',
-        reseaux: JSON.stringify(meta.reseaux || {}),
-        updatedAt: meta.updated || new Date().toISOString()
-      })
-      .run();
-
-    fichiers.forEach((f, i) => {
-      db.insert(slides)
-        .values({ brouillonId: id, fichier: `slides/${f}`, position: i })
-        .run();
+    await repo.insertBrouillon({
+      id,
+      titre: meta.titre || id.replace(/[-_]/g, ' '),
+      statut: meta.statut || 'brouillon',
+      notes: meta.notes || '',
+      reseaux: JSON.stringify(meta.reseaux || {}),
+      updatedAt: meta.updated || new Date().toISOString()
     });
+
+    for (let i = 0; i < fichiers.length; i += 1) {
+      const fichier = `slides/${fichiers[i]}`;
+      await repo.insertSlide({
+        brouillonId: id,
+        fichier,
+        position: i,
+        blobUrl: blobUrls.get(fichier) ?? null
+      });
+    }
 
     imported += 1;
   }

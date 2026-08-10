@@ -17,12 +17,14 @@ export const brouillons = sqliteTable('brouillons', {
 
 /**
  * Table slides : les visuels d'un brouillon, ordonnes par position.
+ * blobUrl est renseigne uniquement en mode cloud (Vercel Blob) ; null en local (fichier sur disque).
  */
 export const slides = sqliteTable('slides', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   brouillonId: text('brouillon_id').notNull(),
   fichier: text('fichier').notNull(),
-  position: integer('position').notNull()
+  position: integer('position').notNull(),
+  blobUrl: text('blob_url')
 });
 
 export type Brouillon = typeof brouillons.$inferSelect;
