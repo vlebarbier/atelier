@@ -17,6 +17,8 @@ export interface BrouillonRow {
   notes: string;
   reseaux: string;
   sourceHtml: string | null;
+  charteId: string | null;
+  checklist: string;
   updatedAt: string | null;
 }
 
@@ -33,6 +35,7 @@ export interface BrouillonPatch {
   notes?: string;
   reseaux?: string;
   sourceHtml?: string | null;
+  checklist?: string;
   updatedAt?: string;
 }
 
@@ -43,6 +46,8 @@ export interface NewBrouillon {
   notes: string;
   reseaux: string;
   sourceHtml?: string | null;
+  charteId?: string | null;
+  checklist?: string;
   updatedAt: string | null;
 }
 
@@ -63,6 +68,7 @@ export interface Repo {
   insertBrouillon(row: NewBrouillon): Promise<void>;
   insertSlide(row: NewSlide): Promise<void>;
   deleteBrouillon(id: string): Promise<void>;
+  deleteSlides(brouillonId: string): Promise<void>;
   getCharte(id: string): Promise<CharteRow | undefined>;
   saveCharte(row: NewCharte): Promise<void>;
 }

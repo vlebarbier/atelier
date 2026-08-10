@@ -12,6 +12,10 @@ export const brouillons = sqliteTable('brouillons', {
   reseaux: text('reseaux').notNull().default('{}'),
   /** Source HTML du document (le vrai "réceptacle" : l'agent produit du HTML, les PNG sont dérivés). */
   sourceHtml: text('source_html'),
+  /** Charte graphique qui regit ce brouillon (reference vers chartes.id, defaut 'principale'). */
+  charteId: text('charte_id').default('principale'),
+  /** Checklist de validation (JSON : [{id,label,checked}]). */
+  checklist: text('checklist').notNull().default('[]'),
   updatedAt: text('updated_at')
 });
 

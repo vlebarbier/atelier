@@ -40,6 +40,12 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
   if (!brouillonsCols.some((c) => c.name === 'source_html')) {
     sqlite.exec(`ALTER TABLE brouillons ADD COLUMN source_html TEXT;`);
   }
+  if (!brouillonsCols.some((c) => c.name === 'charte_id')) {
+    sqlite.exec(`ALTER TABLE brouillons ADD COLUMN charte_id TEXT DEFAULT 'principale';`);
+  }
+  if (!brouillonsCols.some((c) => c.name === 'checklist')) {
+    sqlite.exec(`ALTER TABLE brouillons ADD COLUMN checklist TEXT NOT NULL DEFAULT '[]';`);
+  }
   const slidesCols = sqlite.prepare(`PRAGMA table_info(slides)`).all() as { name: string }[];
   if (!slidesCols.some((c) => c.name === 'blob_url')) {
     sqlite.exec(`ALTER TABLE slides ADD COLUMN blob_url TEXT;`);

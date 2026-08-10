@@ -49,6 +49,10 @@ export function createSqliteRepo(db: AppDb): Repo {
       db.delete(brouillons).where(eq(brouillons.id, id)).run();
     },
 
+    async deleteSlides(brouillonId: string): Promise<void> {
+      db.delete(slides).where(eq(slides.brouillonId, brouillonId)).run();
+    },
+
     async getCharte(id: string): Promise<CharteRow | undefined> {
       return db.select().from(chartes).where(eq(chartes.id, id)).get();
     },
