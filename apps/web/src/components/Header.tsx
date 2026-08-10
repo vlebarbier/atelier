@@ -1,4 +1,4 @@
-import { MagnifyingGlass, SquaresFour, List, ArrowClockwise } from '@phosphor-icons/react';
+import { MagnifyingGlass, SquaresFour, List, ArrowClockwise, Plus } from '@phosphor-icons/react';
 
 export type Vue = 'grille' | 'liste';
 
@@ -9,9 +9,10 @@ interface HeaderProps {
   onRefresh: () => void;
   refreshing: boolean;
   onOpenPalette: () => void;
+  onNew: () => void;
 }
 
-export function Header({ crumb, vue, onVueChange, onRefresh, refreshing, onOpenPalette }: HeaderProps) {
+export function Header({ crumb, vue, onVueChange, onRefresh, refreshing, onOpenPalette, onNew }: HeaderProps) {
   return (
     <header>
       <div className="crumb">
@@ -33,6 +34,10 @@ export function Header({ crumb, vue, onVueChange, onRefresh, refreshing, onOpenP
             <List size={15} />
           </button>
         </div>
+        <button className="primary" onClick={onNew} title="Nouveau brouillon">
+          <Plus size={14} weight="bold" />
+          <span>Nouveau</span>
+        </button>
         <button className="ghost" onClick={onRefresh} disabled={refreshing}>
           <ArrowClockwise size={14} className={refreshing ? 'spin' : ''} />
           <span>{refreshing ? 'Actualisation...' : 'Actualiser'}</span>

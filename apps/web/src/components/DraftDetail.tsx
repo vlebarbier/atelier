@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, Code, CheckCircle, FileCode,
+  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, Code, CheckCircle, FileCode, Trash,
   InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import type { BrouillonDetail, ReseauEntry, Statut } from '../api';
-import { fetchBrouillon, slideUrl, updateBrouillon } from '../api';
+import { deleteBrouillon, fetchBrouillon, slideUrl, updateBrouillon } from '../api';
 import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS } from '../format';
 
 const RESEAU_ICONES: Record<string, Icon> = {
@@ -19,11 +19,12 @@ const RESEAU_ICONES: Record<string, Icon> = {
 interface DraftDetailProps {
   id: string;
   onClose: () => void;
+  onDelete: () => void;
 }
 
 const REVISION_DEBOUNCE_MS = 400;
 
-export function DraftDetail({ id, onClose }: DraftDetailProps) {
+export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   const [brouillon, setBrouillon] = useState<BrouillonDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +117,18 @@ export function DraftDetail({ id, onClose }: DraftDetailProps) {
       <div className="dhead">
         <h2>{brouillon.titre}</h2>
         <div className="controls">
+          <button
+            className="ghost danger"
+            type="button"
+            onClick={() => {
+              if (window.confirm('Supprimer ce brouillon ? Cette action est definitive.')) {
+                onDelete();
+              }
+            }}
+            title="Supprimer le brouillon"
+          >
+            <Trash size={14} /> Supprimer
+          </button>
           <div className="statut-choix">
             {STATUTS_ORDRE.map((s) => (
               <button

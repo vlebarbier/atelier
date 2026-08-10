@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header, type Vue } from './components/Header';
 import { Toolbar } from './components/Toolbar';
-import { DraftGrid } from './components/DraftGrid';
+import { DraftGrid, GridSkeleton } from './components/DraftGrid';
 import { DraftDetail } from './components/DraftDetail';
 import { CommandPalette } from './components/CommandPalette';
 import { CalendarPage } from './pages/CalendarPage';
 import { BrandPage } from './pages/BrandPage';
 import { ActivityPage } from './pages/ActivityPage';
-import { fetchBrouillons, type Brouillon, type Statut } from './api';
+import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
 
 const PAGE_LABELS: Record<string, string> = {
   brouillons: 'Brouillons',
@@ -72,6 +72,26 @@ export default function App() {
     load();
   }
 
+  async function createNew() {
+    try {
+      const created = await createBrouillon();
+      await load();
+      openBrouillon(created.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de création');
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await deleteBrouillon(id);
+      setSelectedId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de suppression');
+    }
+  }
+
   function navigate(nextPage: string) {
     setSelectedId(null);
     setPage(nextPage);
@@ -88,17 +108,21 @@ export default function App() {
           onRefresh={load}
           refreshing={loading}
           onOpenPalette={() => setPaletteOpen(true)}
+          onNew={createNew}
         />
         <main>
           {page === 'brouillons' && selectedId && (
-            <DraftDetail id={selectedId} onClose={closeBrouillon} />
+            <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} />
           )}
 
           {page === 'brouillons' && !selectedId && (
             <>
               <Toolbar filtre={filtre} onFiltreChange={setFiltre} count={filtered.length} />
               {error && <div className="empty">Erreur, {error}</div>}
-              {!error && <DraftGrid brouillons={filtered} vue={vue} onOpen={openBrouillon} />}
+              {!error && loading && <GridSkeleton />}
+              {!error && !loading && (
+                <DraftGrid brouillons={filtered} vue={vue} onOpen={openBrouillon} onNew={createNew} />
+              )}
             </>
           )}
 
