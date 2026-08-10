@@ -23,6 +23,12 @@ export async function ensurePgTables(pool: Pool): Promise<void> {
       position INTEGER NOT NULL,
       blob_url TEXT
     );
+    CREATE TABLE IF NOT EXISTS chartes (
+      id TEXT PRIMARY KEY,
+      nom TEXT NOT NULL DEFAULT 'Charte principale',
+      data TEXT NOT NULL DEFAULT '{}',
+      updated_at TEXT
+    );
   `);
 
   // Migration douce : ajoute les colonnes si la table existait dans une version anterieure.

@@ -23,5 +23,14 @@ export const slides = pgTable('slides', {
   blobUrl: text('blob_url')
 });
 
+/** Charte graphique du client : couleurs, polices, logos (JSON). Une seule charte pour l'instant. */
+export const chartes = pgTable('chartes', {
+  id: text('id').primaryKey(),
+  nom: text('nom').notNull().default('Charte principale'),
+  data: text('data').notNull().default('{}'),
+  updatedAt: text('updated_at')
+});
+
 export type BrouillonPg = typeof brouillons.$inferSelect;
 export type SlidePg = typeof slides.$inferSelect;
+export type ChartePg = typeof chartes.$inferSelect;

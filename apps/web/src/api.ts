@@ -22,6 +22,13 @@ export interface BrouillonDetail extends Brouillon {
   sourceHtml?: string | null;
 }
 
+export interface Charte {
+  id: string;
+  nom: string;
+  data: string;
+  updatedAt: string | null;
+}
+
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -70,6 +77,37 @@ export async function deleteBrouillon(id: string): Promise<{ ok: boolean }> {
     method: 'DELETE'
   });
   return handle<{ ok: boolean }>(res);
+}
+
+export async function fetchCharte(): Promise<Charte> {
+  const res = await fetch(apiUrl('/api/charte'));
+  return handle<Charte>(res);
+}
+
+export async function saveCharte(nom: string, data: string): Promise<boolean> {
+  const res = await fetch(apiUrl('/api/charte'), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nom, data })
+  });
+  return res.ok;
+}
+
+export interface ImportCharteResult {
+  id: string;
+  nom: string;
+  data: string;
+  updatedAt: string | null;
+  stats: { couleurs: number; polices: number; rayons: number; logos: number };
+}
+
+export async function importCharte(css: string, nom?: string): Promise<ImportCharteResult> {
+  const res = await fetch(apiUrl('/api/charte/import'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ css, nom })
+  });
+  return handle<ImportCharteResult>(res);
 }
 
 export async function updateBrouillon(

@@ -79,6 +79,47 @@ export function createApp(repo: Repo, options: AppOptions) {
     return c.json({ ok: true });
   });
 
+  app.get('/api/charte', async (c) => {
+    const charte = await repo.getCharte('principale');
+    if (!charte) return c.json({ id: 'principale', nom: 'Charte principale', data: '{}', updatedAt: null });
+    return c.json({ id: charte.id, nom: charte.nom, data: charte.data, updatedAt: charte.updatedAt });
+  });
+
+  app.put('/api/charte', async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as { nom?: string; data?: unknown };
+    const nom = (body.nom || 'Charte principale').trim();
+    const data = typeof body.data === 'string' ? body.data : JSON.stringify(body.data || {});
+    const updatedAt = new Date().toISOString();
+    await repo.saveCharte({ id: 'principale', nom, data, updatedAt });
+    return c.json({ id: 'principale', nom, data, updatedAt });
+  });
+
+  app.post('/api/charte/import', async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as { css?: string; nom?: string };
+    const css = body.css || '';
+    if (!css.trim()) return c.json({ error: 'Aucun CSS fourni' }, 400);
+
+    const { parseCssCharte } = await import('./charte-parser.js');
+    const parsed = parseCssCharte(css);
+    const nom = (body.nom || 'Charte importee').trim();
+    const updatedAt = new Date().toISOString();
+    const data = JSON.stringify(parsed);
+
+    await repo.saveCharte({ id: 'principale', nom, data, updatedAt });
+    return c.json({
+      id: 'principale',
+      nom,
+      data,
+      updatedAt,
+      stats: {
+        couleurs: Object.keys(parsed.couleurs).length,
+        polices: [parsed.polices.titre, parsed.polices.texte].filter(Boolean).length,
+        rayons: Object.keys(parsed.rayons).length,
+        logos: parsed.logos.length
+      }
+    });
+  });
+
   app.get('/api/brouillon/:id', async (c) => {
     const id = c.req.param('id');
     const row = await repo.getBrouillon(id);
