@@ -42,6 +42,7 @@ export interface NewBrouillon {
   statut: string;
   notes: string;
   reseaux: string;
+  sourceHtml?: string | null;
   updatedAt: string | null;
 }
 
@@ -61,4 +62,5 @@ export interface Repo {
   updateBrouillon(id: string, patch: BrouillonPatch): Promise<void>;
   insertBrouillon(row: NewBrouillon): Promise<void>;
   insertSlide(row: NewSlide): Promise<void>;
+  deleteBrouillon(id: string): Promise<void>;
 }

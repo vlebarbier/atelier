@@ -42,6 +42,11 @@ export function createSqliteRepo(db: AppDb): Repo {
 
     async insertSlide(row: NewSlide): Promise<void> {
       db.insert(slides).values(row).run();
+    },
+
+    async deleteBrouillon(id: string): Promise<void> {
+      db.delete(slides).where(eq(slides.brouillonId, id)).run();
+      db.delete(brouillons).where(eq(brouillons.id, id)).run();
     }
   };
 }

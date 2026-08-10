@@ -39,6 +39,11 @@ export function createPgRepo(db: AppDbPg): Repo {
 
     async insertSlide(row: NewSlide): Promise<void> {
       await db.insert(slides).values(row);
+    },
+
+    async deleteBrouillon(id: string): Promise<void> {
+      await db.delete(slides).where(eq(slides.brouillonId, id));
+      await db.delete(brouillons).where(eq(brouillons.id, id));
     }
   };
 }

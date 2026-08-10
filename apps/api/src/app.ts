@@ -55,6 +55,30 @@ export function createApp(repo: Repo, options: AppOptions) {
     return c.json(result);
   });
 
+  app.post('/api/brouillons', async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as { titre?: string };
+    const id = `brouillon-${Date.now().toString(36)}`;
+    const titre = (body.titre || 'Nouveau brouillon').trim();
+    await repo.insertBrouillon({
+      id,
+      titre,
+      statut: 'brouillon',
+      notes: '',
+      reseaux: '{}',
+      sourceHtml: null,
+      updatedAt: new Date().toISOString()
+    });
+    return c.json({ id, titre, statut: 'brouillon', slideCount: 0, slides: [], updated: new Date().toISOString() }, 201);
+  });
+
+  app.delete('/api/brouillon/:id', async (c) => {
+    const id = c.req.param('id');
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+    await repo.deleteBrouillon(id);
+    return c.json({ ok: true });
+  });
+
   app.get('/api/brouillon/:id', async (c) => {
     const id = c.req.param('id');
     const row = await repo.getBrouillon(id);

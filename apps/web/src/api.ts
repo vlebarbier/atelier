@@ -51,9 +51,25 @@ export async function fetchBrouillons(): Promise<Brouillon[]> {
   return handle<Brouillon[]>(res);
 }
 
+export async function createBrouillon(titre?: string): Promise<Brouillon> {
+  const res = await fetch(apiUrl('/api/brouillons'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(titre ? { titre } : {})
+  });
+  return handle<Brouillon>(res);
+}
+
 export async function fetchBrouillon(id: string): Promise<BrouillonDetail> {
   const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}`));
   return handle<BrouillonDetail>(res);
+}
+
+export async function deleteBrouillon(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}`), {
+    method: 'DELETE'
+  });
+  return handle<{ ok: boolean }>(res);
 }
 
 export async function updateBrouillon(
