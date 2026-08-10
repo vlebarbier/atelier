@@ -216,11 +216,28 @@ main {
 /* ── Toolbar / filtres ──────────────────────────────────────────── */
 .toolbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: var(--spacing-5); }
 .toolbar button { padding: 6px 14px; font-size: 12px; }
+
+/* Filtres silencieux : texte + point, pas de pilules (direction refonte) */
+.toolbar-quiet { gap: 18px; margin-bottom: var(--spacing-4); }
+.toolbar-quiet button {
+  border: none; background: transparent; padding: 4px 2px;
+  font-size: 12.5px; color: var(--color-ink-tertiary);
+  display: inline-flex; align-items: center; gap: 7px;
+  border-bottom: 1.5px solid transparent;
+  border-radius: 0;
+}
+.toolbar-quiet button .dot { width: 6px; height: 6px; border-radius: 50%; opacity: 0.85; }
+.toolbar-quiet button:hover { color: var(--color-ink-secondary); background: transparent; transform: none; }
+.toolbar-quiet button.on { color: var(--color-ink-primary); border-bottom-color: var(--color-accent-base); font-weight: 500; }
+.toolbar-quiet .count { margin-left: auto; font-size: 11.5px; color: var(--color-ink-tertiary); }
 .toolbar button.on[data-f="tous"]        { background: color-mix(in srgb, var(--color-ink-primary) 9%, transparent); color: var(--color-ink-primary); border-color: transparent; font-weight: 600; }
 .toolbar button.on[data-f="brouillon"]   { background: var(--color-status-neutral); color: var(--color-ink-primary); border-color: transparent; font-weight: 600; }
 .toolbar button.on[data-f="a-valider"]   { background: var(--color-status-warn-soft); color: var(--color-status-warn); border-color: transparent; font-weight: 600; }
 .toolbar button.on[data-f="valide"]      { background: var(--color-status-ok-soft); color: var(--color-status-ok); border-color: transparent; font-weight: 600; }
 .toolbar button.on[data-f="publie"]      { background: var(--color-status-ok); color: #04140B; border-color: transparent; font-weight: 600; }
+
+/* Surcharge pour les filtres silencieux (spécificité attribut > classe simple) */
+.toolbar-quiet button.on[data-f] { background: transparent; color: var(--color-ink-primary); border-bottom-color: var(--color-accent-base); }
 .toolbar .count { font-size: 12px; color: var(--color-ink-tertiary); margin-left: auto; }
 
 /* ── Vue grille ─────────────────────────────────────────────────── */
@@ -279,28 +296,35 @@ main {
 .projects .card:nth-child(5) { animation-delay: 120ms; }
 .projects .card:nth-child(n+6) { animation-delay: 120ms; }
 
-/* ── Vue liste ──────────────────────────────────────────────────── */
-.list-view { display: flex; flex-direction: column; gap: 6px; }
+/* ── Vue liste (dense, direction "atelier, pas dashboard") ─────────── */
+.list-view { display: flex; flex-direction: column; gap: 2px; }
 .list-row {
   display: flex; align-items: center; gap: 14px;
-  background: var(--color-bg-level-3);
-  border: 1px solid var(--color-line-default);
-  border-radius: var(--radius-card);
-  padding: 10px 14px;
-  cursor: pointer;
-  transition: transform var(--motion-duration-fast) var(--motion-ease), border-color var(--motion-duration-fast) var(--motion-ease);
+  padding: 9px 12px;
+  border-radius: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer; position: relative;
+  transition: background var(--motion-duration-fast) var(--motion-ease);
   animation: fadeUp var(--motion-duration-medium) var(--motion-ease) backwards;
 }
-.list-row:hover { transform: translateY(-1px); border-color: var(--color-line-hover); }
-.list-row .thumb { width: 44px; height: 44px; border-radius: var(--radius-input); object-fit: cover; flex-shrink: 0; background: var(--color-bg-level-2); }
+.list-row:hover { background: var(--color-bg-level-2); }
+.list-row .thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--color-bg-level-3); }
+.list-row .thumb-empty { background: var(--color-bg-level-3); }
 .list-row .info { flex: 1; min-width: 0; }
 .list-row .info .titre {
-  font-weight: 600; font-size: var(--font-size-base); color: var(--color-ink-primary);
+  font-size: 13px; font-weight: 500; color: var(--color-ink-primary); letter-spacing: -0.005em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.list-row .info .meta { font-size: 11px; color: var(--color-ink-tertiary); margin-top: 3px; }
-.list-row .info .agent-badge { margin-top: 4px; }
-.list-row .side { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.list-row .info .meta { font-size: 11.5px; color: var(--color-ink-tertiary); margin-top: 2px; display: inline-flex; align-items: center; gap: 5px; }
+.list-row .agent-badge { flex-shrink: 0; font-size: 11px; color: var(--color-ink-tertiary); }
+.list-row .agent-badge .spark { opacity: 0.6; }
+.list-row .status-dot { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--color-ink-secondary); flex-shrink: 0; min-width: 74px; }
+.list-row .status-dot .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.list-row .row-actions { display: none; gap: 4px; flex-shrink: 0; }
+.list-row:hover .row-actions { display: inline-flex; }
+.list-row .row-actions button { padding: 5px 8px; font-size: 11.5px; }
+.list-row .row-actions .ghost { border: 1px solid transparent; background: transparent; }
+.list-row .row-actions .ghost:hover { border-color: var(--color-line-hover); }
 
 .list-view .list-row:nth-child(1) { animation-delay: 0ms; }
 .list-view .list-row:nth-child(2) { animation-delay: 30ms; }

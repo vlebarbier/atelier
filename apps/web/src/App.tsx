@@ -94,6 +94,11 @@ export default function App() {
     }
   }
 
+  function confirmDelete(id: string) {
+    const b = brouillons.find((x) => x.id === id);
+    if (window.confirm(`Supprimer « ${b?.titre ?? id} » ?`)) handleDelete(id);
+  }
+
   function navigate(nextPage: string) {
     setSelectedId(null);
     setPage(nextPage);
@@ -123,7 +128,7 @@ export default function App() {
               {error && <div className="empty">Erreur, {error}</div>}
               {!error && loading && <GridSkeleton />}
               {!error && !loading && (
-                <DraftGrid brouillons={filtered} vue={vue} onOpen={openBrouillon} onNew={createNew} />
+                <DraftGrid brouillons={filtered} vue={vue} onOpen={openBrouillon} onNew={createNew} onDelete={confirmDelete} />
               )}
             </>
           )}

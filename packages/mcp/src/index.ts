@@ -160,6 +160,56 @@ server.tool(
   }
 );
 
+// ═════════════════ BIBLIOTHEQUE (ressources) ════════════════════════════
+
+server.tool(
+  'lister_ressources',
+  'Liste les ressources de la bibliothèque (photos, PDF, pages archivées, textes) avec id, nom, type, catégorie et taille.',
+  {},
+  async () => {
+    try {
+      const data = await client.listeRessources();
+      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
+server.tool(
+  'lire_ressource',
+  'Détail d\'une ressource de la bibliothèque avec son URL de lecture. Les images/PDF sont consultables pour produire du contenu conforme à la marque.',
+  { id: z.string().describe('Identifiant de la ressource (ex: ressource-1786394332741)') },
+  async ({ id }) => {
+    try {
+      const data = await client.lireRessource(id);
+      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
+server.tool(
+  'deposer_ressource',
+  'Dépose une ressource dans la bibliothèque : soit un fichier (contenu en dataURL base64, ex: data:image/png;base64,...), soit une page archivée (sourceUrl + contenu texte). C\'est ainsi que l\'agent enrichit la mémoire du user.',
+  {
+    nom: z.string().describe('Nom de la ressource (ex: photo-muriers.png, page-accueil)'),
+    type: z.string().default('fichier').describe('Type : fichier, image, pdf, page...'),
+    categorie: z.string().default('autre').describe('Catégorie : visuel, texte, document, site...'),
+    contenu: z.string().optional().describe('Contenu : dataURL base64 pour un fichier, ou texte pour une page archivée'),
+    sourceUrl: z.string().optional().describe('URL d\'origine (pour une page archivée)')
+  },
+  async ({ nom, type, categorie, contenu, sourceUrl }) => {
+    try {
+      const data = await client.deposerRessource({ nom, type, categorie, contenu, sourceUrl });
+      return rep(true, { ...(data as Record<string, unknown>) });
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
 // ═════════════════ VISUELS ══════════════════════════════════════════════
 
 server.tool(

@@ -1,4 +1,4 @@
-import { Sparkle, Stack } from '@phosphor-icons/react';
+import { ArrowRight, Sparkle, Stack, Trash } from '@phosphor-icons/react';
 import type { Brouillon, Statut } from '../api';
 import { slideUrl } from '../api';
 import { STATUT_LABELS, formatDate, relTime } from '../format';
@@ -6,9 +6,18 @@ import { STATUT_LABELS, formatDate, relTime } from '../format';
 interface DraftListProps {
   brouillons: Brouillon[];
   onOpen: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function DraftList({ brouillons, onOpen }: DraftListProps) {
+/** Les couleurs de statut : points discrets, pas de pilules (direction "atelier, pas dashboard"). */
+const STATUT_DOT: Record<string, string> = {
+  brouillon: 'var(--color-ink-tertiary)',
+  'a-valider': 'var(--color-status-warn)',
+  valide: 'var(--color-status-ok)',
+  publie: 'var(--color-status-ok)'
+};
+
+export function DraftList({ brouillons, onOpen, onDelete }: DraftListProps) {
   return (
     <div className="list-view">
       {brouillons.map((b) => (
@@ -25,21 +34,37 @@ export function DraftList({ brouillons, onOpen }: DraftListProps) {
           {b.slides[0] ? (
             <img className="thumb" src={slideUrl(b.id, b.slides[0])} alt={b.titre} loading="lazy" />
           ) : (
-            <div className="thumb" />
+            <div className="thumb thumb-empty" />
           )}
           <div className="info">
             <div className="titre">{b.titre}</div>
             <div className="meta">
               <Stack size={11} />
-              {b.slideCount} slide{b.slideCount > 1 ? 's' : ''}, {formatDate(b.updated) || 'non date'}
-            </div>
-            <div className="agent-badge">
-              <Sparkle size={11} className="spark" />
-              <span>Genere par Hermes, {relTime(b.updated)}</span>
+              {b.slideCount} slide{b.slideCount > 1 ? 's' : ''} · {formatDate(b.updated) || 'non daté'}
             </div>
           </div>
-          <div className="side">
-            <span className={`badge badge--${b.statut}`}>{STATUT_LABELS[b.statut as Statut]}</span>
+          <div className="agent-badge" title="Produit par un agent">
+            <Sparkle size={11} className="spark" />
+            <span>généré par Hermes, {relTime(b.updated)}</span>
+          </div>
+          <div className="status-dot" title={STATUT_LABELS[b.statut as Statut] ?? b.statut}>
+            <span className="dot" style={{ background: STATUT_DOT[b.statut] ?? 'var(--color-ink-tertiary)' }} />
+            {STATUT_LABELS[b.statut as Statut] ?? b.statut}
+          </div>
+          <div className="row-actions">
+            <button type="button" className="ghost" onClick={(e) => { e.stopPropagation(); onOpen(b.id); }} title="Ouvrir">
+              <ArrowRight size={13} />
+            </button>
+            {onDelete && (
+              <button
+                type="button"
+                className="ghost danger"
+                onClick={(e) => { e.stopPropagation(); onDelete(b.id); }}
+                title="Supprimer"
+              >
+                <Trash size={13} />
+              </button>
+            )}
           </div>
         </div>
       ))}
