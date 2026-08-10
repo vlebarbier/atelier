@@ -30,21 +30,32 @@ async function handle<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/**
+ * Base de l'API. En prod, VITE_API_URL pointe vers l'API déployée
+ * (ex: https://atelier-api-three.vercel.app). En dev, vide → même origine,
+ * le proxy Vite (/api et /b) route vers l'API locale.
+ */
+const API_BASE: string = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '';
+
+function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
+
 export async function fetchBrouillons(): Promise<Brouillon[]> {
-  const res = await fetch('/api/brouillons');
+  const res = await fetch(apiUrl('/api/brouillons'));
   return handle<Brouillon[]>(res);
 }
 
 export async function fetchBrouillon(id: string): Promise<BrouillonDetail> {
-  const res = await fetch(`/api/brouillon/${encodeURIComponent(id)}`);
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}`));
   return handle<BrouillonDetail>(res);
 }
 
 export async function updateBrouillon(
   id: string,
-  patch: Partial<Pick<BrouillonDetail, 'statut' | 'notes' | 'reseaux'>>
+  patch: Partial<Pick<BrouillonDetail, 'statut' | 'notes' | 'reseaux' | 'sourceHtml'>>
 ): Promise<{ ok: boolean }> {
-  const res = await fetch(`/api/brouillon/${encodeURIComponent(id)}`, {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch)
