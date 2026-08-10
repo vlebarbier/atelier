@@ -91,4 +91,9 @@ export class AtelierClient {
       body: JSON.stringify({ reseaux: { [reseau]: { caption, hashtags } } })
     });
   }
+
+  /** GET /api/charte → la charte graphique active (couleurs, polices, logos, ton). */
+  async getCharte(): Promise<unknown> {
+    return this.request('/api/charte');
+  }
 }
