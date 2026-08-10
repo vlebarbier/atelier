@@ -450,7 +450,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                   <textarea
                     id="r-caption"
                     rows={5}
-                    placeholder={`Texte du post pour ${RESEAUX_LABELS[reseauActif]}`}
+                    placeholder={`Ajouter la légende pour ${RESEAUX_LABELS[reseauActif]}`}
                     value={currentReseau.caption || ''}
                     onChange={(e) => {
                       if (!brouillon) return;
@@ -496,6 +496,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                       onClick={() => saveReseau(reseauActif, { statut: s as Statut })}
                       type="button"
                     >
+                      <span className={`dot dot--${s}`} />
                       {STATUT_LABELS[s]}
                     </button>
                   ))}
