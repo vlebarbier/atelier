@@ -26,9 +26,10 @@ interface DraftGridProps {
   vue: Vue;
   onOpen: (id: string) => void;
   onNew: () => void;
+  onDelete?: (id: string) => void;
 }
 
-export function DraftGrid({ brouillons, vue, onOpen, onNew }: DraftGridProps) {
+export function DraftGrid({ brouillons, vue, onOpen, onNew, onDelete }: DraftGridProps) {
   if (brouillons.length === 0) {
     return (
       <div className="empty-guide">
@@ -56,7 +57,7 @@ export function DraftGrid({ brouillons, vue, onOpen, onNew }: DraftGridProps) {
   }
 
   if (vue === 'liste') {
-    return <DraftList brouillons={brouillons} onOpen={onOpen} />;
+    return <DraftList brouillons={brouillons} onOpen={onOpen} onDelete={onDelete} />;
   }
 
   return (

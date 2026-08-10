@@ -96,4 +96,22 @@ export class AtelierClient {
   async getCharte(): Promise<unknown> {
     return this.request('/api/charte');
   }
+
+  /** GET /api/ressources → liste des ressources de la bibliotheque. */
+  async listeRessources(): Promise<unknown> {
+    return this.request('/api/ressources');
+  }
+
+  /** GET /api/ressource/:id → detail (avec URL de lecture). */
+  async lireRessource(id: string): Promise<unknown> {
+    return this.request(`/api/ressource/${encodeURIComponent(id)}`);
+  }
+
+  /** POST /api/ressources → depose une ressource (fichier base64 ou page archivee). */
+  async deposerRessource(payload: { nom: string; type?: string; categorie?: string; contenu?: string; sourceUrl?: string }): Promise<unknown> {
+    return this.request('/api/ressources', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
 }

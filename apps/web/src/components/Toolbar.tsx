@@ -6,17 +6,18 @@ interface ToolbarProps {
   count: number;
 }
 
-const FILTRES: { id: Statut | 'tous'; label: string }[] = [
+/** Les filtres silencieux : texte + point colore, pas de pilules (direction refonte). */
+const FILTRES: { id: Statut | 'tous'; label: string; dot?: string }[] = [
   { id: 'tous', label: 'Tous' },
-  { id: 'brouillon', label: 'Brouillon' },
-  { id: 'a-valider', label: 'A valider' },
-  { id: 'valide', label: 'Valide' },
-  { id: 'publie', label: 'Publie' }
+  { id: 'brouillon', label: 'Brouillon', dot: 'var(--color-ink-tertiary)' },
+  { id: 'a-valider', label: 'A valider', dot: 'var(--color-status-warn)' },
+  { id: 'valide', label: 'Valide', dot: 'var(--color-status-ok)' },
+  { id: 'publie', label: 'Publie', dot: 'var(--color-status-ok)' }
 ];
 
 export function Toolbar({ filtre, onFiltreChange, count }: ToolbarProps) {
   return (
-    <div className="toolbar">
+    <div className="toolbar toolbar-quiet">
       {FILTRES.map((f) => (
         <button
           key={f.id}
@@ -24,6 +25,7 @@ export function Toolbar({ filtre, onFiltreChange, count }: ToolbarProps) {
           data-f={f.id}
           onClick={() => onFiltreChange(f.id)}
         >
+          {f.dot && <span className="dot" style={{ background: f.dot }} />}
           {f.label}
         </button>
       ))}
