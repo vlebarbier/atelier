@@ -140,4 +140,85 @@ Hypothèses de notation (solo dev, scale 1-10 pour Reach=nombre de cas d'usage t
 
 ---
 
+## 8. Problèmes à résoudre + features prioritaires, page par page
+
+> Méthode : pour chaque page, on nomme le problème utilisateur concret (pas le feature),
+> puis les features classées P0 (débloque le cœur), P1 (renforce), P2 (polish/scale).
+> Révisé le 10/08/2026 après livraison de l'import de charte (issue #3).
+
+### Page Brouillons (grille + détail) — LE cœur du produit
+
+**Problèmes utilisateur**
+1. Je ne sais pas d'où vient ce brouillon, qui l'a produit, quand. (traçabilité)
+2. Je dois valider un contenu vite, mais la révision slide par slide + par réseau est dispersée.
+3. Un agent m'envoie son HTML : je ne sais pas où le déposer, ni si le rendu sera fidèle.
+4. Je veux savoir si ce brouillon respecte ma charte avant de le valider.
+5. Je publie sur plusieurs réseaux : je perds du temps à décliner/adapter chaque format.
+
+**Features**
+- P0 — **Déposer la source** : bouton « Déposer le HTML » (coller/fichier) dans la vue détail → met à jour sourceHtml → régénère les slides. (Aujourd'hui seul le MCP set_source le fait ; l'UI rend le réceptacle utilisable sans agent.)
+- P0 — **Badge charte** sur chaque carte : « ✓ conforme » ou « ⚠ hors charte » selon les couleurs/polices détectées vs charte active. (La charte est stockée ; il manque le contrôle automatisé sur les slides/source.)
+- P1 — **Journal d'activité par brouillon** : qui (agent ? nom), quand, quelle action (déposé, modifié, validé). Alimenté par l'API, lu dans le détail.
+- P1 — **Filtre par agent** dans la grille (à côté des filtres de statut) : « tous / Hermes / Claude / manuel ».
+- P1 — **Comparaison de versions** : voir la diff entre deux versions de sourceHtml, restaurer.
+- P2 — Recherche plein texte dans les brouillons (titre, notes, source).
+
+### Page Calendrier — la sortie (publication)
+
+**Problèmes**
+1. Je ne sais pas quand chaque contenu part, ni sur quel réseau.
+2. Je veux planifier ma semaine d'un coup d'œil sans ouvrir chaque brouillon.
+3. La publication est manuelle (workflow inaliénable) : il me faut un rappel fiable.
+
+**Features**
+- P0 — **Carte brouillon par jour + réseau** : chaque jour affiche les brouillons validés programmés (titre, réseau, statut).
+- P1 — **Glisser-déposer** d'un brouillon validé sur une date → planifie.
+- P1 — **Rappel de publication** : notification (email/Slack) quand un brouillon validé est programmé le jour J.
+- P2 — Vue semaine/mois, zones de temps par réseau.
+
+### Page Charte graphique — le différenciateur (livré : import + éditeur)
+
+**Problèmes**
+1. J'ai une DA (CSS d'agent, Claude Design, Figma) et je ne veux pas la ressaisir.
+2. Je ne sais pas si les productions de mes agents respectent ma charte.
+3. Ma charte évolue : je dois pouvoir la mettre à jour sans casser le pipeline.
+
+**Features**
+- ✅ P0 — **Importer un CSS** : collage → parsing (couleurs, polices, rayons, logos) → stockage. (LIVRÉ, PR #16.)
+- ✅ P0 — **Éditer** : nom, couleurs (hex/picker), polices, logos. (LIVRÉ.)
+- P1 — **Injection dans le rendu** : les slides générées utilisent les tokens de la charte (polices/couleurs) — la charte devient réellement la source du rendu.
+- P1 — **Injection dans les prompts agents** : l'agent qui produit reçoit la charte dans ses instructions (via MCP) → production conforme d'emblée.
+- P1 — **Détection de conformité** : badge « conforme / hors charte » sur les brouillons (alimente le badge P0 de la grille).
+- P2 — Import depuis Figma (fichier .fig/.json de tokens), historique de versions de la charte.
+
+### Page Activité IA — la confiance
+
+**Problèmes**
+1. Les agents travaillent sans que je voie ce qu'ils font.
+2. Je ne peux pas auditer : qu'est-ce qui a été produit par qui, quand, et est-ce resté conforme ?
+
+**Features**
+- P0 — **Journal horodaté** : liste des actions (agent, brouillon, action, timestamp) — alimentée par l'API à chaque écriture.
+- P1 — **Filtres** : par agent, par brouillon, par type d'action.
+- P2 — Métriques : volume produit par agent/semaine, taux de validation.
+
+### Hors périmètre (rappel, pour éviter le scope creep)
+
+- Génération d'images (on rend, on ne génère pas)
+- Programmation auto de la publication (Postiz s'y branche, workflow manuel conservé)
+- IA conversationnelle dans l'outil
+- Auth/multi-clients tant que le MVP n'a pas prouvé la boucle
+
+---
+
+## 9. Ordre d'implémentation recommandé (prochaines 2 semaines)
+
+1. **Déposer la source via l'UI** (P0 grille) — ~2j, rend le réceptacle complet sans MCP.
+2. **Journal d'activité + filtre agent** (P1) — ~2j, la confiance.
+3. **Injection charte dans le rendu** (P1 charte) — ~3j, le différenciateur devient visible.
+4. **Badge conformité** (P0 grille + P1 charte) — ~2j, boucle charte bouclée.
+5. **Calendrier : carte + glisser-déposer** (P0) — ~2j, la sortie.
+
+---
+
 *Généré via skills PM (product-strategy-session, roadmap-planning, positioning-statement). À revoir après 2 semaines d'usage réel.*
