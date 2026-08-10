@@ -257,22 +257,39 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   const currentSlideFichier = brouillon.slides[slide];
 
   return (
-    <div id="detail">
-      <div className="back">
-        <button
-          type="button"
-          onClick={() => {
-            onClose();
-          }}
-        >
-          <ArrowLeft size={14} /> Retour a la grille
-        </button>
-      </div>
-      <div className="dhead">
-        <h2>{brouillon.titre}</h2>
-        <div className="controls">
+    <div id="detail" className="detail-shell">
+      <header className="detail-bar">
+        <div className="l">
+          <button className="back" type="button" onClick={onClose}>
+            <ArrowLeft size={13} /> Brouillons
+          </button>
+          <span className="sep">/</span>
+          <span className="title" title={brouillon.titre}>{brouillon.titre}</span>
+        </div>
+        <div className="r">
+          <div className="statut-group">
+            {STATUTS_ORDRE.map((s) => (
+              <button
+                key={s}
+                className={brouillon.statut === s ? `on on--${s}` : ''}
+                onClick={() => setStatut(s as Statut)}
+                type="button"
+              >
+                <span className={`dot dot--${s}`} />
+                {STATUT_LABELS[s]}
+              </button>
+            ))}
+          </div>
           <button
-            className="ghost danger"
+            type="button"
+            className={`src-toggle${showSource ? ' on' : ''}`}
+            onClick={() => setShowSource((s) => !s)}
+            title="Afficher la source HTML du document"
+          >
+            <Code size={13} /> Source
+          </button>
+          <button
+            className="delete"
             type="button"
             onClick={() => {
               if (window.confirm('Supprimer ce brouillon ? Cette action est definitive.')) {
@@ -281,82 +298,38 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
             }}
             title="Supprimer le brouillon"
           >
-            <Trash size={14} /> Supprimer
+            <Trash size={13} /> Supprimer
           </button>
-          <div className="statut-choix">
-            {STATUTS_ORDRE.map((s) => (
-              <button
-                key={s}
-                className={brouillon.statut === s ? `on--${s}` : ''}
-                onClick={() => setStatut(s as Statut)}
-                type="button"
-              >
-                {STATUT_LABELS[s]}
-              </button>
-            ))}
-          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="notes">
-        <label className="notes-label" htmlFor="notes">
-          Notes de revision
-        </label>
-        <textarea
-          id="notes"
-          placeholder="Notes de revision"
-          value={notes}
-          onChange={(e) => onNotesChange(e.target.value)}
-        />
-      </div>
-
-      <div className="notes checklist-block">
-        <label className="notes-label">Checklist de validation</label>
-        {checklist.length === 0 ? (
-          <button className="ghost" type="button" onClick={ensureChecklist}>
-            Initialiser la checklist
-          </button>
-        ) : (
-          <div className="checklist-items">
-            {checklist.map((c) => (
-              <label key={c.id} className={`checklist-item${c.checked ? ' checked' : ''}`}>
-                <input type="checkbox" checked={c.checked} onChange={() => toggleChecklist(c.id)} />
-                <span>{c.label}</span>
-              </label>
-            ))}
-            <div className="checklist-progress">
-              {checklist.filter((c) => c.checked).length}/{checklist.length} verifies
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="dbody">
-        <div>
+      <div className="detail-body">
+        <div className="detail-stage">
           {brouillon.slides.length > 0 && currentSlideFichier ? (
             <>
               <div className="media-frame">
                 <div className="slider">
                   <img id="slide-img" src={slideUrl(brouillon.id, currentSlideFichier)} alt="" />
-                  <div className="nav">
-                    <button
-                      type="button"
-                      onClick={() => setSlide((s) => (s - 1 + brouillon.slides.length) % brouillon.slides.length)}
-                    >
-                      <CaretLeft size={14} /> Precedente
-                    </button>
-                    <span className="counter">
-                      {slide + 1} / {brouillon.slideCount}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setSlide((s) => (s + 1) % brouillon.slides.length)}
-                    >
-                      Suivante <CaretRight size={14} />
-                    </button>
-                  </div>
-                  <div className="legend">{currentSlideFichier}</div>
                 </div>
+              </div>
+              <div className="stage-nav">
+                <button
+                  type="button"
+                  onClick={() => setSlide((s) => (s - 1 + brouillon.slides.length) % brouillon.slides.length)}
+                  aria-label="Slide precedente"
+                >
+                  <CaretLeft size={14} />
+                </button>
+                <span className="counter">
+                  {slide + 1} / {brouillon.slideCount}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSlide((s) => (s + 1) % brouillon.slides.length)}
+                  aria-label="Slide suivante"
+                >
+                  <CaretRight size={14} />
+                </button>
               </div>
               <div className="thumbs">
                 {brouillon.slides.map((s, i) => (
@@ -375,130 +348,162 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
           )}
         </div>
 
-        <div className="panel">
-          <div className="panel-head">
-            <h3>Legendes et declinaisons</h3>
-            <button
-              type="button"
-              className={`source-toggle${showSource ? ' on' : ''}`}
-              onClick={() => setShowSource((s) => !s)}
-              title="Afficher la source HTML du document"
-            >
-              <Code size={13} /> Source
-            </button>
-          </div>
-          {showSource ? (
-            <div className="source-panel">
-              <textarea
-                className="source-textarea"
-                value={sourceDraft || brouillon.sourceHtml || ''}
-                onChange={(e) => setSourceDraft(e.target.value)}
-                placeholder="Collez ici le HTML produit par votre agent, ou importez un fichier .html"
-                rows={10}
-                aria-label="Source HTML du document"
-              />
-              <div className="source-actions">
-                <label className="ghost file-label" role="button">
-                  <FileCode size={13} /> Importer un fichier .html
-                  <input type="file" accept=".html,.htm" onChange={onSourceFile} hidden />
-                </label>
-                <button className="ghost" type="button" onClick={onDeposerSource} disabled={sourceBusy || !sourceDraft.trim()}>
-                  <Check size={13} /> {sourceBusy ? 'Dépôt...' : 'Déposer la source'}
-                </button>
-                <button className="primary" type="button" onClick={onRegenerer} disabled={rendering}>
-                  {rendering ? 'Rendu en cours...' : 'Régénérer les slides'}
-                </button>
-              </div>
-              {sourceMsg && (
-                <div className={`source-msg ${sourceMsg.type}`}>
-                  {sourceMsg.type === 'ok' ? <CheckCircle size={13} /> : <Check size={13} />} {sourceMsg.text}
-                </div>
-              )}
-              {brouillon.sourceHtml && !sourceDraft && (
-                <div className="source-meta">
-                  <CheckCircle size={13} /> Document HTML de l'agent, {brouillon.sourceHtml.length} caracteres
-                </div>
-              )}
+        <aside className="side-panel">
+          <div className="sp-section">
+            <div className="sp-label">
+              <span>Notes de revision</span>
+              <span className={`saved${savedFlash ? ' show' : ''}`}>
+                <Check size={11} weight="bold" /> Enregistre
+              </span>
             </div>
-          ) : (
-          <>
-          <div className="reseau-tabs">
-            {RESEAUX.map((r) => {
-              const Icon = RESEAU_ICONES[r] || InstagramLogo;
-              return (
-                <button
-                  key={r}
-                  className={r === reseauActif ? 'active' : ''}
-                  onClick={() => setReseauActif(r)}
-                  type="button"
-                >
-                  <Icon size={14} weight="regular" />
-                  <span>{RESEAUX_LABELS[r] || r}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="field">
-            <label htmlFor="r-caption">Legende</label>
             <textarea
-              id="r-caption"
-              rows={7}
-              placeholder={`Texte du post pour ${RESEAUX_LABELS[reseauActif]}`}
-              value={currentReseau.caption || ''}
-              onChange={(e) => {
-                if (!brouillon) return;
-                setBrouillon({
-                  ...brouillon,
-                  reseaux: {
-                    ...brouillon.reseaux,
-                    [reseauActif]: { ...currentReseau, caption: e.target.value }
-                  }
-                });
-              }}
-              onBlur={(e) => saveReseau(reseauActif, { caption: e.target.value })}
+              className="sp-textarea"
+              placeholder="Notes de revision"
+              value={notes}
+              onChange={(e) => onNotesChange(e.target.value)}
             />
-            <div className="counter">
-              <span>{(currentReseau.caption || '').length}</span> caracteres
+          </div>
+
+          <div className="sp-section">
+            <div className="sp-label">
+              <span>Checklist de validation</span>
+              {checklist.length > 0 && (
+                <span className="chip">
+                  {checklist.filter((c) => c.checked).length}/{checklist.length}
+                </span>
+              )}
             </div>
-          </div>
-          <div className="field">
-            <label htmlFor="r-hashtags">Hashtags</label>
-            <input
-              id="r-hashtags"
-              value={currentReseau.hashtags || ''}
-              placeholder="#Bordeaux #Conciergerie"
-              onChange={(e) => {
-                if (!brouillon) return;
-                setBrouillon({
-                  ...brouillon,
-                  reseaux: {
-                    ...brouillon.reseaux,
-                    [reseauActif]: { ...currentReseau, hashtags: e.target.value }
-                  }
-                });
-              }}
-              onBlur={(e) => saveReseau(reseauActif, { hashtags: e.target.value })}
-            />
-          </div>
-          <div className="reseau-statut">
-            <span className="reseau-statut-label">Statut {RESEAUX_LABELS[reseauActif]}</span>
-            {STATUTS_ORDRE.map((s) => (
-              <button
-                key={s}
-                className={(currentReseau.statut || 'brouillon') === s ? `on--${s}` : ''}
-                onClick={() => saveReseau(reseauActif, { statut: s as Statut })}
-                type="button"
-              >
-                {STATUT_LABELS[s]}
+            {checklist.length === 0 ? (
+              <button className="ghost" type="button" onClick={ensureChecklist}>
+                Initialiser la checklist
               </button>
-            ))}
+            ) : (
+              <div className="checklist-items">
+                {checklist.map((c) => (
+                  <label key={c.id} className={`checklist-item${c.checked ? ' checked' : ''}`}>
+                    <input type="checkbox" checked={c.checked} onChange={() => toggleChecklist(c.id)} />
+                    <span>{c.label}</span>
+                  </label>
+                ))}
+                <div className="checklist-progress">
+                  {checklist.filter((c) => c.checked).length}/{checklist.length} verifies
+                </div>
+              </div>
+            )}
           </div>
-          <div className={`saved${savedFlash ? ' show' : ''}`}>
-            <Check size={13} weight="bold" /> Enregistre
+
+          <div className="sp-section">
+            <div className="sp-label">Legendes et declinaisons</div>
+            {showSource ? (
+              <div className="source-panel">
+                <textarea
+                  className="source-textarea"
+                  value={sourceDraft || brouillon.sourceHtml || ''}
+                  onChange={(e) => setSourceDraft(e.target.value)}
+                  placeholder="Collez ici le HTML produit par votre agent, ou importez un fichier .html"
+                  rows={10}
+                  aria-label="Source HTML du document"
+                />
+                <div className="source-actions">
+                  <label className="ghost file-label" role="button">
+                    <FileCode size={13} /> Importer un fichier .html
+                    <input type="file" accept=".html,.htm" onChange={onSourceFile} hidden />
+                  </label>
+                  <button className="ghost" type="button" onClick={onDeposerSource} disabled={sourceBusy || !sourceDraft.trim()}>
+                    <Check size={13} /> {sourceBusy ? 'Depot...' : 'Deposer la source'}
+                  </button>
+                  <button className="primary" type="button" onClick={onRegenerer} disabled={rendering}>
+                    {rendering ? 'Rendu en cours...' : 'Regenerer les slides'}
+                  </button>
+                </div>
+                {sourceMsg && (
+                  <div className={`source-msg ${sourceMsg.type}`}>
+                    {sourceMsg.type === 'ok' ? <CheckCircle size={13} /> : <Check size={13} />} {sourceMsg.text}
+                  </div>
+                )}
+                {brouillon.sourceHtml && !sourceDraft && (
+                  <div className="source-meta">
+                    <CheckCircle size={13} /> Document HTML de l'agent, {brouillon.sourceHtml.length} caracteres
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="reseau-tabs">
+                  {RESEAUX.map((r) => {
+                    const Icon = RESEAU_ICONES[r] || InstagramLogo;
+                    return (
+                      <button
+                        key={r}
+                        className={r === reseauActif ? 'active' : ''}
+                        onClick={() => setReseauActif(r)}
+                        type="button"
+                      >
+                        <Icon size={14} weight="regular" />
+                        <span>{RESEAUX_LABELS[r] || r}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="field">
+                  <label htmlFor="r-caption">Legende</label>
+                  <textarea
+                    id="r-caption"
+                    rows={5}
+                    placeholder={`Texte du post pour ${RESEAUX_LABELS[reseauActif]}`}
+                    value={currentReseau.caption || ''}
+                    onChange={(e) => {
+                      if (!brouillon) return;
+                      setBrouillon({
+                        ...brouillon,
+                        reseaux: {
+                          ...brouillon.reseaux,
+                          [reseauActif]: { ...currentReseau, caption: e.target.value }
+                        }
+                      });
+                    }}
+                    onBlur={(e) => saveReseau(reseauActif, { caption: e.target.value })}
+                  />
+                  <div className="counter">
+                    <span>{(currentReseau.caption || '').length}</span> caracteres
+                  </div>
+                </div>
+                <div className="field">
+                  <label htmlFor="r-hashtags">Hashtags</label>
+                  <input
+                    id="r-hashtags"
+                    value={currentReseau.hashtags || ''}
+                    placeholder="#Bordeaux #Conciergerie"
+                    onChange={(e) => {
+                      if (!brouillon) return;
+                      setBrouillon({
+                        ...brouillon,
+                        reseaux: {
+                          ...brouillon.reseaux,
+                          [reseauActif]: { ...currentReseau, hashtags: e.target.value }
+                        }
+                      });
+                    }}
+                    onBlur={(e) => saveReseau(reseauActif, { hashtags: e.target.value })}
+                  />
+                </div>
+                <div className="reseau-statut">
+                  <span className="reseau-statut-label">Statut {RESEAUX_LABELS[reseauActif]}</span>
+                  {STATUTS_ORDRE.map((s) => (
+                    <button
+                      key={s}
+                      className={(currentReseau.statut || 'brouillon') === s ? `on--${s}` : ''}
+                      onClick={() => saveReseau(reseauActif, { statut: s as Statut })}
+                      type="button"
+                    >
+                      {STATUT_LABELS[s]}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-          </>
-          )}
-        </div>
+        </aside>
       </div>
     </div>
   );
