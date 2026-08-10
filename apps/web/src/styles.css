@@ -630,3 +630,48 @@ main {
 .checklist-item.checked { color: var(--color-ink-primary); }
 .checklist-item.checked span { text-decoration: line-through; opacity: 0.6; }
 .checklist-progress { font-size: 11px; color: var(--color-ink-tertiary); padding: 2px 6px; }
+
+/* ── Bibliotheque (ressources) ───────────────────────────────────────── */
+.dropzone {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  border: 1.5px dashed var(--color-line-hover);
+  border-radius: var(--radius-card);
+  padding: 26px 16px;
+  color: var(--color-ink-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease), background var(--motion-duration-fast) var(--motion-ease);
+}
+.dropzone:hover, .dropzone.over { border-color: var(--color-accent-base); background: color-mix(in srgb, var(--color-accent-base) 4%, transparent); }
+.archiver-row { display: flex; gap: 8px; margin-top: 10px; }
+.archiver-row input { flex: 1; }
+.ressources-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-3); margin-top: var(--spacing-4);
+}
+.ressource-card {
+  background: var(--color-bg-level-3);
+  border: 1px solid var(--color-line-default);
+  border-radius: var(--radius-card);
+  overflow: hidden; cursor: pointer;
+  box-shadow: var(--color-shadow-sm);
+  transition: transform var(--motion-duration-fast) var(--motion-ease), border-color var(--motion-duration-fast) var(--motion-ease), box-shadow var(--motion-duration-fast) var(--motion-ease);
+}
+.ressource-card:hover { transform: translateY(-2px); border-color: var(--color-line-hover); box-shadow: var(--color-shadow-md); }
+.ressource-cover {
+  aspect-ratio: 16 / 9;
+  background: var(--color-bg-level-2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-ink-tertiary);
+}
+.ressource-body { padding: 10px 12px 12px; }
+.ressource-nom {
+  font-size: 12.5px; font-weight: 500; color: var(--color-ink-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ressource-meta { font-size: 11px; color: var(--color-ink-tertiary); margin-top: 2px; }
+.ressource-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.form-msg { font-size: 12.5px; margin-top: 10px; }
+.form-msg.err { color: var(--color-status-err); }
+.form-msg.ok { color: var(--color-status-ok); }
+.empty-sub { font-size: 12px; color: var(--color-ink-tertiary); max-width: 420px; margin: 6px auto 0; line-height: 1.5; }

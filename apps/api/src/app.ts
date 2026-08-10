@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import path from 'node:path';
 import fs from 'node:fs';
 import { updateBrouillonSchema } from './validation.js';
-import { storeSlide } from './storage/blob.js';
+import { storeSlide, storeRessource } from './storage/blob.js';
 import type { Repo } from './db/repo.js';
 
 const RESEAUX_DEFAUT = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok'];
@@ -228,6 +228,138 @@ export function createApp(repo: Repo, options: AppOptions) {
     await repo.updateBrouillon(id, { updatedAt });
 
     return c.json({ ok: true, slideCount: stored.length, slides: stored.map((s) => s.fichier) });
+  });
+
+  // ═════════════════ BIBLIOTHEQUE (ressources) ═══════════════════════════
+
+  // GET /api/ressources → liste des ressources de la bibliotheque
+  app.get('/api/ressources', async (c) => {
+    const rows = await repo.listRessources();
+    return c.json(rows.map((r) => ({
+      id: r.id,
+      nom: r.nom,
+      type: r.type,
+      categorie: r.categorie,
+      taille: r.taille,
+      sourceUrl: r.sourceUrl,
+      updated: r.updatedAt
+    })));
+  });
+
+  // GET /api/ressource/:id → detail (avec URL de lecture signee si Blob)
+  app.get('/api/ressource/:id', async (c) => {
+    const id = c.req.param('id');
+    const r = await repo.getRessource(id);
+    if (!r) return c.json({ error: 'ressource introuvable' }, 404);
+
+    let url: string | null = null;
+    if (r.blobUrl) {
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        const { issueSignedToken, presignUrl } = await import('@vercel/blob');
+        const pathname = new URL(r.blobUrl).pathname.replace(/^\//, '');
+        const signedToken = await issueSignedToken({ token: process.env.BLOB_READ_WRITE_TOKEN, pathname, operations: ['get'] });
+        const { presignedUrl } = await presignUrl(signedToken, { pathname, access: 'private', operation: 'get' });
+        url = presignedUrl;
+      } else {
+        url = r.blobUrl;
+      }
+    } else if (r.fichier) {
+      url = `/r/${id}/${r.fichier}`;
+    }
+
+    return c.json({
+      id: r.id,
+      nom: r.nom,
+      type: r.type,
+      categorie: r.categorie,
+      taille: r.taille,
+      sourceUrl: r.sourceUrl,
+      url,
+      updated: r.updatedAt
+    });
+  });
+
+  // POST /api/ressources → depose une ressource (base64) ou une page archivee (sourceUrl)
+  app.post('/api/ressources', async (c) => {
+    const body = await c.req.json().catch(() => null);
+    if (!body) return c.json({ error: 'corps JSON attendu' }, 400);
+    const nom = String(body.nom || '').trim();
+    if (!nom) return c.json({ error: 'nom requis' }, 400);
+    const type = String(body.type || 'fichier');
+    const categorie = String(body.categorie || 'autre');
+    const id = `ressource-${Date.now()}`;
+
+    // Cas 1 : page archivee (pas de fichier, juste une source URL + texte)
+    if (body.sourceUrl) {
+      const r = await repo.getRessource(id);
+      void r;
+      await repo.insertRessource({
+        id,
+        nom,
+        type: 'page',
+        categorie,
+        fichier: null,
+        blobUrl: null,
+        taille: String(body.contenu || '').length,
+        sourceUrl: String(body.sourceUrl),
+        updatedAt: new Date().toISOString()
+      });
+      return c.json({ ok: true, id });
+    }
+
+    // Cas 2 : fichier (base64)
+    if (typeof body.contenu !== 'string' || !body.contenu.startsWith('data:')) {
+      return c.json({ error: 'contenu base64 (data:...) attendu' }, 400);
+    }
+    const base64 = body.contenu.split(',')[1] ?? '';
+    const buffer = Buffer.from(base64, 'base64');
+    const extMatch = nom.match(/\.([a-zA-Z0-9]+)$/);
+    const ext = extMatch ? extMatch[1]?.toLowerCase() : 'bin';
+    const fichier = `${id}.${ext}`;
+    const stored = await storeRessource(id, fichier, buffer, options.dataDir);
+    await repo.insertRessource({
+      id,
+      nom,
+      type,
+      categorie,
+      fichier: stored.fichier,
+      blobUrl: stored.blobUrl,
+      taille: buffer.length,
+      sourceUrl: null,
+      updatedAt: new Date().toISOString()
+    });
+    return c.json({ ok: true, id });
+  });
+
+  // DELETE /api/ressource/:id
+  app.delete('/api/ressource/:id', async (c) => {
+    const id = c.req.param('id');
+    await repo.deleteRessource(id);
+    return c.json({ ok: true });
+  });
+
+  // GET /r/:id/* → sert le fichier local (mode sans Blob)
+  app.get('/r/:id/*', async (c) => {
+    const id = c.req.param('id');
+    const prefix = `/r/${id}/`;
+    const rest = c.req.path.startsWith(prefix) ? c.req.path.slice(prefix.length) : '';
+    const r = await repo.getRessource(id);
+    if (!r) return c.json({ error: 'ressource introuvable' }, 404);
+    if (r.blobUrl) {
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        const { issueSignedToken, presignUrl } = await import('@vercel/blob');
+        const pathname = new URL(r.blobUrl).pathname.replace(/^\//, '');
+        const signedToken = await issueSignedToken({ token: process.env.BLOB_READ_WRITE_TOKEN, pathname, operations: ['get'] });
+        const { presignedUrl } = await presignUrl(signedToken, { pathname, access: 'private', operation: 'get' });
+        return c.redirect(presignedUrl, 302);
+      }
+      return c.redirect(r.blobUrl, 302);
+    }
+    const p = require('node:path');
+    const fs = require('node:fs');
+    const filePath = p.join(options.dataDir, 'ressources', id, rest);
+    if (!fs.existsSync(filePath)) return c.json({ error: 'fichier introuvable' }, 404);
+    return new Response(fs.readFileSync(filePath), { headers: { 'Content-Type': 'application/octet-stream' } });
   });
 
   app.get('/b/:id/*', async (c) => {

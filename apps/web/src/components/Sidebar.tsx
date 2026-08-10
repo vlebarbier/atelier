@@ -1,4 +1,4 @@
-import { SquaresFour, CalendarBlank, PaintBrush, Sparkle } from '@phosphor-icons/react';
+import { SquaresFour, CalendarBlank, PaintBrush, Sparkle, FolderOpen } from '@phosphor-icons/react';
 
 interface SidebarProps {
   activePage: string;
@@ -8,8 +8,9 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { id: 'brouillons', label: 'Brouillons', Icon: SquaresFour },
   { id: 'calendrier', label: 'Calendrier', Icon: CalendarBlank },
+  { id: 'bibliotheque', label: 'Bibliothèque', Icon: FolderOpen },
   { id: 'charte', label: 'Charte graphique', Icon: PaintBrush },
-  { id: 'activite', label: 'Activite IA', Icon: Sparkle }
+  { id: 'activite', label: 'Activité IA', Icon: Sparkle }
 ];
 
 export function Sidebar({ activePage, onNavigate }: SidebarProps) {

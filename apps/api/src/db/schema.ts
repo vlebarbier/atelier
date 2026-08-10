@@ -43,6 +43,24 @@ export const chartes = sqliteTable('chartes', {
   updatedAt: text('updated_at')
 });
 
+/**
+ * Table ressources : la bibliotheque de contenus du user (photos, PDF, pages archivees,
+ * textes). C'est la memoire qui nourrit l'agent : il les lit pour produire et peut en deposer.
+ * Le contenu binaire va dans le Blob (cloud) ou sur disque (local) ; la table garde la reference.
+ */
+export const ressources = sqliteTable('ressources', {
+  id: text('id').primaryKey(),
+  nom: text('nom').notNull(),
+  type: text('type').notNull().default('fichier'),
+  categorie: text('categorie').notNull().default('autre'),
+  fichier: text('fichier'),
+  blobUrl: text('blob_url'),
+  taille: integer('taille').notNull().default(0),
+  sourceUrl: text('source_url'),
+  updatedAt: text('updated_at')
+});
+
 export type Brouillon = typeof brouillons.$inferSelect;
 export type Slide = typeof slides.$inferSelect;
 export type Charte = typeof chartes.$inferSelect;
+export type Ressource = typeof ressources.$inferSelect;
