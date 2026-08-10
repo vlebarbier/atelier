@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Palette, TextT, ImageSquare, Plus, Trash, FileCode, UploadSimple } from '@phosphor-icons/react';
+import { Check, Palette, TextT, ImageSquare, Plus, Trash, FileCode, UploadSimple, Quotes } from '@phosphor-icons/react';
 import tokens from '@atelier/tokens';
 import { fetchCharte, saveCharte, importCharte, type Charte } from '../api';
 
@@ -31,12 +31,16 @@ interface CharteData {
   couleurs: Record<string, string>;
   polices: { titre: string; texte: string };
   logos: string[];
+  ton: { voix: string };
+  motsEviter: string[];
 }
 
 const DEFAULT_CHARTE: CharteData = {
   couleurs: {},
   polices: { titre: '', texte: '' },
-  logos: []
+  logos: [],
+  ton: { voix: '' },
+  motsEviter: []
 };
 
 function parseCharte(data: string): CharteData {
@@ -45,7 +49,9 @@ function parseCharte(data: string): CharteData {
     return {
       couleurs: parsed.couleurs || {},
       polices: { titre: parsed.polices?.titre || '', texte: parsed.polices?.texte || '' },
-      logos: Array.isArray(parsed.logos) ? parsed.logos : []
+      logos: Array.isArray(parsed.logos) ? parsed.logos : [],
+      ton: { voix: parsed.ton?.voix || '' },
+      motsEviter: Array.isArray(parsed.motsEviter) ? parsed.motsEviter : []
     };
   } catch {
     return DEFAULT_CHARTE;
@@ -243,6 +249,40 @@ export function BrandPage() {
               placeholder="Ex: Jost"
             />
           </div>
+        </div>
+      </section>
+
+      <section className="brand-section">
+        <h3>
+          <Quotes size={13} /> Ton et brand voice
+        </h3>
+        <p className="brand-editor-sub">
+          Ces instructions sont injectées à l'agent quand il produit du contenu : il écrit dans votre ton,
+          jamais à côté.
+        </p>
+        <div className="field">
+          <label htmlFor="ton-voix">Voix (comment on parle)</label>
+          <textarea
+            id="ton-voix"
+            rows={3}
+            value={charte.ton.voix}
+            onChange={(e) => setCharte((c) => ({ ...c, ton: { voix: e.target.value } }))}
+            placeholder="Ex: expert ami, pas agence. Direct, sans jargon IA. Des chiffres, pas des adjectifs."
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="mots-eviter">Mots à éviter (séparés par des virgules)</label>
+          <input
+            id="mots-eviter"
+            value={charte.motsEviter.join(', ')}
+            onChange={(e) =>
+              setCharte((c) => ({
+                ...c,
+                motsEviter: e.target.value.split(',').map((m) => m.trim()).filter(Boolean)
+              }))
+            }
+            placeholder="Ex: ultra, maximum, clé en main, exceptionnel"
+          />
         </div>
       </section>
 

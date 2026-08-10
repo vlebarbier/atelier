@@ -100,6 +100,66 @@ server.tool(
   }
 );
 
+// ═════════════════ CHARTE GRAPHIQUE ══════════════════════════════════════
+
+server.tool(
+  'get_charte',
+  'Récupère la charte graphique active (couleurs, polices, rayons, logos, ton, mots à éviter) et la transforme en bloc d\'instructions marque que l\'agent doit respecter pour produire un contenu conforme. À lire avant toute production.',
+  {},
+  async () => {
+    try {
+      const raw = (await client.getCharte()) as { nom?: string; data?: string };
+      const data = raw.data ? JSON.parse(raw.data) : {};
+      const couleurs = data.couleurs || {};
+      const polices = data.polices || {};
+      const rayons = data.rayons || {};
+      const logos = data.logos || [];
+      const ton = data.ton || {};
+      const motsEviter = data.motsEviter || [];
+
+      const lignes: string[] = [];
+      lignes.push(`# Charte graphique : ${raw.nom || 'principale'}`);
+      lignes.push('');
+      if (Object.keys(couleurs).length > 0) {
+        lignes.push('## Couleurs (tokens)');
+        for (const [nom, valeur] of Object.entries(couleurs)) lignes.push(`- ${nom}: ${valeur}`);
+        lignes.push('');
+      }
+      if (polices.titre || polices.texte) {
+        lignes.push('## Typographie');
+        if (polices.titre) lignes.push(`- Titres: ${polices.titre}`);
+        if (polices.texte) lignes.push(`- Texte: ${polices.texte}`);
+        lignes.push('');
+      }
+      if (Object.keys(rayons).length > 0) {
+        lignes.push('## Rayons');
+        for (const [nom, valeur] of Object.entries(rayons)) lignes.push(`- ${nom}: ${valeur}`);
+        lignes.push('');
+      }
+      if (logos.length > 0) {
+        lignes.push('## Logos');
+        for (const logo of logos) lignes.push(`- ${logo}`);
+        lignes.push('');
+      }
+      if (ton.voix) {
+        lignes.push('## Ton');
+        lignes.push(ton.voix);
+        lignes.push('');
+      }
+      if (Array.isArray(motsEviter) && motsEviter.length > 0) {
+        lignes.push('## Mots à éviter');
+        lignes.push(motsEviter.join(', '));
+        lignes.push('');
+      }
+      lignes.push('Directives : produire un contenu qui respecte ces tokens. Ne pas inventer de couleurs ou polices hors charte. Si un token manque, utiliser le style neutre de l\'outil.');
+
+      return rep(true, { nom: raw.nom || 'principale', instructions: lignes.join('\n') });
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
 // ═════════════════ VISUELS ══════════════════════════════════════════════
 
 server.tool(
