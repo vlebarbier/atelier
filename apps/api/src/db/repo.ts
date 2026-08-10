@@ -63,4 +63,20 @@ export interface Repo {
   insertBrouillon(row: NewBrouillon): Promise<void>;
   insertSlide(row: NewSlide): Promise<void>;
   deleteBrouillon(id: string): Promise<void>;
+  getCharte(id: string): Promise<CharteRow | undefined>;
+  saveCharte(row: NewCharte): Promise<void>;
+}
+
+export interface CharteRow {
+  id: string;
+  nom: string;
+  data: string;
+  updatedAt: string | null;
+}
+
+export interface NewCharte {
+  id: string;
+  nom: string;
+  data: string;
+  updatedAt: string | null;
 }

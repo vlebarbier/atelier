@@ -27,5 +27,18 @@ export const slides = sqliteTable('slides', {
   blobUrl: text('blob_url')
 });
 
+/**
+ * Table chartes : la direction artistique du client (couleurs, polices, logos),
+ * stockee en JSON dans `data`. Une seule charte globale pour l'instant.
+ * Elle est injectee dans le pipeline de rendu et les instructions agents.
+ */
+export const chartes = sqliteTable('chartes', {
+  id: text('id').primaryKey(),
+  nom: text('nom').notNull().default('Charte principale'),
+  data: text('data').notNull().default('{}'),
+  updatedAt: text('updated_at')
+});
+
 export type Brouillon = typeof brouillons.$inferSelect;
 export type Slide = typeof slides.$inferSelect;
+export type Charte = typeof chartes.$inferSelect;

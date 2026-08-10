@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
-import { brouillons, slides } from './schema.js';
+import { brouillons, slides, chartes } from './schema.js';
 import type { AppDb } from './client.js';
-import type { BrouillonPatch, BrouillonRow, NewBrouillon, NewSlide, Repo, SlideRow } from './repo.js';
+import type { BrouillonPatch, BrouillonRow, CharteRow, NewBrouillon, NewCharte, NewSlide, Repo, SlideRow } from './repo.js';
 
 /** Implementation Repo pour SQLite (better-sqlite3 est synchrone, enveloppe en Promise). */
 export function createSqliteRepo(db: AppDb): Repo {
@@ -47,6 +47,22 @@ export function createSqliteRepo(db: AppDb): Repo {
     async deleteBrouillon(id: string): Promise<void> {
       db.delete(slides).where(eq(slides.brouillonId, id)).run();
       db.delete(brouillons).where(eq(brouillons.id, id)).run();
+    },
+
+    async getCharte(id: string): Promise<CharteRow | undefined> {
+      return db.select().from(chartes).where(eq(chartes.id, id)).get();
+    },
+
+    async saveCharte(row: NewCharte): Promise<void> {
+      const existing = db.select().from(chartes).where(eq(chartes.id, row.id)).get();
+      if (existing) {
+        db.update(chartes)
+          .set({ nom: row.nom, data: row.data, updatedAt: row.updatedAt })
+          .where(eq(chartes.id, row.id))
+          .run();
+      } else {
+        db.insert(chartes).values(row).run();
+      }
     }
   };
 }

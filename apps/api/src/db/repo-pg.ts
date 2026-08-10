@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
-import { brouillons, slides } from './schema-pg.js';
+import { brouillons, slides, chartes } from './schema-pg.js';
 import type { AppDbPg } from './client.js';
-import type { BrouillonPatch, BrouillonRow, NewBrouillon, NewSlide, Repo, SlideRow } from './repo.js';
+import type { BrouillonPatch, BrouillonRow, CharteRow, NewBrouillon, NewCharte, NewSlide, Repo, SlideRow } from './repo.js';
 
 /** Implementation Repo pour Postgres (node-postgres via drizzle-orm/node-postgres, nativement asynchrone). */
 export function createPgRepo(db: AppDbPg): Repo {
@@ -44,6 +44,22 @@ export function createPgRepo(db: AppDbPg): Repo {
     async deleteBrouillon(id: string): Promise<void> {
       await db.delete(slides).where(eq(slides.brouillonId, id));
       await db.delete(brouillons).where(eq(brouillons.id, id));
+    },
+
+    async getCharte(id: string): Promise<CharteRow | undefined> {
+      const rows = await db.select().from(chartes).where(eq(chartes.id, id)).limit(1);
+      return rows[0];
+    },
+
+    async saveCharte(row: NewCharte): Promise<void> {
+      const existing = await db.select().from(chartes).where(eq(chartes.id, row.id)).limit(1);
+      if (existing.length > 0) {
+        await db.update(chartes)
+          .set({ nom: row.nom, data: row.data, updatedAt: row.updatedAt })
+          .where(eq(chartes.id, row.id));
+      } else {
+        await db.insert(chartes).values(row);
+      }
     }
   };
 }
