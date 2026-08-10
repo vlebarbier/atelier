@@ -1,5 +1,6 @@
 import { Sparkle, Stack } from '@phosphor-icons/react';
 import type { Brouillon, Statut } from '../api';
+import { slideUrl } from '../api';
 import { STATUT_LABELS, formatDate, relTime } from '../format';
 
 interface DraftListProps {
@@ -22,7 +23,7 @@ export function DraftList({ brouillons, onOpen }: DraftListProps) {
           }}
         >
           {b.slides[0] ? (
-            <img className="thumb" src={`/b/${b.id}/${b.slides[0]}`} alt={b.titre} loading="lazy" />
+            <img className="thumb" src={slideUrl(b.id, b.slides[0])} alt={b.titre} loading="lazy" />
           ) : (
             <div className="thumb" />
           )}

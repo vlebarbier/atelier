@@ -37,8 +37,13 @@ async function handle<T>(res: Response): Promise<T> {
  */
 const API_BASE: string = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '';
 
-function apiUrl(path: string): string {
+export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
+}
+
+/** URL d'une image de slide (passe par la même base que l'API). */
+export function slideUrl(id: string, fichier: string): string {
+  return apiUrl(`/b/${encodeURIComponent(id)}/${fichier}`);
 }
 
 export async function fetchBrouillons(): Promise<Brouillon[]> {
