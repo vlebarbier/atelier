@@ -10,8 +10,9 @@ describe('tokens sources', () => {
   const raw = readFileSync(path.join(root, 'tokens.json'), 'utf8');
   const tokens = JSON.parse(raw);
 
-  it('contient l accent cyan officiel', () => {
-    expect(tokens.color.accent.base.$value).toBe('#22D3EE');
+  it('contient l accent monochrome blanc (dark) / noir (light)', () => {
+    expect(tokens.color.accent.base.$value).toBe('#FFFFFF');
+    expect(tokens.color.accent.base.$extensions.light).toBe('#0A0A0A');
   });
 
   it('contient le statut a-valider ambre, distinct de l accent', () => {
@@ -42,11 +43,11 @@ describe('build Style Dictionary', () => {
     expect(existsSync(jsonPath)).toBe(true);
 
     const css = readFileSync(cssPath, 'utf8');
-    expect(css).toContain('--color-accent-base: #22D3EE');
+    expect(css).toContain('--color-accent-base: #FFFFFF');
     expect(css).toContain('@media (prefers-color-scheme: light)');
 
     const built = JSON.parse(readFileSync(jsonPath, 'utf8'));
-    expect(built['color.accent.base'].dark).toBe('#22D3EE');
-    expect(built['color.accent.base'].light).toBe('#0E8FA8');
+    expect(built['color.accent.base'].dark).toBe('#FFFFFF');
+    expect(built['color.accent.base'].light).toBe('#0A0A0A');
   });
 });
