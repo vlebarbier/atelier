@@ -25,12 +25,17 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       brouillon_id TEXT NOT NULL,
       fichier TEXT NOT NULL,
-      position INTEGER NOT NULL
+      position INTEGER NOT NULL,
+      blob_url TEXT
     );
   `);
-  // Migration douce : ajoute source_html si la table existait sans cette colonne.
-  const cols = sqlite.prepare(`PRAGMA table_info(brouillons)`).all() as { name: string }[];
-  if (!cols.some((c) => c.name === 'source_html')) {
+  // Migration douce : ajoute les colonnes si la table existait sans elles.
+  const brouillonsCols = sqlite.prepare(`PRAGMA table_info(brouillons)`).all() as { name: string }[];
+  if (!brouillonsCols.some((c) => c.name === 'source_html')) {
     sqlite.exec(`ALTER TABLE brouillons ADD COLUMN source_html TEXT;`);
+  }
+  const slidesCols = sqlite.prepare(`PRAGMA table_info(slides)`).all() as { name: string }[];
+  if (!slidesCols.some((c) => c.name === 'blob_url')) {
+    sqlite.exec(`ALTER TABLE slides ADD COLUMN blob_url TEXT;`);
   }
 }

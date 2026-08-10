@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createApp } from '../src/app.js';
 import { createDb, openSqlite } from '../src/db/client.js';
 import { ensureLegacyTables } from '../src/db/legacy.js';
 import { brouillons, slides } from '../src/db/schema.js';
+import { createSqliteRepo } from '../src/db/repo-sqlite.js';
 
 /** L'app est testee en memoire (app.request()), pas de serveur reseau lance. */
 function buildTestApp() {
@@ -22,7 +23,8 @@ function buildTestApp() {
     .run();
   db.insert(slides).values({ brouillonId: 'carrousel-bordeluche-v7', fichier: 'slides/slide-01.png', position: 0 }).run();
 
-  const app = createApp(db, { dataDir: '/tmp/atelier-test-data' });
+  const repo = createSqliteRepo(db);
+  const app = createApp(repo, { dataDir: '/tmp/atelier-test-data' });
   return { app, db };
 }
 
