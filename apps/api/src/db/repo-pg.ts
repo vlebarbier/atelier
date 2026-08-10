@@ -46,6 +46,10 @@ export function createPgRepo(db: AppDbPg): Repo {
       await db.delete(brouillons).where(eq(brouillons.id, id));
     },
 
+    async deleteSlides(brouillonId: string): Promise<void> {
+      await db.delete(slides).where(eq(slides.brouillonId, brouillonId));
+    },
+
     async getCharte(id: string): Promise<CharteRow | undefined> {
       const rows = await db.select().from(chartes).where(eq(chartes.id, id)).limit(1);
       return rows[0];

@@ -19,16 +19,18 @@ export const updateBrouillonSchema = z
     statut: statutSchema.optional(),
     notes: z.string().optional(),
     reseaux: reseauxSchema.optional(),
-    sourceHtml: z.string().optional()
+    sourceHtml: z.string().optional(),
+    checklist: z.string().optional()
   })
   .refine(
     (data) =>
       data.statut !== undefined ||
       data.notes !== undefined ||
       data.reseaux !== undefined ||
-      data.sourceHtml !== undefined,
+      data.sourceHtml !== undefined ||
+      data.checklist !== undefined,
     {
-      message: 'Au moins un champ (statut, notes, reseaux ou sourceHtml) est requis'
+      message: 'Au moins un champ (statut, notes, reseaux, sourceHtml ou checklist) est requis'
     }
   );
 

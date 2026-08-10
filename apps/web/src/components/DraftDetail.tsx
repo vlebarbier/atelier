@@ -5,7 +5,7 @@ import {
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import type { BrouillonDetail, ReseauEntry, Statut } from '../api';
-import { deleteBrouillon, fetchBrouillon, slideUrl, updateBrouillon } from '../api';
+import { deleteBrouillon, fetchBrouillon, replaceSlides, slideUrl, updateBrouillon } from '../api';
 import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS } from '../format';
 
 const RESEAU_ICONES: Record<string, Icon> = {
@@ -31,7 +31,12 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   const [slide, setSlide] = useState(0);
   const [reseauActif, setReseauActif] = useState<string>('instagram');
   const [showSource, setShowSource] = useState(false);
+  const [sourceDraft, setSourceDraft] = useState('');
+  const [sourceBusy, setSourceBusy] = useState(false);
+  const [sourceMsg, setSourceMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [rendering, setRendering] = useState(false);
   const [notes, setNotes] = useState('');
+  const [checklist, setChecklist] = useState<{ id: string; label: string; checked: boolean }[]>([]);
   const [savedFlash, setSavedFlash] = useState(false);
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -42,6 +47,11 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
       const data = await fetchBrouillon(id);
       setBrouillon(data);
       setNotes(data.notes || '');
+      try {
+        setChecklist(JSON.parse(data.checklist || '[]'));
+      } catch {
+        setChecklist([]);
+      }
       setSlide(0);
       setReseauActif('instagram');
       setShowSource(false);
@@ -55,6 +65,126 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function onDeposerSource() {
+    if (!brouillon || !sourceDraft.trim()) return;
+    setSourceBusy(true);
+    setSourceMsg(null);
+    try {
+      await updateBrouillon(id, { sourceHtml: sourceDraft });
+      setBrouillon({ ...brouillon, sourceHtml: sourceDraft });
+      setSourceMsg({ type: 'ok', text: 'Source déposée. Cliquez sur « Régénérer les slides » pour mettre à jour les visuels.' });
+    } catch (err) {
+      setSourceMsg({ type: 'err', text: err instanceof Error ? err.message : 'Dépôt impossible' });
+    } finally {
+      setSourceBusy(false);
+    }
+  }
+
+  function onSourceFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setSourceDraft(String(reader.result || ''));
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  /** Capture chaque element .slide du HTML source en PNG (rendu navigateur), puis remplace les slides via l'API. */
+  async function onRegenerer() {
+    if (!brouillon) return;
+    const html = sourceDraft || brouillon.sourceHtml;
+    if (!html) {
+      setSourceMsg({ type: 'err', text: 'Aucune source HTML à rendre.' });
+      return;
+    }
+    setRendering(true);
+    setSourceMsg(null);
+    try {
+      // Rendu hors-écran du document source.
+      const holder = document.createElement('div');
+      holder.style.cssText = 'position:fixed;left:-20000px;top:0;width:1080px;background:#fff;';
+      holder.innerHTML = html;
+      document.body.appendChild(holder);
+      await new Promise((r) => setTimeout(r, 300)); // laisse les styles/polices s'appliquer
+
+      const slideEls = holder.querySelectorAll<HTMLElement>('.slide');
+      if (slideEls.length === 0) {
+        holder.remove();
+        setSourceMsg({ type: 'err', text: 'Aucun élément .slide trouvé dans le HTML source.' });
+        return;
+      }
+
+      const datas: string[] = [];
+      for (let i = 0; i < slideEls.length; i++) {
+        const el = slideEls[i];
+        if (!el) continue;
+        const dataUrl = await captureElement(el);
+        if (dataUrl) datas.push(dataUrl);
+      }
+      holder.remove();
+
+      if (datas.length === 0) {
+        setSourceMsg({ type: 'err', text: 'La capture des slides a échoué (polices/images externes ?).' });
+        return;
+      }
+
+      const res = await replaceSlides(id, datas);
+      setSourceMsg({ type: 'ok', text: `${res.slideCount} slides régénérées depuis la source.` });
+      await load();
+    } catch (err) {
+      setSourceMsg({ type: 'err', text: err instanceof Error ? err.message : 'Régénération impossible' });
+    } finally {
+      setRendering(false);
+    }
+  }
+
+  function captureElement(el: HTMLElement): Promise<string | null> {
+    return new Promise((resolve) => {
+      try {
+        const rect = el.getBoundingClientRect();
+        const width = Math.max(1, Math.round(rect.width));
+        const height = Math.max(1, Math.round(rect.height));
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', String(width));
+        svg.setAttribute('height', String(height));
+        const foreign = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+        foreign.setAttribute('width', '100%');
+        foreign.setAttribute('height', '100%');
+        const clone = el.cloneNode(true) as HTMLElement;
+        clone.style.margin = '0';
+        foreign.appendChild(clone);
+        svg.appendChild(foreign);
+
+        const xml = new XMLSerializer().serializeToString(svg);
+        const url = URL.createObjectURL(new Blob([xml], { type: 'image/svg+xml;charset=utf-8' }));
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = width * 2;
+            canvas.height = height * 2;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(null);
+            ctx.scale(2, 2);
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/png'));
+          } catch {
+            resolve(null);
+          } finally {
+            URL.revokeObjectURL(url);
+          }
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        };
+        img.src = url;
+      } catch {
+        resolve(null);
+      }
+    });
+  }
 
   // Navigation clavier fleches gauche/droite, ignoree si le focus est dans un champ.
   useEffect(() => {
@@ -94,6 +224,30 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
     await updateBrouillon(id, { reseaux: { [reseau]: next } });
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 2000);
+  }
+
+  const CHECKLIST_DEFAUT: { id: string; label: string }[] = [
+    { id: 'charte', label: 'Charte respectee' },
+    { id: 'textes', label: 'Textes relus' },
+    { id: 'liens', label: 'Liens verifies' },
+    { id: 'formats', label: 'Formats par reseau' }
+  ];
+
+  function toggleChecklist(id: string) {
+    const next = checklist.map((c) => (c.id === id ? { ...c, checked: !c.checked } : c));
+    setChecklist(next);
+    updateBrouillon(id, { checklist: JSON.stringify(next) });
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 2000);
+  }
+
+  function ensureChecklist() {
+    // Si la checklist est vide, initialise avec les items par defaut (non coches).
+    if (checklist.length === 0) {
+      const init = CHECKLIST_DEFAUT.map((c) => ({ ...c, checked: false }));
+      setChecklist(init);
+      updateBrouillon(id, { checklist: JSON.stringify(init) });
+    }
   }
 
   if (loading) return <div className="empty">Chargement...</div>;
@@ -156,6 +310,27 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
         />
       </div>
 
+      <div className="notes checklist-block">
+        <label className="notes-label">Checklist de validation</label>
+        {checklist.length === 0 ? (
+          <button className="ghost" type="button" onClick={ensureChecklist}>
+            Initialiser la checklist
+          </button>
+        ) : (
+          <div className="checklist-items">
+            {checklist.map((c) => (
+              <label key={c.id} className={`checklist-item${c.checked ? ' checked' : ''}`}>
+                <input type="checkbox" checked={c.checked} onChange={() => toggleChecklist(c.id)} />
+                <span>{c.label}</span>
+              </label>
+            ))}
+            <div className="checklist-progress">
+              {checklist.filter((c) => c.checked).length}/{checklist.length} verifies
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="dbody">
         <div>
           {brouillon.slides.length > 0 && currentSlideFichier ? (
@@ -214,17 +389,34 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
           </div>
           {showSource ? (
             <div className="source-panel">
-              {brouillon.sourceHtml ? (
-                <>
-                  <div className="source-meta">
-                    <CheckCircle size={13} /> Document HTML de l'agent, {brouillon.sourceHtml.length} caracteres
-                  </div>
-                  <pre className="source-code">{brouillon.sourceHtml.slice(0, 6000)}</pre>
-                </>
-              ) : (
-                <div className="source-empty">
-                  <FileCode size={20} />
-                  <p>Aucune source HTML. L'agent peut la deposer via set_source (MCP).</p>
+              <textarea
+                className="source-textarea"
+                value={sourceDraft || brouillon.sourceHtml || ''}
+                onChange={(e) => setSourceDraft(e.target.value)}
+                placeholder="Collez ici le HTML produit par votre agent, ou importez un fichier .html"
+                rows={10}
+                aria-label="Source HTML du document"
+              />
+              <div className="source-actions">
+                <label className="ghost file-label" role="button">
+                  <FileCode size={13} /> Importer un fichier .html
+                  <input type="file" accept=".html,.htm" onChange={onSourceFile} hidden />
+                </label>
+                <button className="ghost" type="button" onClick={onDeposerSource} disabled={sourceBusy || !sourceDraft.trim()}>
+                  <Check size={13} /> {sourceBusy ? 'Dépôt...' : 'Déposer la source'}
+                </button>
+                <button className="primary" type="button" onClick={onRegenerer} disabled={rendering}>
+                  {rendering ? 'Rendu en cours...' : 'Régénérer les slides'}
+                </button>
+              </div>
+              {sourceMsg && (
+                <div className={`source-msg ${sourceMsg.type}`}>
+                  {sourceMsg.type === 'ok' ? <CheckCircle size={13} /> : <Check size={13} />} {sourceMsg.text}
+                </div>
+              )}
+              {brouillon.sourceHtml && !sourceDraft && (
+                <div className="source-meta">
+                  <CheckCircle size={13} /> Document HTML de l'agent, {brouillon.sourceHtml.length} caracteres
                 </div>
               )}
             </div>

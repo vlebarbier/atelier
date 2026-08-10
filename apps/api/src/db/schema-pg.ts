@@ -12,6 +12,8 @@ export const brouillons = pgTable('brouillons', {
   notes: text('notes').notNull().default(''),
   reseaux: text('reseaux').notNull().default('{}'),
   sourceHtml: text('source_html'),
+  charteId: text('charte_id').default('principale'),
+  checklist: text('checklist').notNull().default('[]'),
   updatedAt: text('updated_at')
 });
 

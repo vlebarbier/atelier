@@ -33,5 +33,7 @@ export async function ensurePgTables(pool: Pool): Promise<void> {
 
   // Migration douce : ajoute les colonnes si la table existait dans une version anterieure.
   await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS source_html TEXT;`);
+  await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS charte_id TEXT DEFAULT 'principale';`);
+  await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS checklist TEXT NOT NULL DEFAULT '[]';`);
   await pool.query(`ALTER TABLE slides ADD COLUMN IF NOT EXISTS blob_url TEXT;`);
 }

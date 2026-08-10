@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import path from 'node:path';
 import fs from 'node:fs';
 import { updateBrouillonSchema } from './validation.js';
+import { storeSlide } from './storage/blob.js';
 import type { Repo } from './db/repo.js';
 
 const RESEAUX_DEFAUT = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok'];
@@ -66,6 +67,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       notes: '',
       reseaux: '{}',
       sourceHtml: null,
+      charteId: 'principale',
       updatedAt: new Date().toISOString()
     });
     return c.json({ id, titre, statut: 'brouillon', slideCount: 0, slides: [], updated: new Date().toISOString() }, 201);
@@ -138,6 +140,8 @@ export function createApp(repo: Repo, options: AppOptions) {
       statut: row.statut,
       notes: row.notes,
       sourceHtml: row.sourceHtml || null,
+      charteId: row.charteId || 'principale',
+      checklist: row.checklist || '[]',
       reseaux,
       updated: row.updatedAt,
       slideCount: fichiers.length,
@@ -169,12 +173,14 @@ export function createApp(repo: Repo, options: AppOptions) {
     const nextStatut = patch.statut ?? row.statut;
     const nextNotes = patch.notes ?? row.notes;
     const nextSourceHtml = patch.sourceHtml !== undefined ? patch.sourceHtml : row.sourceHtml;
+    const nextChecklist = patch.checklist !== undefined ? patch.checklist : row.checklist;
 
     await repo.updateBrouillon(id, {
       statut: nextStatut,
       notes: nextNotes,
       reseaux: JSON.stringify(nextReseaux),
       sourceHtml: nextSourceHtml,
+      checklist: nextChecklist,
       updatedAt
     });
 
@@ -185,9 +191,43 @@ export function createApp(repo: Repo, options: AppOptions) {
         notes: nextNotes,
         reseaux: nextReseaux,
         sourceHtml: nextSourceHtml,
+        checklist: nextChecklist,
         updated: updatedAt
       }
     });
+  });
+
+  app.post('/api/brouillon/:id/slides', async (c) => {
+    const id = c.req.param('id');
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+
+    const body = (await c.req.json().catch(() => ({}))) as { slides?: unknown };
+    if (!Array.isArray(body.slides) || body.slides.length === 0) {
+      return c.json({ error: 'slides requis (tableau de dataURL PNG)' }, 400);
+    }
+
+    // Remplace toutes les slides : supprime l'existant, stocke les nouvelles.
+    await repo.deleteSlides(id);
+    const stored: { fichier: string; blobUrl: string | null }[] = [];
+    for (let i = 0; i < body.slides.length; i++) {
+      const dataUrl = body.slides[i];
+      if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+        await repo.deleteSlides(id); // rollback
+        return c.json({ error: `slide ${i + 1} invalide (dataURL attendu)` }, 400);
+      }
+      const base64 = dataUrl.split(',')[1] ?? '';
+      const buffer = Buffer.from(base64, 'base64');
+      const fichier = `slides/slide-${String(i + 1).padStart(2, '0')}.png`;
+      const result = await storeSlide(id, fichier, buffer, options.dataDir);
+      await repo.insertSlide({ brouillonId: id, fichier: result.fichier, position: i + 1, blobUrl: result.blobUrl });
+      stored.push(result);
+    }
+
+    const updatedAt = new Date().toISOString();
+    await repo.updateBrouillon(id, { updatedAt });
+
+    return c.json({ ok: true, slideCount: stored.length, slides: stored.map((s) => s.fichier) });
   });
 
   app.get('/b/:id/*', async (c) => {

@@ -20,6 +20,8 @@ export interface BrouillonDetail extends Brouillon {
   notes: string;
   reseaux: Record<string, ReseauEntry>;
   sourceHtml?: string | null;
+  charteId?: string;
+  checklist?: string;
 }
 
 export interface Charte {
@@ -112,7 +114,7 @@ export async function importCharte(css: string, nom?: string): Promise<ImportCha
 
 export async function updateBrouillon(
   id: string,
-  patch: Partial<Pick<BrouillonDetail, 'statut' | 'notes' | 'reseaux' | 'sourceHtml'>>
+  patch: Partial<Pick<BrouillonDetail, 'statut' | 'notes' | 'reseaux' | 'sourceHtml' | 'checklist'>>
 ): Promise<{ ok: boolean }> {
   const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}`), {
     method: 'POST',
@@ -120,4 +122,16 @@ export async function updateBrouillon(
     body: JSON.stringify(patch)
   });
   return handle<{ ok: boolean }>(res);
+}
+
+export async function replaceSlides(
+  id: string,
+  slides: string[]
+): Promise<{ ok: boolean; slideCount: number }> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/slides`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slides })
+  });
+  return handle<{ ok: boolean; slideCount: number }>(res);
 }
