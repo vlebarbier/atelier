@@ -33,7 +33,7 @@ export function Header({ crumb, vue, onVueChange, onRefresh, refreshing, onOpenP
             <List size={15} />
           </button>
         </div>
-        <button className="primary" onClick={onRefresh} disabled={refreshing}>
+        <button className="ghost" onClick={onRefresh} disabled={refreshing}>
           <ArrowClockwise size={14} className={refreshing ? 'spin' : ''} />
           <span>{refreshing ? 'Actualisation...' : 'Actualiser'}</span>
         </button>
