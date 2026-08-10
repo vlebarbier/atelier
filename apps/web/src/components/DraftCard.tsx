@@ -1,5 +1,6 @@
 import { Sparkle, ImageSquare, Stack } from '@phosphor-icons/react';
 import type { Brouillon, Statut } from '../api';
+import { slideUrl } from '../api';
 import { STATUT_LABELS, formatDate, relTime } from '../format';
 
 interface DraftCardProps {
@@ -8,7 +9,7 @@ interface DraftCardProps {
 }
 
 export function DraftCard({ brouillon, onOpen }: DraftCardProps) {
-  const cover = brouillon.slides[0] ? `/b/${brouillon.id}/${brouillon.slides[0]}` : null;
+  const cover = brouillon.slides[0] ? slideUrl(brouillon.id, brouillon.slides[0]) : null;
 
   return (
     <div

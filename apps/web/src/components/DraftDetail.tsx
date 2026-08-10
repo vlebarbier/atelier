@@ -5,7 +5,7 @@ import {
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import type { BrouillonDetail, ReseauEntry, Statut } from '../api';
-import { fetchBrouillon, updateBrouillon } from '../api';
+import { fetchBrouillon, slideUrl, updateBrouillon } from '../api';
 import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS } from '../format';
 
 const RESEAU_ICONES: Record<string, Icon> = {
@@ -149,7 +149,7 @@ export function DraftDetail({ id, onClose }: DraftDetailProps) {
             <>
               <div className="media-frame">
                 <div className="slider">
-                  <img id="slide-img" src={`/b/${brouillon.id}/${currentSlideFichier}`} alt="" />
+                  <img id="slide-img" src={slideUrl(brouillon.id, currentSlideFichier)} alt="" />
                   <div className="nav">
                     <button
                       type="button"
@@ -174,7 +174,7 @@ export function DraftDetail({ id, onClose }: DraftDetailProps) {
                 {brouillon.slides.map((s, i) => (
                   <img
                     key={s}
-                    src={`/b/${brouillon.id}/${s}`}
+                    src={slideUrl(brouillon.id, s)}
                     className={i === slide ? 'active' : ''}
                     onClick={() => setSlide(i)}
                     alt=""
