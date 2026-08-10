@@ -276,6 +276,7 @@ export function DraftDetail({ id, onClose }: DraftDetailProps) {
             />
           </div>
           <div className="reseau-statut">
+            <span className="reseau-statut-label">Statut {RESEAUX_LABELS[reseauActif]}</span>
             {STATUTS_ORDRE.map((s) => (
               <button
                 key={s}
