@@ -46,6 +46,19 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
   if (!brouillonsCols.some((c) => c.name === 'checklist')) {
     sqlite.exec(`ALTER TABLE brouillons ADD COLUMN checklist TEXT NOT NULL DEFAULT '[]';`);
   }
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS ressources (
+      id TEXT PRIMARY KEY,
+      nom TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'fichier',
+      categorie TEXT NOT NULL DEFAULT 'autre',
+      fichier TEXT,
+      blob_url TEXT,
+      taille INTEGER NOT NULL DEFAULT 0,
+      source_url TEXT,
+      updated_at TEXT
+    );
+  `);
   const slidesCols = sqlite.prepare(`PRAGMA table_info(slides)`).all() as { name: string }[];
   if (!slidesCols.some((c) => c.name === 'blob_url')) {
     sqlite.exec(`ALTER TABLE slides ADD COLUMN blob_url TEXT;`);

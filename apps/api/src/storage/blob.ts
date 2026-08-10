@@ -48,3 +48,29 @@ export async function storeSlide(
   fs.writeFileSync(path.join(dataDir, brouillonId, fichier), buffer);
   return { fichier, blobUrl: null };
 }
+
+/**
+ * Persiste un fichier de la bibliotheque (ressource). Meme logique que storeSlide
+ * mais range sous ressources/<id>/ pour ne pas melanger avec les slides.
+ */
+export async function storeRessource(
+  ressourceId: string,
+  fichier: string,
+  buffer: Buffer,
+  dataDir: string
+): Promise<StoredSlide> {
+  if (isBlobEnabled()) {
+    const { put } = await import('@vercel/blob');
+    const pathname = `ressources/${ressourceId}/${fichier}`;
+    const blob = await put(pathname, buffer, {
+      access: 'private',
+      addRandomSuffix: false,
+      allowOverwrite: true
+    });
+    return { fichier, blobUrl: blob.url };
+  }
+  const destDir = path.join(dataDir, 'ressources', ressourceId, path.dirname(fichier));
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.writeFileSync(path.join(dataDir, 'ressources', ressourceId, fichier), buffer);
+  return { fichier, blobUrl: null };
+}

@@ -8,11 +8,13 @@ import { CommandPalette } from './components/CommandPalette';
 import { CalendarPage } from './pages/CalendarPage';
 import { BrandPage } from './pages/BrandPage';
 import { ActivityPage } from './pages/ActivityPage';
+import { BibliothequePage } from './pages/BibliothequePage';
 import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
 
 const PAGE_LABELS: Record<string, string> = {
   brouillons: 'Brouillons',
   calendrier: 'Calendrier',
+  bibliotheque: 'Bibliothèque',
   charte: 'Charte graphique',
   activite: 'Activite IA'
 };
@@ -127,6 +129,7 @@ export default function App() {
           )}
 
           {page === 'calendrier' && <CalendarPage brouillons={brouillons} />}
+          {page === 'bibliotheque' && <BibliothequePage />}
           {page === 'charte' && <BrandPage />}
           {page === 'activite' && <ActivityPage brouillons={brouillons} />}
         </main>

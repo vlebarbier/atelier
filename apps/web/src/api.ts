@@ -135,3 +135,51 @@ export async function replaceSlides(
   });
   return handle<{ ok: boolean; slideCount: number }>(res);
 }
+
+// ── Bibliothèque (ressources) ──────────────────────────────────────────
+
+export interface Ressource {
+  id: string;
+  nom: string;
+  type: string;
+  categorie: string;
+  taille: number;
+  sourceUrl: string | null;
+  updated: string | null;
+}
+
+export interface RessourceDetail extends Ressource {
+  url: string | null;
+}
+
+export async function fetchRessources(): Promise<Ressource[]> {
+  const res = await fetch(apiUrl('/api/ressources'));
+  return handle<Ressource[]>(res);
+}
+
+export async function fetchRessource(id: string): Promise<RessourceDetail> {
+  const res = await fetch(apiUrl(`/api/ressource/${encodeURIComponent(id)}`));
+  return handle<RessourceDetail>(res);
+}
+
+export async function createRessource(payload: {
+  nom: string;
+  type?: string;
+  categorie?: string;
+  contenu?: string;
+  sourceUrl?: string;
+}): Promise<{ ok: boolean; id: string }> {
+  const res = await fetch(apiUrl('/api/ressources'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handle<{ ok: boolean; id: string }>(res);
+}
+
+export async function deleteRessource(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(apiUrl(`/api/ressource/${encodeURIComponent(id)}`), {
+    method: 'DELETE'
+  });
+  return handle<{ ok: boolean }>(res);
+}

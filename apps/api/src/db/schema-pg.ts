@@ -33,6 +33,20 @@ export const chartes = pgTable('chartes', {
   updatedAt: text('updated_at')
 });
 
+/** Bibliotheque de contenus : photos, PDF, pages archivees, textes (la memoire de l'agent). */
+export const ressources = pgTable('ressources', {
+  id: text('id').primaryKey(),
+  nom: text('nom').notNull(),
+  type: text('type').notNull().default('fichier'),
+  categorie: text('categorie').notNull().default('autre'),
+  fichier: text('fichier'),
+  blobUrl: text('blob_url'),
+  taille: integer('taille').notNull().default(0),
+  sourceUrl: text('source_url'),
+  updatedAt: text('updated_at')
+});
+
 export type BrouillonPg = typeof brouillons.$inferSelect;
 export type SlidePg = typeof slides.$inferSelect;
 export type ChartePg = typeof chartes.$inferSelect;
+export type RessourcePg = typeof ressources.$inferSelect;

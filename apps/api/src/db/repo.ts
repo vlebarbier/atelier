@@ -71,6 +71,10 @@ export interface Repo {
   deleteSlides(brouillonId: string): Promise<void>;
   getCharte(id: string): Promise<CharteRow | undefined>;
   saveCharte(row: NewCharte): Promise<void>;
+  listRessources(): Promise<RessourceRow[]>;
+  getRessource(id: string): Promise<RessourceRow | undefined>;
+  insertRessource(row: NewRessource): Promise<void>;
+  deleteRessource(id: string): Promise<void>;
 }
 
 export interface CharteRow {
@@ -84,5 +88,29 @@ export interface NewCharte {
   id: string;
   nom: string;
   data: string;
+  updatedAt: string | null;
+}
+
+export interface RessourceRow {
+  id: string;
+  nom: string;
+  type: string;
+  categorie: string;
+  fichier: string | null;
+  blobUrl: string | null;
+  taille: number;
+  sourceUrl: string | null;
+  updatedAt: string | null;
+}
+
+export interface NewRessource {
+  id: string;
+  nom: string;
+  type: string;
+  categorie: string;
+  fichier: string | null;
+  blobUrl: string | null;
+  taille: number;
+  sourceUrl: string | null;
   updatedAt: string | null;
 }
