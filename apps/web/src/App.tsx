@@ -5,6 +5,8 @@ import { DraftGrid } from './components/DraftGrid';
 import { DraftDetail } from './components/DraftDetail';
 import { CommandPalette } from './components/CommandPalette';
 import { ContentListPage } from './components/ContentListPage';
+import { CreationModal } from './components/CreationModal';
+import type { TemplateCreation } from './format';
 import { CalendarPage } from './pages/CalendarPage';
 import { BrandPage } from './pages/BrandPage';
 import { ActivityPage } from './pages/ActivityPage';
@@ -30,6 +32,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [creationOpen, setCreationOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -118,6 +121,32 @@ export default function App() {
     }
   }
 
+  /** Phrase libre : le texte devient le titre + le premier message user de la conversation. */
+  async function creerDepuisPhrase(texte: string, titre: string, type: string) {
+    setCreationOpen(false);
+    try {
+      const created = await createBrouillon(titre, type, [{ role: 'user', texte }]);
+      await load();
+      openBrouillon(created.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de création');
+    }
+  }
+
+  /** Template : conversation pre-remplie avec le messageInitial (prefixe du sujet si demande). */
+  async function creerDepuisTemplate(t: TemplateCreation, sujet?: string) {
+    setCreationOpen(false);
+    const titre = sujet ? `${t.titreDefaut} — ${sujet}` : t.titreDefaut;
+    const texte = sujet ? `Sujet : ${sujet}\n\n${t.messageInitial}` : t.messageInitial;
+    try {
+      const created = await createBrouillon(titre, t.type, [{ role: 'user', texte }]);
+      await load();
+      openBrouillon(created.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de création');
+    }
+  }
+
   async function handleDelete(id: string) {
     try {
       await deleteBrouillon(id);
@@ -169,7 +198,7 @@ export default function App() {
               onVueChange={setVue}
               onOpen={openBrouillon}
               onDelete={confirmDelete}
-              onCreate={createNew}
+              onCreate={() => setCreationOpen(true)}
               typesFiltrables={TYPES_CONTENUS}
               filtre={filtre}
               onFiltreChange={setFiltre}
@@ -189,7 +218,7 @@ export default function App() {
               onVueChange={setVue}
               onOpen={openBrouillon}
               onDelete={confirmDelete}
-              onCreate={createNew}
+              onCreate={() => setCreationOpen(true)}
               typesNouveau={TYPES_DOCUMENTS}
               typesFiltrables={TYPES_DOCUMENTS}
               onCreateType={(type) => createDocument(type)}
@@ -216,6 +245,14 @@ export default function App() {
         onGoBrouillons={() => navigate('brouillons')}
         vue={vue}
       />
+
+      {creationOpen && (
+        <CreationModal
+          onClose={() => setCreationOpen(false)}
+          onPhrase={creerDepuisPhrase}
+          onTemplate={creerDepuisTemplate}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 export type Statut = 'brouillon' | 'a-valider' | 'valide' | 'publie';
-export type Reseau = 'instagram' | 'linkedin' | 'facebook' | 'x' | 'tiktok';
+export type Reseau = 'instagram' | 'linkedin' | 'facebook' | 'x' | 'tiktok' | 'gmb';
 
 /** Programmation d'une publication : { date, heure, reseau }. */
 export interface Programme {
@@ -97,13 +97,18 @@ export async function fetchBrouillons(): Promise<Brouillon[]> {
   return handle<Brouillon[]>(res);
 }
 
-export async function createBrouillon(titre?: string, type?: string): Promise<Brouillon> {
+export async function createBrouillon(
+  titre?: string,
+  type?: string,
+  conversation?: { role: 'user' | 'agent'; texte: string }[]
+): Promise<Brouillon> {
   const res = await fetch(apiUrl('/api/brouillons'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       ...(titre ? { titre } : {}),
-      ...(type ? { type } : {})
+      ...(type ? { type } : {}),
+      ...(conversation && conversation.length > 0 ? { conversation } : {})
     })
   });
   return handle<Brouillon>(res);

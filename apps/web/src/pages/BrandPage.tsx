@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Check, Palette, TextT, ImageSquare, Plus, Trash, FileCode, UploadSimple, Quotes } from '@phosphor-icons/react';
 import tokens from '@atelier/tokens';
 import { fetchCharte, saveCharte, importCharte, type Charte } from '../api';
+import { DEFAULT_CHARTE, parseCharte, type CharteData } from '../charte';
 import { Page, PageHeader } from '../components/ui';
 
 interface TokenSwatch {
@@ -26,37 +27,6 @@ function collectColors(): TokenSwatch[] {
   }
   walk(color, 'color-');
   return swatches;
-}
-
-interface CharteData {
-  couleurs: Record<string, string>;
-  polices: { titre: string; texte: string };
-  logos: string[];
-  ton: { voix: string };
-  motsEviter: string[];
-}
-
-const DEFAULT_CHARTE: CharteData = {
-  couleurs: {},
-  polices: { titre: '', texte: '' },
-  logos: [],
-  ton: { voix: '' },
-  motsEviter: []
-};
-
-function parseCharte(data: string): CharteData {
-  try {
-    const parsed = JSON.parse(data);
-    return {
-      couleurs: parsed.couleurs || {},
-      polices: { titre: parsed.polices?.titre || '', texte: parsed.polices?.texte || '' },
-      logos: Array.isArray(parsed.logos) ? parsed.logos : [],
-      ton: { voix: parsed.ton?.voix || '' },
-      motsEviter: Array.isArray(parsed.motsEviter) ? parsed.motsEviter : []
-    };
-  } catch {
-    return DEFAULT_CHARTE;
-  }
 }
 
 /** La page Charte : editeur de la charte graphique du client (injectee dans le rendu et les agents). */
