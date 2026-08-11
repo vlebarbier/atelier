@@ -27,6 +27,43 @@ export function parseProgramme(raw: unknown): Programme | null {
   return null;
 }
 
+/** Métadonnées article de blog (colonne JSON `article` du brouillon de type 'article'). */
+export interface ArticleMeta {
+  /** Slug URL dans le CMS (identifiant de réconciliation : _id = 'article-<slug>' côté Sanity). */
+  slug?: string;
+  /** Résumé / chapo, affiché sur la carte du listing blog (150-200 car. recommandés). */
+  chapo?: string;
+  /** SEO, balise <title> (max 70 car.). */
+  seoTitle?: string;
+  /** SEO, meta description (max 170 car.). */
+  seoDescription?: string;
+  /** Catégorie du blog (miroir du schéma Sanity post.category). */
+  category?: string;
+  /** Date de publication au format YYYY-MM-DD. */
+  publishedAt?: string;
+  /** Temps de lecture estimé (minutes). */
+  readingTime?: number;
+  /** Identifiant du document dans le CMS (rempli après publication). */
+  cmsId?: string;
+  /** URL publique de l'article publié. */
+  cmsUrl?: string;
+  cmsSlug?: string;
+}
+
+export function parseArticle(raw: unknown): ArticleMeta | null {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try {
+      const v = JSON.parse(raw);
+      return v && typeof v === 'object' ? (v as ArticleMeta) : null;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw === 'object') return raw as ArticleMeta;
+  return null;
+}
+
 export interface Brouillon {
   id: string;
   titre: string;
@@ -36,6 +73,7 @@ export interface Brouillon {
   updated: string | null;
   type?: string;
   programme?: string | Programme | null;
+  article?: string | ArticleMeta | null;
 }
 
 export interface ReseauEntry {
@@ -53,6 +91,7 @@ export interface BrouillonDetail extends Brouillon {
   checklist?: string;
   conversation?: string;
   programme?: string | Programme | null;
+  article?: string | ArticleMeta | null;
 }
 
 export interface MessageChat {
@@ -159,7 +198,7 @@ export async function importCharte(css: string, nom?: string): Promise<ImportCha
 
 export async function updateBrouillon(
   id: string,
-  patch: Partial<Pick<BrouillonDetail, 'statut' | 'notes' | 'reseaux' | 'sourceHtml' | 'checklist' | 'type' | 'programme'>>
+  patch: Partial<Pick<BrouillonDetail, 'titre' | 'statut' | 'notes' | 'reseaux' | 'sourceHtml' | 'checklist' | 'type' | 'programme' | 'article'>>
 ): Promise<{ ok: boolean }> {
   const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}`), {
     method: 'POST',
@@ -240,6 +279,28 @@ export async function deleteRessource(id: string): Promise<{ ok: boolean }> {
     method: 'DELETE'
   });
   return handle<{ ok: boolean }>(res);
+}
+
+// ── Publication vers le CMS (Sanity) ──────────────────────────────────
+
+export interface PublicationCms {
+  ok: boolean;
+  cmsId: string;
+  cmsUrl: string;
+  slug: string;
+  statut: string;
+}
+
+/**
+ * POST /api/brouillon/:id/publier-cms, publie un article (type 'article', statut
+ * 'valide') vers le CMS Sanity. Le statut passe à 'publie' uniquement après succès.
+ */
+export async function publierCms(id: string): Promise<PublicationCms> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/publier-cms`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return handle<PublicationCms>(res);
 }
 
 // ── Conversation avec l'agent ─────────────────────────────────────────

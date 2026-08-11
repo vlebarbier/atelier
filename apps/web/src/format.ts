@@ -12,11 +12,36 @@ export const TYPES_DOCUMENTS: readonly string[] = [
   'plaquette'
 ];
 
+/** Type article de blog (livrable CMS : Sanity pour Bordeluche). */
+export const TYPE_ARTICLE = 'article';
+
+/** Categories du blog Bordeluche (miroir du schema Sanity post.category). */
+export const CATEGORIES_ARTICLE: readonly string[] = [
+  'rentabilite',
+  'reglementation',
+  'optimisation',
+  'marche',
+  'gestion',
+  'experience',
+  'fiscalite'
+];
+
+export const CATEGORIES_ARTICLE_LABELS: Record<string, string> = {
+  rentabilite: 'Rentabilité',
+  reglementation: 'Réglementation',
+  optimisation: 'Optimisation',
+  marche: 'Marché Bordelais',
+  gestion: 'Gestion & Ops',
+  experience: 'Expérience voyageur',
+  fiscalite: 'Fiscalité'
+};
+
 export const TYPE_LABELS: Record<string, string> = {
   carrousel: 'Carrousel',
   video: 'Vidéo',
   post: 'Post',
   story: 'Story',
+  article: 'Article de blog',
   'pitch-deck': 'Pitch deck',
   flyer: 'Flyer',
   affiche: 'Affiche',

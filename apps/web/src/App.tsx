@@ -13,12 +13,15 @@ import { BrandPage } from './pages/BrandPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { BibliothequePage } from './pages/BibliothequePage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
-import { TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
+import { BlogPage } from './pages/BlogPage';
+import { ArticleEditor } from './components/ArticleEditor';
+import { TYPE_ARTICLE, TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
 import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
 
 const PAGE_LABELS: Record<string, string> = {
   brouillons: 'Contenus',
   documents: 'Documents',
+  blog: 'Blog',
   calendrier: 'Calendrier',
   bibliotheque: 'Bibliothèque',
   charte: 'Charte graphique',
@@ -85,7 +88,7 @@ export default function App() {
   // Recharge toutes les 30s sans interruption (pas de spinner, pas de flash).
   useEffect(() => {
     const t = setInterval(() => {
-      if (page === 'brouillons' && !selectedId) loadSilencieux();
+      if ((page === 'brouillons' || page === 'blog') && !selectedId) loadSilencieux();
     }, 30000);
     return () => clearInterval(t);
   }, [page, selectedId, loadSilencieux]);
@@ -103,11 +106,13 @@ export default function App() {
   }, []);
 
   // La page Contenus ne montre que les types reseaux sociaux ; les documents
-  // ont leur propre page.
+  // ont leur propre page, les articles de blog aussi.
   const contenus = useMemo(
-    () => brouillons.filter((b) => !TYPES_DOCUMENTS.includes(b.type ?? '')),
+    () => brouillons.filter((b) => !TYPES_DOCUMENTS.includes(b.type ?? '') && b.type !== TYPE_ARTICLE),
     [brouillons]
   );
+
+  const articles = useMemo(() => brouillons.filter((b) => b.type === TYPE_ARTICLE), [brouillons]);
 
   const aValider = useMemo(() => brouillons.filter((b) => b.statut === 'a-valider').length, [brouillons]);
 
@@ -163,6 +168,16 @@ export default function App() {
       openBrouillon(created.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de création');
+    }
+  }
+
+  async function createArticle() {
+    try {
+      const created = await createBrouillon(undefined, TYPE_ARTICLE);
+      await load();
+      openBrouillon(created.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de création de l\'article');
     }
   }
 
@@ -222,6 +237,15 @@ export default function App() {
             <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} panneauReplie={panneauReplie} />
           )}
 
+          {page === 'blog' && selectedId && (
+            <ArticleEditor
+              id={selectedId}
+              onClose={closeBrouillon}
+              onDelete={() => handleDelete(selectedId)}
+              onPublished={() => loadSilencieux()}
+            />
+          )}
+
           {page === 'brouillons' && !selectedId && (
             <ContentListPage
               titre="Contenus"
@@ -264,6 +288,19 @@ export default function App() {
             />
           )}
 
+          {page === 'blog' && !selectedId && (
+            <BlogPage
+              brouillons={articles}
+              loading={loading}
+              error={error}
+              onOpen={openBrouillon}
+              onDelete={confirmDelete}
+              onCreate={createArticle}
+              filtre={filtre}
+              onFiltreChange={setFiltre}
+            />
+          )}
+
           {page === 'calendrier' && <CalendarPage brouillons={brouillons} onOpen={openBrouillon} onRefresh={load} />}
           {page === 'bibliotheque' && <BibliothequePage />}
           {page === 'charte' && <BrandPage />}
@@ -279,6 +316,7 @@ export default function App() {
         onOpenBrouillon={openBrouillon}
         onToggleVue={() => setVue((v) => (v === 'grille' ? 'liste' : 'grille'))}
         onGoBrouillons={() => navigate('brouillons')}
+        onGoBlog={() => navigate('blog')}
         vue={vue}
       />
 

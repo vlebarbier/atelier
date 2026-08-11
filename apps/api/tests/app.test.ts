@@ -148,6 +148,82 @@ describe('Dissociation contenus / documents (type)', () => {
   });
 });
 
+describe('POST /api/brouillon/:id/publier-cms (Blog → CMS Sanity)', () => {
+  it('rejette 409 un brouillon qui n est pas de type article', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7/publier-cms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('article');
+  });
+
+  it('rejette 409 un article non valide (statut brouillon)', async () => {
+    const { app } = buildTestApp();
+    const created = await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'Article test', type: 'article' })
+    });
+    const { id } = (await created.json()) as { id: string };
+    const res = await app.request(`/api/brouillon/${id}/publier-cms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it('rejette 400 un article valide sans slug', async () => {
+    const { app } = buildTestApp();
+    const created = await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'Article sans slug', type: 'article' })
+    });
+    const { id } = (await created.json()) as { id: string };
+    await app.request(`/api/brouillon/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statut: 'valide' })
+    });
+    const res = await app.request(`/api/brouillon/${id}/publier-cms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('Slug');
+  });
+
+  it('repond 503 quand le CMS n est pas configure (pas d env Sanity)', async () => {
+    const { app } = buildTestApp();
+    const created = await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'Article CMS', type: 'article' })
+    });
+    const { id } = (await created.json()) as { id: string };
+    await app.request(`/api/brouillon/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        statut: 'valide',
+        article: JSON.stringify({ slug: 'article-cms', chapo: 'Chapo test' }),
+        sourceHtml: '<p>Corps de l article</p>'
+      })
+    });
+    const res = await app.request(`/api/brouillon/${id}/publier-cms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('CMS non configur');
+  });
+});
+
 describe('Journal d activite (GET /api/journal)', () => {
   it('renvoie 200 avec un tableau (vide au depart)', async () => {
     const { app } = buildTestApp();

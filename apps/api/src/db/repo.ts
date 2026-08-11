@@ -36,6 +36,7 @@ export interface SlideRow {
 }
 
 export interface BrouillonPatch {
+  titre?: string;
   statut?: string;
   notes?: string;
   reseaux?: string;
