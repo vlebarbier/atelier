@@ -5,7 +5,7 @@ import {
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import type { BrouillonDetail, MessageChat, ReseauEntry, Statut } from '../api';
-import { deleteBrouillon, envoyerMessage, fetchBrouillon, fetchCharte, parseProgramme, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
+import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseProgramme, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
 import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
 import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate } from '../format';
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerHTML } from '../export';
@@ -61,6 +61,8 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [planifDate, setPlanifDate] = useState('');
   const [planifHeure, setPlanifHeure] = useState('09:00');
   const [planifReseau, setPlanifReseau] = useState('instagram');
+  const [postizEnvoi, setPostizEnvoi] = useState(false);
+  const [postizMsg, setPostizMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [conversation, setConversation] = useState<MessageChat[]>([]);
   const [chatDraft, setChatDraft] = useState('');
   const [chatEnvoi, setChatEnvoi] = useState(false);
@@ -161,6 +163,23 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
       setPlanifOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur');
+    }
+  }
+
+  async function onEnvoyerPostiz() {
+    if (!brouillon || postizEnvoi) return;
+    setPostizEnvoi(true);
+    setPostizMsg(null);
+    try {
+      const resultat = await envoyerVersPostiz(id, { reseau: reseauActif });
+      setPostizMsg({
+        type: 'ok',
+        text: `Brouillon Postiz cree (${resultat.postId}) : ${resultat.slides_uploaded} slide(s) envoyee(s), date ${resultat.date.slice(0, 10)}. La publication reste manuelle dans Postiz.`
+      });
+    } catch (e) {
+      setPostizMsg({ type: 'err', text: e instanceof Error ? e.message : 'Envoi vers Postiz echoue' });
+    } finally {
+      setPostizEnvoi(false);
     }
   }
 
@@ -1056,6 +1075,27 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               </>
             )}
           </div>
+
+          {!estDocument && brouillon.statut === 'valide' && (
+            <div className="sp-section postiz-section">
+              <button
+                className="ghost postiz-btn"
+                type="button"
+                onClick={onEnvoyerPostiz}
+                disabled={postizEnvoi}
+                title="Cree un brouillon Postiz (jamais de publication automatique)"
+              >
+                <PaperPlaneTilt size={14} /> {postizEnvoi ? 'Envoi vers Postiz...' : 'Envoyer vers Postiz'}
+              </button>
+              {postizMsg && (
+                <div className={`postiz-msg ${postizMsg.type === 'ok' ? 'ok' : 'err'}`} role="status">
+                  {postizMsg.type === 'ok' ? <CheckCircle size={13} /> : null}
+                  {postizMsg.text}
+                </div>
+              )}
+              <div className="postiz-hint">Draft uniquement : la publication finale reste un acte humain dans Postiz.</div>
+            </div>
+          )}
         </aside>
       </div>
 

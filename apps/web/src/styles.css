@@ -1021,6 +1021,12 @@ main {
 .planif-section { border-top: 1px solid var(--color-line-default); padding-top: 14px; margin-top: auto; }
 .planif-btn { width: 100%; justify-content: center; padding: 10px 14px; }
 .planif-hint { font-size: 10.5px; color: var(--color-ink-tertiary); text-align: center; }
+.postiz-section { border-top: 1px solid var(--color-line-default); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.postiz-btn { width: 100%; justify-content: center; padding: 10px 14px; }
+.postiz-msg { font-size: 11px; line-height: 1.45; padding: 8px 10px; border-radius: 8px; }
+.postiz-msg.ok { background: color-mix(in srgb, var(--color-status-ok) 10%, transparent); color: var(--color-status-ok); }
+.postiz-msg.err { background: color-mix(in srgb, var(--color-status-err) 10%, transparent); color: var(--color-status-err); }
+.postiz-hint { font-size: 10.5px; color: var(--color-ink-tertiary); text-align: center; }
 
 /* ── Selecteur de type de contenu ───────────────────────────────────── */
 .type-select { position: relative; }
