@@ -3,7 +3,6 @@ import { MagnifyingGlass, SquaresFour, List } from '@phosphor-icons/react';
 export type Vue = 'grille' | 'liste';
 
 interface HeaderProps {
-  titre: string;
   vue: Vue;
   onVueChange: (vue: Vue) => void;
   onOpenPalette: () => void;
@@ -11,13 +10,15 @@ interface HeaderProps {
   page: string;
 }
 
-export function Header({ titre, vue, onVueChange, onOpenPalette, page }: HeaderProps) {
+/**
+ * Barre d'actions globale (pattern Linear) : PAS de titre ici — le titre et le
+ * sous-titre vivent dans le PageHeader de chaque page. Cette barre ne porte que
+ * les actions contextuelles : recherche ⌘K + toggle de vue (sur les listes).
+ */
+export function Header({ vue, onVueChange, onOpenPalette, page }: HeaderProps) {
   const surListe = page === 'brouillons' || page === 'documents';
   return (
-    <header>
-      <div className="crumb">
-        <span className="sub">{titre}</span>
-      </div>
+    <header className="app-bar">
       <div className="actions">
         <button className="cmdk-hint" type="button" onClick={onOpenPalette}>
           <MagnifyingGlass size={14} />
