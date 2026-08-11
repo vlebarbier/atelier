@@ -1,6 +1,32 @@
 export type Statut = 'brouillon' | 'a-valider' | 'valide' | 'publie';
 export type Reseau = 'instagram' | 'linkedin' | 'facebook' | 'x' | 'tiktok';
 
+/** Programmation d'une publication : { date, heure, reseau }. */
+export interface Programme {
+  date?: string;
+  heure?: string;
+  reseau?: string;
+}
+
+/**
+ * Normalise le champ programme : l'API le renvoie deja parse (objet), l'UI
+ * l'envoie en JSON string. Les deux formes existent en runtime, donc on
+ * accepte les deux et on renvoie null si absent/invalide.
+ */
+export function parseProgramme(raw: unknown): Programme | null {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try {
+      const v = JSON.parse(raw);
+      return v && typeof v === 'object' ? (v as Programme) : null;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw === 'object') return raw as Programme;
+  return null;
+}
+
 export interface Brouillon {
   id: string;
   titre: string;
@@ -9,7 +35,7 @@ export interface Brouillon {
   slides: string[];
   updated: string | null;
   type?: string;
-  programme?: string | null;
+  programme?: string | Programme | null;
 }
 
 export interface ReseauEntry {
@@ -26,7 +52,7 @@ export interface BrouillonDetail extends Brouillon {
   charteId?: string;
   checklist?: string;
   conversation?: string;
-  programme?: string | null;
+  programme?: string | Programme | null;
 }
 
 export interface MessageChat {
@@ -71,11 +97,14 @@ export async function fetchBrouillons(): Promise<Brouillon[]> {
   return handle<Brouillon[]>(res);
 }
 
-export async function createBrouillon(titre?: string): Promise<Brouillon> {
+export async function createBrouillon(titre?: string, type?: string): Promise<Brouillon> {
   const res = await fetch(apiUrl('/api/brouillons'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(titre ? { titre } : {})
+    body: JSON.stringify({
+      ...(titre ? { titre } : {}),
+      ...(type ? { type } : {})
+    })
   });
   return handle<Brouillon>(res);
 }
@@ -221,4 +250,23 @@ export async function envoyerMessage(
     body: JSON.stringify({ texte, role })
   });
   return handle<{ ok: boolean; conversation: MessageChat[] }>(res);
+}
+
+// ── Journal d'activite ────────────────────────────────────────────────
+
+export interface JournalEntry {
+  id: number;
+  type: string;
+  auteur: 'agent' | 'user' | 'system';
+  brouillonId: string | null;
+  brouillonTitre: string | null;
+  message: string;
+  details: Record<string, unknown>;
+  at: string;
+}
+
+/** GET /api/journal → le fil d'activite reel (depots, regenerations, reponses chat, statuts). */
+export async function fetchJournal(limit = 100): Promise<JournalEntry[]> {
+  const res = await fetch(apiUrl(`/api/journal?limit=${limit}`));
+  return handle<JournalEntry[]>(res);
 }

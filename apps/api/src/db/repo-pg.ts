@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm';
-import { brouillons, slides, chartes, ressources } from './schema-pg.js';
+import { eq, desc, count } from 'drizzle-orm';
+import { brouillons, slides, chartes, ressources, journal } from './schema-pg.js';
 import type { AppDbPg } from './client.js';
-import type { BrouillonPatch, BrouillonRow, CharteRow, NewBrouillon, NewCharte, NewRessource, NewSlide, Repo, RessourceRow, SlideRow } from './repo.js';
+import type { BrouillonPatch, BrouillonRow, CharteRow, JournalRow, NewBrouillon, NewCharte, NewJournal, NewRessource, NewSlide, Repo, RessourceRow, SlideRow } from './repo.js';
 
 /** Implementation Repo pour Postgres (node-postgres via drizzle-orm/node-postgres, nativement asynchrone). */
 export function createPgRepo(db: AppDbPg): Repo {
@@ -81,6 +81,23 @@ export function createPgRepo(db: AppDbPg): Repo {
 
     async deleteRessource(id: string): Promise<void> {
       await db.delete(ressources).where(eq(ressources.id, id));
+    },
+
+    async listJournal(limit: number): Promise<JournalRow[]> {
+      return db
+        .select()
+        .from(journal)
+        .orderBy(desc(journal.createdAt), desc(journal.id))
+        .limit(limit) as unknown as Promise<JournalRow[]>;
+    },
+
+    async countJournal(): Promise<number> {
+      const rows = await db.select({ n: count() }).from(journal);
+      return rows[0]?.n ?? 0;
+    },
+
+    async insertJournal(row: NewJournal): Promise<void> {
+      await db.insert(journal).values(row);
     }
   };
 }

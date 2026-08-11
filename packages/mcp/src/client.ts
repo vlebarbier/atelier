@@ -26,7 +26,12 @@ export class AtelierClient {
     try {
       res = await fetch(`${this.base}${path}`, {
         ...init,
-        headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) }
+        headers: {
+          'Content-Type': 'application/json',
+          // Le client MCP EST l'agent : l'API journalise ses actions avec cet auteur.
+          'x-atelier-auteur': 'agent',
+          ...(init?.headers || {})
+        }
       });
     } catch (e) {
       throw new AtelierApiError(
@@ -55,9 +60,18 @@ export class AtelierClient {
     return this.request('/api/brouillons');
   }
 
-  /** GET /api/brouillon/:id → détail complet. */
+  /** GET /api/brouillon/:id → détail complet. */ 
   async lireBrouillon(id: string): Promise<unknown> {
     return this.request(`/api/brouillon/${encodeURIComponent(id)}`);
+  }
+
+  /** POST /api/brouillon/:id/message → ajoute un message a la conversation
+   *  (role 'agent' pour repondre a une demande du user). */
+  async repondreBrouillon(id: string, texte: string): Promise<unknown> {
+    return this.request(`/api/brouillon/${encodeURIComponent(id)}/message`, {
+      method: 'POST',
+      body: JSON.stringify({ texte, role: 'agent' })
+    });
   }
 
   /** POST /api/brouillon/:id {statut} */
@@ -113,5 +127,10 @@ export class AtelierClient {
       method: 'POST',
       body: JSON.stringify(payload)
     });
+  }
+
+  /** GET /api/journal → le journal des actions agents (depots, regenerations, reponses chat, statuts). */
+  async lireJournal(): Promise<unknown> {
+    return this.request('/api/journal?limit=100');
   }
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Check, Palette, TextT, ImageSquare, Plus, Trash, FileCode, UploadSimple, Quotes } from '@phosphor-icons/react';
 import tokens from '@atelier/tokens';
 import { fetchCharte, saveCharte, importCharte, type Charte } from '../api';
+import { Page, PageHeader } from '../components/ui';
 
 interface TokenSwatch {
   name: string;
@@ -124,31 +125,34 @@ export function BrandPage() {
   const radii = (tokens as { radius?: Record<string, { $value: string }> }).radius || {};
 
   if (loading) {
-    return <div className="placeholder">Chargement de la charte...</div>;
+    return (
+      <Page>
+        <PageHeader title="Charte graphique" />
+        <div className="placeholder">Chargement de la charte...</div>
+      </Page>
+    );
   }
 
   return (
-    <div className="brand-page">
-      <div className="brand-editor-head">
-        <div>
-          <h2>Charte graphique</h2>
-          <p className="brand-editor-sub">
-            Votre direction artistique, injectee dans le pipeline de rendu et les instructions de vos agents.
-          </p>
-        </div>
-        <div className="brand-editor-actions">
-          <input
-            className="brand-nom-input"
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            placeholder="Nom de la charte"
-            aria-label="Nom de la charte"
-          />
-          <button className="primary" type="button" onClick={onSave}>
-            <Check size={14} weight="bold" /> {saved ? 'Enregistre' : 'Enregistrer'}
-          </button>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title="Charte graphique"
+        sub="Votre direction artistique, injectee dans le pipeline de rendu et les instructions de vos agents."
+        actions={
+          <div className="page-actions-group">
+            <input
+              className="brand-nom-input"
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
+              placeholder="Nom de la charte"
+              aria-label="Nom de la charte"
+            />
+            <button className="primary" type="button" onClick={onSave}>
+              <Check size={14} weight="bold" /> {saved ? 'Enregistre' : 'Enregistrer'}
+            </button>
+          </div>
+        }
+      />
 
       <section className="brand-section brand-import">
         <h3>
@@ -351,6 +355,6 @@ export function BrandPage() {
           ))}
         </div>
       </section>
-    </div>
+    </Page>
   );
 }

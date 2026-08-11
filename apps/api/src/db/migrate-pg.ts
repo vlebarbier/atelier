@@ -38,6 +38,7 @@ export async function ensurePgTables(pool: Pool): Promise<void> {
   await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS conversation TEXT NOT NULL DEFAULT '[]';`);
   await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'carrousel';`);
   await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS programme TEXT;`);
+  await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS article TEXT;`);
   await pool.query(`ALTER TABLE slides ADD COLUMN IF NOT EXISTS type_media TEXT NOT NULL DEFAULT 'image';`);
   await pool.query(`CREATE TABLE IF NOT EXISTS ressources (
     id TEXT PRIMARY KEY,
@@ -51,4 +52,16 @@ export async function ensurePgTables(pool: Pool): Promise<void> {
     updated_at TEXT
   );`);
   await pool.query(`ALTER TABLE slides ADD COLUMN IF NOT EXISTS blob_url TEXT;`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS journal (
+      id SERIAL PRIMARY KEY,
+      type TEXT NOT NULL,
+      auteur TEXT NOT NULL DEFAULT 'agent',
+      brouillon_id TEXT,
+      brouillon_titre TEXT,
+      message TEXT NOT NULL,
+      details TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+  `);
 }

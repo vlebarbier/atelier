@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm';
-import { brouillons, slides, chartes, ressources } from './schema.js';
+import { eq, desc, count } from 'drizzle-orm';
+import { brouillons, slides, chartes, ressources, journal } from './schema.js';
 import type { AppDb } from './client.js';
-import type { BrouillonPatch, BrouillonRow, CharteRow, NewBrouillon, NewCharte, NewRessource, NewSlide, Repo, RessourceRow, SlideRow } from './repo.js';
+import type { BrouillonPatch, BrouillonRow, CharteRow, JournalRow, NewBrouillon, NewCharte, NewJournal, NewRessource, NewSlide, Repo, RessourceRow, SlideRow } from './repo.js';
 
 /** Implementation Repo pour SQLite (better-sqlite3 est synchrone, enveloppe en Promise). */
 export function createSqliteRepo(db: AppDb): Repo {
@@ -83,6 +83,24 @@ export function createSqliteRepo(db: AppDb): Repo {
 
     async deleteRessource(id: string): Promise<void> {
       db.delete(ressources).where(eq(ressources.id, id)).run();
+    },
+
+    async listJournal(limit: number): Promise<JournalRow[]> {
+      return db
+        .select()
+        .from(journal)
+        .orderBy(desc(journal.createdAt), desc(journal.id))
+        .limit(limit)
+        .all() as unknown as JournalRow[];
+    },
+
+    async countJournal(): Promise<number> {
+      const rows = db.select({ n: count() }).from(journal).all();
+      return rows[0]?.n ?? 0;
+    },
+
+    async insertJournal(row: NewJournal): Promise<void> {
+      db.insert(journal).values(row).run();
     }
   };
 }

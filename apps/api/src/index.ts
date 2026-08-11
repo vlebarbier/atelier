@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { serve } from '@hono/node-server';
-import { createApp } from './app.js';
+import { createApp, backfillJournal } from './app.js';
 import { createDb, createDbPg, createPgPool, isPostgres, openSqlite } from './db/client.js';
 import { ensureLegacyTables } from './db/legacy.js';
 import { migrateWithDrizzle } from './db/migrate.js';
@@ -47,6 +47,10 @@ const imported = await seedFromPrototype(repo, SEED_DIR, DATA_DIR);
 if (imported > 0) {
   console.log(`Atelier API : ${imported} brouillon(s) importe(s) depuis le prototype.`);
 }
+
+// Derive le journal des updatedAt existants au premier boot : le fil d'activite
+// est vrai des le premier chargement (meme comportement que le mode Postgres).
+await backfillJournal(repo);
 
 const app = createApp(repo, { dataDir: DATA_DIR });
 

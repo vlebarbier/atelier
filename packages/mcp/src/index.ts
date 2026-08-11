@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { AtelierClient, AtelierApiError } from './client.js';
 
 const STATUTS = ['brouillon', 'a-valider', 'valide', 'publie'] as const;
-const RESEAUX = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok'] as const;
+const RESEAUX = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok', 'gmb'] as const;
 
 const client = new AtelierClient();
 const server = new McpServer({ name: 'atelier', version: '0.1.0' });
@@ -35,12 +35,29 @@ server.tool(
 
 server.tool(
   'lire_brouillon',
-  'Détail complet d\'un brouillon : slides, notes, statut et légendes par réseau (caption, hashtags, statut par réseau).',
+  'Détail complet d\'un brouillon : slides, notes, statut, légendes par réseau, type de contenu et conversation avec le user (messages user en attente de traitement + réponses agent).',
   { id: z.string().describe('Identifiant du brouillon (ex: carrousel-bordeluche-v7)') },
   async ({ id }) => {
     try {
       const data = await client.lireBrouillon(id);
       return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
+server.tool(
+  'repondre_brouillon',
+  'Répond dans la conversation d\'un brouillon après avoir exécuté les modifications demandées par le user. Le user voit la réponse dans le panneau Agent (chat).',
+  {
+    id: z.string().describe('Identifiant du brouillon'),
+    texte: z.string().describe('Réponse au user : ce qui a été fait (ex: "Slide 3 mise à jour, slides régénérées.")')
+  },
+  async ({ id, texte }) => {
+    try {
+      const data = (await client.repondreBrouillon(id, texte)) as Record<string, unknown>;
+      return rep(true, data);
     } catch (e) {
       return rep(false, { error: e instanceof Error ? e.message : String(e) });
     }
@@ -83,7 +100,7 @@ server.tool(
 
 server.tool(
   'set_legende',
-  'Écrit la légende (caption + hashtags) d\'un réseau social pour un brouillon. Réseaux : instagram, linkedin, facebook, x, tiktok.',
+  'Écrit la légende (caption + hashtags) d\'un réseau social pour un brouillon. Réseaux : instagram, linkedin, facebook, x, tiktok, gmb (Google Business Profile, sans hashtags).',
   {
     id: z.string().describe('Identifiant du brouillon'),
     reseau: z.enum(RESEAUX).describe('Réseau social'),
@@ -335,6 +352,22 @@ server.tool(
       ];
       const r = execFileSync('postiz', cmd, { env, encoding: 'utf8', timeout: 120_000 });
       return rep(true, { id, reseau, slides_uploaded: mediaUrls.length, postiz: r.slice(0, 300) });
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
+// ═════════════════ JOURNAL D'ACTIVITE ════════════════════════════════
+
+server.tool(
+  'lire_journal',
+  'Lit le journal des actions agents sur le produit (depots de source, regenerations, reponses chat, changements de statut, depots de ressources...). Utile pour comprendre ce qui a deja ete fait et en rendre compte au user.',
+  {},
+  async () => {
+    try {
+      const data = await client.lireJournal();
+      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
     } catch (e) {
       return rep(false, { error: e instanceof Error ? e.message : String(e) });
     }

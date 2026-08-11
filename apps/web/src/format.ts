@@ -1,11 +1,36 @@
-export const RESEAUX: readonly string[] = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok'];
+export const RESEAUX: readonly string[] = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok', 'gmb'];
+
+/** Types de contenu reseaux sociaux (programmables, publics). */
+export const TYPES_CONTENUS: readonly string[] = ['carrousel', 'video', 'post', 'story'];
+
+/** Types de documents (livrables hors reseaux : pitch deck, flyers...). */
+export const TYPES_DOCUMENTS: readonly string[] = [
+  'pitch-deck',
+  'flyer',
+  'affiche',
+  'carte-visite',
+  'plaquette'
+];
+
+export const TYPE_LABELS: Record<string, string> = {
+  carrousel: 'Carrousel',
+  video: 'Vidéo',
+  post: 'Post',
+  story: 'Story',
+  'pitch-deck': 'Pitch deck',
+  flyer: 'Flyer',
+  affiche: 'Affiche',
+  'carte-visite': 'Carte de visite',
+  plaquette: 'Plaquette commerciale'
+};
 
 export const RESEAUX_LABELS: Record<string, string> = {
   instagram: 'Instagram',
   linkedin: 'LinkedIn',
   facebook: 'Facebook',
   x: 'X (Twitter)',
-  tiktok: 'TikTok'
+  tiktok: 'TikTok',
+  gmb: 'Google Business Profile'
 };
 
 export const STATUT_LABELS: Record<string, string> = {

@@ -82,3 +82,108 @@ describe('POST /api/brouillon/:id', () => {
     expect(body.statut).toBe('a-valider');
   });
 });
+
+describe('Dissociation contenus / documents (type)', () => {
+  it('POST /api/brouillons avec un type documentaire persiste le type', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'Flyer test', type: 'flyer' })
+    });
+    expect(res.status).toBe(201);
+    const created = (await res.json()) as { id: string };
+    const detail = await app.request(`/api/brouillon/${created.id}`);
+    const body = (await detail.json()) as { type: string };
+    expect(body.type).toBe('flyer');
+  });
+
+  it('POST /api/brouillons sans type → carrousel par defaut', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'Post sans type' })
+    });
+    const created = (await res.json()) as { id: string };
+    const detail = await app.request(`/api/brouillon/${created.id}`);
+    const body = (await detail.json()) as { type: string };
+    expect(body.type).toBe('carrousel');
+  });
+
+  it('la liste renvoie le type de chaque brouillon (filtrage cote client possible)', async () => {
+    const { app } = buildTestApp();
+    await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'Flyer test', type: 'flyer' })
+    });
+    const res = await app.request('/api/brouillons');
+    const body = (await res.json()) as { type: string }[];
+    const types = body.map((b) => b.type);
+    expect(types).toContain('carrousel'); // brouillon seede
+    expect(types).toContain('flyer');
+  });
+});
+
+describe('Journal d activite (GET /api/journal)', () => {
+  it('renvoie 200 avec un tableau (vide au depart)', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/journal');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as unknown[];
+    expect(Array.isArray(body)).toBe(true);
+  });
+
+  it('inscrit un changement de statut et le header x-atelier-auteur: agent', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-atelier-auteur': 'agent' },
+      body: JSON.stringify({ statut: 'a-valider' })
+    });
+    expect(res.status).toBe(200);
+
+    const j = (await (await app.request('/api/journal')).json()) as {
+      type: string;
+      auteur: string;
+      message: string;
+      details: { de: string; vers: string };
+    }[];
+    expect(j).toHaveLength(1);
+    expect(j[0]?.type).toBe('changement_statut');
+    expect(j[0]?.auteur).toBe('agent');
+    expect(j[0]?.details.de).toBe('brouillon');
+    expect(j[0]?.details.vers).toBe('a-valider');
+  });
+
+  it('inscrit un depot de source HTML sans header → auteur user', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceHtml: '<html><body>test</body></html>' })
+    });
+    expect(res.status).toBe(200);
+
+    const j = (await (await app.request('/api/journal')).json()) as {
+      type: string;
+      auteur: string;
+      message: string;
+    }[];
+    expect(j[0]?.type).toBe('depot_source');
+    expect(j[0]?.auteur).toBe('user');
+  });
+
+  it('inscrit une reponse agent (POST /message role agent)', async () => {
+    const { app } = buildTestApp();
+    await app.request('/api/brouillon/carrousel-bordeluche-v7/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: 'Slides regenerees.', role: 'agent' })
+    });
+    const j = (await (await app.request('/api/journal')).json()) as { type: string; auteur: string }[];
+    expect(j[0]?.type).toBe('reponse_chat');
+    expect(j[0]?.auteur).toBe('agent');
+  });
+});

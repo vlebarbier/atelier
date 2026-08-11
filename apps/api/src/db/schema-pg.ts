@@ -17,6 +17,7 @@ export const brouillons = pgTable('brouillons', {
   checklist: text('checklist').notNull().default('[]'),
   conversation: text('conversation').notNull().default('[]'),
   programme: text('programme'),
+  article: text('article'),
   updatedAt: text('updated_at')
 });
 
@@ -50,7 +51,20 @@ export const ressources = pgTable('ressources', {
   updatedAt: text('updated_at')
 });
 
+/** Journal des actions agents (depots, regenerations, reponses chat, statuts) — voir schema.ts. */
+export const journal = pgTable('journal', {
+  id: serial('id').primaryKey(),
+  type: text('type').notNull(),
+  auteur: text('auteur').notNull().default('agent'),
+  brouillonId: text('brouillon_id'),
+  brouillonTitre: text('brouillon_titre'),
+  message: text('message').notNull(),
+  details: text('details').notNull().default('{}'),
+  createdAt: text('created_at').notNull()
+});
+
 export type BrouillonPg = typeof brouillons.$inferSelect;
 export type SlidePg = typeof slides.$inferSelect;
 export type ChartePg = typeof chartes.$inferSelect;
 export type RessourcePg = typeof ressources.$inferSelect;
+export type JournalPg = typeof journal.$inferSelect;

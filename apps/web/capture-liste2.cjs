@@ -1,0 +1,19 @@
+// Capture : liste dense + filtres silencieux (prod, vue liste par défaut)
+const { chromium } = require('/Users/victorlebarbier/.hermes/hermes-agent/node_modules/playwright');
+
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark' });
+  const errors = [];
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('pageerror', (e) => errors.push(e.message));
+
+  await page.goto('https://atelier-web-drab.vercel.app/', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  // Bascule en vue liste
+  await page.locator('.view-toggle button').nth(1).click();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: '/Users/victorlebarbier/Atelier/refonte-liste.png' });
+  console.log('Erreurs console:', errors.length ? errors.join(' | ') : '0');
+  await browser.close();
+})();

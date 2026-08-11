@@ -6,7 +6,101 @@ import { updateBrouillonSchema } from './validation.js';
 import { storeSlide, storeRessource } from './storage/blob.js';
 import type { Repo } from './db/repo.js';
 
-const RESEAUX_DEFAUT = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok'];
+const RESEAUX_DEFAUT = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok', 'gmb'];
+
+/** Libelles francais des statuts, pour le journal d'activite. */
+const STATUT_LABELS: Record<string, string> = {
+  brouillon: 'Brouillon',
+  'a-valider': 'A valider',
+  valide: 'Valide',
+  publie: 'Publie'
+};
+
+/**
+ * Journal d'activite : inscrit une action (depot de source, regeneration,
+ * reponse chat, changement de statut...) dans la table journal. La page
+ * "Activite IA" lit ce journal. Ne doit jamais faire echouer l'action
+ * principale : les erreurs d'ecriture sont avalees.
+ */
+async function journaliser(
+  repo: Repo,
+  e: {
+    type: string;
+    auteur: string;
+    brouillonId?: string | null;
+    brouillonTitre?: string | null;
+    message: string;
+    details?: Record<string, unknown>;
+  }
+): Promise<void> {
+  try {
+    await repo.insertJournal({
+      type: e.type,
+      auteur: e.auteur,
+      brouillonId: e.brouillonId ?? null,
+      brouillonTitre: e.brouillonTitre ?? null,
+      message: e.message,
+      details: JSON.stringify(e.details ?? {}),
+      createdAt: new Date().toISOString()
+    });
+  } catch {
+    /* le journal est best-effort : ne jamais bloquer l'action principale */
+  }
+}
+
+/**
+ * Auteur de l'action : le client MCP envoie le header x-atelier-auteur: agent,
+ * l'UI web n'envoie rien → 'user' par defaut.
+ */
+function auteurDe(c: { req: { header: (name: string) => string | undefined } }): string {
+  const h = c.req.header('x-atelier-auteur');
+  return h === 'agent' || h === 'system' ? h : 'user';
+}
+
+/**
+ * Backfill du journal au premier boot : si la table journal est vide alors que
+ * des brouillons/ressources/charte existent deja, on derive des updatedAt une
+ * entree par objet. C'est le "derive des updatedAt" de la spec : le fil d'activite
+ * est vrai des le premier chargement, avant meme la prochaine action.
+ */
+export async function backfillJournal(repo: Repo): Promise<void> {
+  try {
+    if ((await repo.countJournal()) > 0) return;
+    const brouillons = await repo.listBrouillons();
+    for (const b of brouillons) {
+      await repo.insertJournal({
+        type: 'creation',
+        auteur: 'system',
+        brouillonId: b.id,
+        brouillonTitre: b.titre,
+        message: `brouillon cree : "${b.titre}"`,
+        details: JSON.stringify({ type: b.type || 'carrousel' }),
+        createdAt: b.updatedAt || new Date().toISOString()
+      });
+    }
+    const ressources = await repo.listRessources();
+    for (const r of ressources) {
+      await repo.insertJournal({
+        type: 'depot_ressource',
+        auteur: 'system',
+        message: `ressource deposee : "${r.nom}"`,
+        details: JSON.stringify({ type: r.type, categorie: r.categorie }),
+        createdAt: r.updatedAt || new Date().toISOString()
+      });
+    }
+    const charte = await repo.getCharte('principale');
+    if (charte && charte.data !== '{}') {
+      await repo.insertJournal({
+        type: 'charte_maj',
+        auteur: 'system',
+        message: 'charte graphique enregistree',
+        createdAt: charte.updatedAt || new Date().toISOString()
+      });
+    }
+  } catch {
+    /* best-effort */
+  }
+}
 
 const MIME: Record<string, string> = {
   '.png': 'image/png',
@@ -46,6 +140,9 @@ export function createApp(repo: Repo, options: AppOptions) {
             id: row.id,
             titre: row.titre,
             statut: row.statut,
+            type: row.type || 'carrousel',
+            programme: row.programme ? JSON.parse(row.programme) : null,
+            article: row.article ? JSON.parse(row.article) : null,
             slideCount: fichiers.length,
             slides: fichiers,
             updated: row.updatedAt
@@ -57,19 +154,28 @@ export function createApp(repo: Repo, options: AppOptions) {
   });
 
   app.post('/api/brouillons', async (c) => {
-    const body = (await c.req.json().catch(() => ({}))) as { titre?: string };
+    const body = (await c.req.json().catch(() => ({}))) as { titre?: string; type?: string };
     const id = `brouillon-${Date.now().toString(36)}`;
     const titre = (body.titre || 'Nouveau brouillon').trim();
+    const type = body.type || 'carrousel';
     await repo.insertBrouillon({
       id,
       titre,
       statut: 'brouillon',
-      type: 'carrousel',
+      type,
       notes: '',
       reseaux: '{}',
       sourceHtml: null,
       charteId: 'principale',
       updatedAt: new Date().toISOString()
+    });
+    await journaliser(repo, {
+      type: 'creation',
+      auteur: auteurDe(c),
+      brouillonId: id,
+      brouillonTitre: titre,
+      message: `a cree le brouillon "${titre}"`,
+      details: { type }
     });
     return c.json({ id, titre, statut: 'brouillon', slideCount: 0, slides: [], updated: new Date().toISOString() }, 201);
   });
@@ -79,6 +185,13 @@ export function createApp(repo: Repo, options: AppOptions) {
     const row = await repo.getBrouillon(id);
     if (!row) return c.json({ error: 'Inconnu' }, 404);
     await repo.deleteBrouillon(id);
+    await journaliser(repo, {
+      type: 'suppression',
+      auteur: auteurDe(c),
+      brouillonId: id,
+      brouillonTitre: row.titre,
+      message: `a supprime le brouillon "${row.titre}"`
+    });
     return c.json({ ok: true });
   });
 
@@ -94,6 +207,11 @@ export function createApp(repo: Repo, options: AppOptions) {
     const data = typeof body.data === 'string' ? body.data : JSON.stringify(body.data || {});
     const updatedAt = new Date().toISOString();
     await repo.saveCharte({ id: 'principale', nom, data, updatedAt });
+    await journaliser(repo, {
+      type: 'charte_maj',
+      auteur: auteurDe(c),
+      message: `a mis a jour la charte graphique "${nom}"`
+    });
     return c.json({ id: 'principale', nom, data, updatedAt });
   });
 
@@ -109,17 +227,24 @@ export function createApp(repo: Repo, options: AppOptions) {
     const data = JSON.stringify(parsed);
 
     await repo.saveCharte({ id: 'principale', nom, data, updatedAt });
+    const stats = {
+      couleurs: Object.keys(parsed.couleurs).length,
+      polices: [parsed.polices.titre, parsed.polices.texte].filter(Boolean).length,
+      rayons: Object.keys(parsed.rayons).length,
+      logos: parsed.logos.length
+    };
+    await journaliser(repo, {
+      type: 'charte_import',
+      auteur: auteurDe(c),
+      message: `a importe une charte graphique depuis du CSS (${stats.couleurs} couleurs, ${stats.polices} polices)`,
+      details: stats
+    });
     return c.json({
       id: 'principale',
       nom,
       data,
       updatedAt,
-      stats: {
-        couleurs: Object.keys(parsed.couleurs).length,
-        polices: [parsed.polices.titre, parsed.polices.texte].filter(Boolean).length,
-        rayons: Object.keys(parsed.rayons).length,
-        logos: parsed.logos.length
-      }
+      stats
     });
   });
 
@@ -194,6 +319,39 @@ export function createApp(repo: Repo, options: AppOptions) {
       updatedAt
     });
 
+    const auteur = auteurDe(c);
+    // Journal : une entree par action reelle (statut change, source deposee, programme).
+    if (patch.statut !== undefined && patch.statut !== row.statut) {
+      await journaliser(repo, {
+        type: 'changement_statut',
+        auteur,
+        brouillonId: id,
+        brouillonTitre: row.titre,
+        message: `a change le statut de ${STATUT_LABELS[row.statut] ?? row.statut} a ${STATUT_LABELS[nextStatut] ?? nextStatut}`,
+        details: { de: row.statut, vers: nextStatut }
+      });
+    }
+    if (patch.sourceHtml !== undefined && patch.sourceHtml !== row.sourceHtml) {
+      await journaliser(repo, {
+        type: 'depot_source',
+        auteur,
+        brouillonId: id,
+        brouillonTitre: row.titre,
+        message: patch.sourceHtml ? `a depose la source HTML du document` : `a retire la source HTML du document`
+      });
+    }
+    if (patch.programme !== undefined && patch.programme !== row.programme) {
+      const prog = patch.programme ? JSON.parse(patch.programme) : null;
+      await journaliser(repo, {
+        type: 'programmation',
+        auteur,
+        brouillonId: id,
+        brouillonTitre: row.titre,
+        message: prog ? `a programme la publication (${prog.date ?? '?'} a ${prog.heure ?? '?'} sur ${prog.reseau ?? '?'})` : `a annule la programmation`,
+        details: { programme: prog }
+      });
+    }
+
     return c.json({
       ok: true,
       meta: {
@@ -231,6 +389,25 @@ export function createApp(repo: Repo, options: AppOptions) {
       conversation: JSON.stringify(garde),
       updatedAt: new Date().toISOString()
     });
+    if (role === 'agent') {
+      await journaliser(repo, {
+        type: 'reponse_chat',
+        auteur: 'agent',
+        brouillonId: id,
+        brouillonTitre: row.titre,
+        message: `a repondu dans la conversation (${texte.length} caracteres)`,
+        details: { apercu: texte.slice(0, 120) }
+      });
+    } else {
+      await journaliser(repo, {
+        type: 'message_user',
+        auteur: 'user',
+        brouillonId: id,
+        brouillonTitre: row.titre,
+        message: `a envoye un message a l'agent (${texte.length} caracteres)`,
+        details: { apercu: texte.slice(0, 120) }
+      });
+    }
     return c.json({ ok: true, conversation: garde });
   });
 
@@ -241,7 +418,7 @@ export function createApp(repo: Repo, options: AppOptions) {
 
     const body = (await c.req.json().catch(() => ({}))) as { slides?: unknown };
     if (!Array.isArray(body.slides) || body.slides.length === 0) {
-      return c.json({ error: 'slides requis (tableau de dataURL PNG)' }, 400);
+      return c.json({ error: 'slides requis (tableau de dataURL PNG ou MP4)' }, 400);
     }
 
     // Remplace toutes les slides : supprime l'existant, stocke les nouvelles.
@@ -249,20 +426,38 @@ export function createApp(repo: Repo, options: AppOptions) {
     const stored: { fichier: string; blobUrl: string | null }[] = [];
     for (let i = 0; i < body.slides.length; i++) {
       const dataUrl = body.slides[i];
-      if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+      if (typeof dataUrl !== 'string' || (!dataUrl.startsWith('data:image/') && !dataUrl.startsWith('data:video/'))) {
         await repo.deleteSlides(id); // rollback
-        return c.json({ error: `slide ${i + 1} invalide (dataURL attendu)` }, 400);
+        return c.json({ error: `slide ${i + 1} invalide (dataURL image ou video attendu)` }, 400);
       }
       const base64 = dataUrl.split(',')[1] ?? '';
       const buffer = Buffer.from(base64, 'base64');
-      const fichier = `slides/slide-${String(i + 1).padStart(2, '0')}.png`;
+      const isVideo = dataUrl.startsWith('data:video/');
+      const ext = isVideo ? 'mp4' : 'png';
+      const typeMedia = isVideo ? 'video' : 'image';
+      const fichier = `slides/slide-${String(i + 1).padStart(2, '0')}.${ext}`;
       const result = await storeSlide(id, fichier, buffer, options.dataDir);
-      await repo.insertSlide({ brouillonId: id, fichier: result.fichier, position: i + 1, blobUrl: result.blobUrl });
+      await repo.insertSlide({
+        brouillonId: id,
+        fichier: result.fichier,
+        position: i + 1,
+        typeMedia,
+        blobUrl: result.blobUrl
+      });
       stored.push(result);
     }
 
     const updatedAt = new Date().toISOString();
     await repo.updateBrouillon(id, { updatedAt });
+
+    await journaliser(repo, {
+      type: 'regeneration',
+      auteur: auteurDe(c),
+      brouillonId: id,
+      brouillonTitre: row.titre,
+      message: `a regenere les ${stored.length} slide${stored.length > 1 ? 's' : ''}`,
+      details: { nb: stored.length }
+    });
 
     return c.json({ ok: true, slideCount: stored.length, slides: stored.map((s) => s.fichier) });
   });
@@ -289,6 +484,14 @@ export function createApp(repo: Repo, options: AppOptions) {
       await repo.insertSlide({ brouillonId: id, fichier: s.fichier, position: i + 1, blobUrl: s.blobUrl });
     }
     await repo.updateBrouillon(id, { updatedAt: new Date().toISOString() });
+    const rowOrdre = await repo.getBrouillon(id);
+    await journaliser(repo, {
+      type: 'reorganisation',
+      auteur: auteurDe(c),
+      brouillonId: id,
+      brouillonTitre: rowOrdre?.titre ?? id,
+      message: `a reordonne les slides`
+    });
     return c.json({ ok: true, slideCount: fichiers.length });
   });
 
@@ -366,6 +569,12 @@ export function createApp(repo: Repo, options: AppOptions) {
         sourceUrl: String(body.sourceUrl),
         updatedAt: new Date().toISOString()
       });
+      await journaliser(repo, {
+        type: 'depot_ressource',
+        auteur: auteurDe(c),
+        message: `a archive la page web "${nom}"`,
+        details: { categorie, sourceUrl: String(body.sourceUrl).slice(0, 120) }
+      });
       return c.json({ ok: true, id });
     }
 
@@ -390,14 +599,51 @@ export function createApp(repo: Repo, options: AppOptions) {
       sourceUrl: null,
       updatedAt: new Date().toISOString()
     });
+    await journaliser(repo, {
+      type: 'depot_ressource',
+      auteur: auteurDe(c),
+      message: `a depose la ressource "${nom}" (${type}) dans la bibliotheque`,
+      details: { categorie, taille: buffer.length }
+    });
     return c.json({ ok: true, id });
   });
 
   // DELETE /api/ressource/:id
   app.delete('/api/ressource/:id', async (c) => {
     const id = c.req.param('id');
-    await repo.deleteRessource(id);
+    const r = await repo.getRessource(id);
+    if (r) {
+      await repo.deleteRessource(id);
+      await journaliser(repo, {
+        type: 'suppression',
+        auteur: auteurDe(c),
+        message: `a supprime la ressource "${r.nom}" de la bibliotheque`
+      });
+    }
     return c.json({ ok: true });
+  });
+
+  // ═════════════════ JOURNAL D'ACTIVITE ════════════════════════════════
+
+  // GET /api/journal → le fil d'activite reel (depots, regenerations, reponses
+  // chat, statuts changes...), les plus recentes en premier. La page "Activite IA"
+  // l'affiche au lieu d'un fil simule.
+  app.get('/api/journal', async (c) => {
+    const limitRaw = Number(c.req.query('limit') || 100);
+    const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 100, 1), 200);
+    const rows = await repo.listJournal(limit);
+    return c.json(
+      rows.map((row) => ({
+        id: row.id,
+        type: row.type,
+        auteur: row.auteur,
+        brouillonId: row.brouillonId,
+        brouillonTitre: row.brouillonTitre,
+        message: row.message,
+        details: row.details ? JSON.parse(row.details) : {},
+        at: row.createdAt
+      }))
+    );
   });
 
   // GET /r/:id/* → sert le fichier local (mode sans Blob)
@@ -471,6 +717,113 @@ export function createApp(repo: Repo, options: AppOptions) {
     return c.body(new Uint8Array(data), 200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
   });
 
+  // ═════════════════ RACCORD POSTIZ (issue #5) ═════════════════════════════
+  // Depuis un brouillon VALIDÉ, crée le brouillon de publication Postiz :
+  // upload des slides + post en statut draft (JAMAIS schedule — la programmation
+  // reste un acte humain dans Postiz, workflow inaliénable brouillon → validation → publication).
+  app.post('/api/brouillon/:id/postiz', async (c) => {
+    const id = c.req.param('id');
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+
+    if (row.statut !== 'valide') {
+      return c.json({ error: `Statut '${row.statut}' : seul un brouillon 'valide' peut être envoyé vers Postiz` }, 409);
+    }
+
+    const fichiers = await slideFichiersDe(repo, id);
+    if (!fichiers.length) return c.json({ error: 'Aucune slide dans ce brouillon' }, 400);
+
+    const { getPostizConfig, postizListIntegrations, postizUpload, postizCreateDraft } = await import('./integrations/postiz.js');
+    const config = getPostizConfig();
+    if (!config) {
+      return c.json(
+        { error: 'Raccord Postiz non configuré (POSTIZ_API_URL / POSTIZ_API_KEY introuvables). Le raccord ne fonctionne qu’en local, là où Postiz self-hosted tourne.' },
+        503
+      );
+    }
+
+    let body: { reseau?: string; caption?: string; hashtags?: string; date?: string; heure?: string; integration_id?: string } = {};
+    try {
+      body = (await c.req.json().catch(() => ({}))) as typeof body;
+    } catch { /* body vide → tout vient du brouillon */ }
+
+    // Résolution du réseau : body > programme du brouillon > instagram
+    let programme: { date?: string; heure?: string; reseau?: string } | null = null;
+    try {
+      programme = row.programme ? JSON.parse(row.programme) : null;
+    } catch { programme = null; }
+
+    const reseau = body.reseau || programme?.reseau || 'instagram';
+    const reseaux: Record<string, { caption?: string; hashtags?: string }> = JSON.parse(row.reseaux || '{}');
+    const entry = reseaux[reseau] || {};
+    const caption = (body.caption ?? entry.caption ?? '').trim();
+    const hashtags = (body.hashtags ?? entry.hashtags ?? '').trim();
+    const fullCaption = hashtags ? `${caption}\n\n${hashtags}` : caption;
+    if (!fullCaption) {
+      return c.json({ error: `Légende vide pour le réseau '${reseau}' (body ou brouillon)` }, 400);
+    }
+
+    // Date de programmation : body > programme > maintenant (draft : la date reste indicative)
+    const dateStr = body.date || programme?.date || new Date().toISOString().slice(0, 10);
+    const heureStr = body.heure || programme?.heure || '10:00';
+    const iso = new Date(`${dateStr}T${heureStr}:00`).toISOString();
+
+    // Id d'intégration : body > env dédiée > premier canal actif de Postiz
+    let integrationId = body.integration_id || process.env.ATELIER_INSTAGRAM_INTEGRATION_ID || '';
+    if (!integrationId) {
+      const channels = await postizListIntegrations(config);
+      if (!channels.length) return c.json({ error: 'Aucun canal connecté dans Postiz' }, 502);
+      const first = channels[0];
+      if (!first) return c.json({ error: 'Aucun canal connecté dans Postiz' }, 502);
+      integrationId = first.id;
+    }
+
+    // Upload des slides (lecture disque local : le raccord Postiz est un raccord local)
+    const mediaUrls: string[] = [];
+    try {
+      for (const fichier of fichiers) {
+        const safe = path.normalize(fichier).replace(/^(\\.\\.[/\\\\])+/, '');
+        const filePath = path.join(options.dataDir, id, safe);
+        if (!filePath.startsWith(path.join(options.dataDir, id))) {
+          return c.json({ error: `Chemin de slide refusé : ${fichier}` }, 400);
+        }
+        if (!fs.existsSync(filePath)) {
+          return c.json(
+            { error: `Slide introuvable sur disque : ${fichier} (le raccord Postiz lit les fichiers locaux — mode local requis)` },
+            422
+          );
+        }
+        const buffer = fs.readFileSync(filePath);
+        mediaUrls.push(await postizUpload(config, buffer, path.basename(fichier)));
+      }
+    } catch (e) {
+      return c.json({ error: `Upload Postiz: ${e instanceof Error ? e.message : String(e)}` }, 502);
+    }
+
+    let postId = '';
+    try {
+      postId = await postizCreateDraft(config, {
+        integrationId,
+        caption: fullCaption,
+        mediaUrls,
+        date: iso,
+        settings: { post_type: 'post' }
+      });
+    } catch (e) {
+      return c.json({ error: `Création du brouillon Postiz: ${e instanceof Error ? e.message : String(e)}` }, 502);
+    }
+
+    return c.json({
+      ok: true,
+      postId,
+      integrationId,
+      reseau,
+      slides_uploaded: mediaUrls.length,
+      date: iso,
+      statut: 'draft' // jamais publié automatiquement
+    }, 201);
+  });
+
   return app;
 }
 
@@ -496,14 +849,19 @@ async function getRepo(): Promise<Repo> {
         const pool = createPgPool();
         await ensurePgTables(pool);
         const db = createDbPg(pool);
-        return createPgRepo(db);
+        const repo = createPgRepo(db);
+        // Derive le journal des updatedAt existants la premiere fois (base deja peuplee).
+        await backfillJournal(repo);
+        return repo;
       }
       const DB_PATH = process.env.API_DB_PATH || '/tmp/atelier.db';
       const sqlite = openSqlite(DB_PATH);
       ensureLegacyTables(sqlite);
       migrateWithDrizzle(sqlite);
       const db = createDb(sqlite);
-      return createSqliteRepo(db);
+      const repo = createSqliteRepo(db);
+      await backfillJournal(repo);
+      return repo;
     })();
   }
   return repoPromise;

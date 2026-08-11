@@ -55,6 +55,9 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
   if (!brouillonsCols.some((c) => c.name === 'programme')) {
     sqlite.exec(`ALTER TABLE brouillons ADD COLUMN programme TEXT;`);
   }
+  if (!brouillonsCols.some((c) => c.name === 'article')) {
+    sqlite.exec(`ALTER TABLE brouillons ADD COLUMN article TEXT;`);
+  }
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS ressources (
       id TEXT PRIMARY KEY,
@@ -75,4 +78,16 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
   if (!slidesCols.some((c) => c.name === 'type_media')) {
     sqlite.exec(`ALTER TABLE slides ADD COLUMN type_media TEXT NOT NULL DEFAULT 'image';`);
   }
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS journal (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      auteur TEXT NOT NULL DEFAULT 'agent',
+      brouillon_id TEXT,
+      brouillon_titre TEXT,
+      message TEXT NOT NULL,
+      details TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+  `);
 }
