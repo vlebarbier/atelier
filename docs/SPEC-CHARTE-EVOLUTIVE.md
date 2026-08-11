@@ -6,6 +6,9 @@
 > Vision : VISION.md (point 3 de la vision révisée : « la charte est vivante »).
 > Priorisation : PRIORISATION.md (F-14 Charte vivante, RICE 2.9, effort 3j ;
 > F-23 Feedback de validation à l'agent, même moteur, à venir).
+> Carte kanban « Charte evolutive : feedback des contenus valides (F-01/02) » :
+> elle correspond à F-14 (charte vivante) de PRIORISATION.md ; F-23 (feedback à
+> l'agent) partage le moteur d'analyse mais reste hors périmètre v1 (section 1.3).
 > Direction design : REFONTE-DESIGN.md. Portes d'entrée liées : SPEC-CREATION.md.
 
 ---
@@ -186,10 +189,10 @@ sont accumulées en statut `candidate` (invisible dans l'UI, voir 4.1).
 
 ### 4.1 Table `propositions` (nouvelle)
 
-Esquissée dans la tentative précédente, consolidée ici (les 4 fichiers ENSEMBLE :
-`schema.ts`, `schema-pg.ts`, `legacy.ts`, `migrate-pg.ts` + types repo `repo.ts` +
-méthodes `listPropositions` / `getProposition` / `upsertProposition` / `setPropositionStatut`
-dans `repo-sqlite.ts` et `repo-pg.ts`) :
+Table nouvelle : les 4 fichiers ENSEMBLE (`schema.ts`, `schema-pg.ts`, `legacy.ts`,
+`migrate-pg.ts` + types repo `repo.ts` + méthodes `listPropositions` /
+`getProposition` / `upsertProposition` / `setPropositionStatut` dans
+`repo-sqlite.ts` et `repo-pg.ts`) :
 
 ```ts
 propositions = sqliteTable('propositions', {
