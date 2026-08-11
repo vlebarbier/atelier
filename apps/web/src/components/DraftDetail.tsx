@@ -254,7 +254,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
       const res = await replaceSlides(id, [dataUrl]);
       await updateBrouillon(id, { type: 'video' });
       await load();
-      setSourceMsg({ type: 'ok', text: `Video deposee (${res.slideCount} media). Le type est passe en « Video ».` });
+      setSourceMsg({ type: 'ok', text: `Vidéo déposée (${res.slideCount} média). Le type est passé en « Vidéo ».` });
     } catch (err) {
       setSourceMsg({ type: 'err', text: err instanceof Error ? err.message : 'Erreur upload video' });
     } finally {
@@ -467,8 +467,8 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const CHECKLIST_DEFAUT: { id: string; label: string }[] = [
     { id: 'charte', label: 'Charte respectee' },
     { id: 'textes', label: 'Textes relus' },
-    { id: 'liens', label: 'Liens verifies' },
-    { id: 'formats', label: 'Formats par reseau' }
+    { id: 'liens', label: 'Liens vérifiés' },
+    { id: 'formats', label: 'Formats par réseau' }
   ];
 
   function toggleChecklist(id: string) {
@@ -537,6 +537,41 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           <span className="title" title={brouillon.titre}>{brouillon.titre}</span>
         </div>
         <div className="r">
+          <div className="statut-control">
+            <button
+              type="button"
+              className={`statut-btn on--${brouillon.statut}`}
+              onClick={() => setStatutOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={statutOpen}
+            >
+              <span className={`dot dot--${brouillon.statut}`} />
+              <span className="statut-label">{STATUT_LABELS[brouillon.statut] ?? brouillon.statut}</span>
+              <CaretDown size={12} className="statut-caret" />
+            </button>
+            {statutOpen && (
+              <div className="statut-menu" role="listbox">
+                <div className="statut-menu-label">Changer le statut</div>
+                {STATUTS_ORDRE.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    role="option"
+                    aria-selected={brouillon.statut === s}
+                    className={brouillon.statut === s ? 'on' : ''}
+                    onClick={() => {
+                      setStatut(s as Statut);
+                      setStatutOpen(false);
+                    }}
+                  >
+                    <span className={`dot dot--${s}`} />
+                    {STATUT_LABELS[s]}
+                    {brouillon.statut === s && <Check size={12} className="statut-check" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="type-select">
             <button
               type="button"
@@ -594,41 +629,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               </div>
             )}
           </div>
-          <div className="statut-control">
-            <button
-              type="button"
-              className={`statut-btn on--${brouillon.statut}`}
-              onClick={() => setStatutOpen((o) => !o)}
-              aria-haspopup="listbox"
-              aria-expanded={statutOpen}
-            >
-              <span className={`dot dot--${brouillon.statut}`} />
-              <span className="statut-label">{STATUT_LABELS[brouillon.statut] ?? brouillon.statut}</span>
-              <CaretDown size={12} className="statut-caret" />
-            </button>
-            {statutOpen && (
-              <div className="statut-menu" role="listbox">
-                <div className="statut-menu-label">Changer le statut</div>
-                {STATUTS_ORDRE.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    role="option"
-                    aria-selected={brouillon.statut === s}
-                    className={brouillon.statut === s ? 'on' : ''}
-                    onClick={() => {
-                      setStatut(s as Statut);
-                      setStatutOpen(false);
-                    }}
-                  >
-                    <span className={`dot dot--${s}`} />
-                    {STATUT_LABELS[s]}
-                    {brouillon.statut === s && <Check size={12} className="statut-check" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
           <div className="export-control">
             <button
               type="button"
@@ -650,14 +650,14 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   <DownloadSimple size={14} />
                   <span className="mi">
                     <span className="mi-t">HTML autonome</span>
-                    <span className="mi-s">Slides + legendes, tout-en-un</span>
+                    <span className="mi-s">Slides + légendes, tout-en-un</span>
                   </span>
                 </button>
                 <button type="button" role="menuitem" onClick={() => onExporter('pdf')} disabled={exporting}>
                   <FilePdf size={14} />
                   <span className="mi">
                     <span className="mi-t">PDF</span>
-                    <span className="mi-s">Apercu impression, une slide par page</span>
+                    <span className="mi-s">Aperçu impression, une slide par page</span>
                   </span>
                 </button>
               </div>
@@ -744,14 +744,14 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
         <aside className={`side-panel${panneauReplie ? ' is-replie' : ''}`}>
           <div className="sp-section">
             <div className="sp-label">
-              <span>Notes de revision</span>
+              <span>Notes de révision</span>
               <span className={`saved${savedFlash ? ' show' : ''}`}>
-                <Check size={11} weight="bold" /> Enregistre
+                <Check size={11} weight="bold" /> Enregistré
               </span>
             </div>
             <textarea
               className="sp-textarea"
-              placeholder="Notes de revision"
+              placeholder="Notes de révision"
               value={notes}
               onChange={(e) => onNotesChange(e.target.value)}
             />
@@ -779,20 +779,20 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   </label>
                 ))}
                 <div className="checklist-progress">
-                  {checklist.filter((c) => c.checked).length}/{checklist.length} verifies
+                  {checklist.filter((c) => c.checked).length}/{checklist.length} vérifiés
                 </div>
               </div>
             )}
           </div>
 
           <div className="sp-section">
-            <div className="sp-label">Edition du contenu</div>
+            <div className="sp-label">Édition du contenu</div>
             <div className="panel-tabs">
               <button type="button" className={onglet === 'agent' ? 'on' : ''} onClick={() => setOnglet('agent')}>
                 <Sparkle size={12} /> Agent
               </button>
               <button type="button" className={onglet === 'reseaux' ? 'on' : ''} onClick={() => setOnglet('reseaux')}>
-                <ArrowRight size={12} /> Reseaux
+                <ArrowRight size={12} /> Réseaux
               </button>
               <button type="button" className={onglet === 'slides' ? 'on' : ''} onClick={() => setOnglet('slides')}>
                 <Stack size={12} /> Slides
@@ -877,11 +877,11 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     <VideoCamera size={13} /> Importer une video (.mp4)
                     <input type="file" accept=".mp4,.webm,video/*" onChange={onSourceVideo} hidden />
                   </label>
-                  <button className="ghost" type="button" onClick={onDeposerSource} disabled={sourceBusy || !sourceDraft.trim()}>
-                    <Check size={13} /> {sourceBusy ? 'Depot...' : 'Deposer la source'}
+                  <button className="primary" type="button" onClick={onDeposerSource} disabled={sourceBusy || !sourceDraft.trim()}>
+                    <Check size={13} /> {sourceBusy ? 'Dépôt...' : 'Déposer la source'}
                   </button>
-                  <button className="primary" type="button" onClick={onRegenerer} disabled={rendering}>
-                    {rendering ? 'Rendu en cours...' : 'Regenerer les slides'}
+                  <button className="ghost" type="button" onClick={onRegenerer} disabled={rendering}>
+                    {rendering ? 'Rendu en cours...' : 'Régénérer les slides'}
                   </button>
                 </div>
                 {rendering && (
@@ -889,7 +889,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     <span className="loader-pixels" aria-hidden="true">
                       <span /><span /><span /><span /><span /><span /><span /><span /><span />
                     </span>
-                    <span className="shimmer-label">Generation du rendu</span>
+                    <span className="shimmer-label">Génération du rendu</span>
                   </div>
                 )}
                 {sourceMsg && (
@@ -899,7 +899,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 )}
                 {brouillon.sourceHtml && !sourceDraft && (
                   <div className="source-meta">
-                    <CheckCircle size={13} /> Document HTML de l'agent, {brouillon.sourceHtml.length} caracteres
+                    <CheckCircle size={13} /> Document HTML de l'agent, {brouillon.sourceHtml.length} caractères
                   </div>
                 )}
               </div>
@@ -948,7 +948,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 <FileText size={16} />
                 <p>Document de communication : {TYPE_LABELS[brouillon.type] ?? brouillon.type}</p>
                 <p className="doc-panel-sub">
-                  Pas de contraintes reseau ni de programmation pour ce livrable.
+                  Pas de contraintes réseau ni de programmation pour ce livrable.
                   Utilisez les onglets Slides et Source pour travailler le document.
                 </p>
               </div>
@@ -970,8 +970,15 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     );
                   })}
                 </div>
+                <div className="format-reco">
+                  <Stack size={14} />
+                  <div className="format-reco-body">
+                    <span className="format-reco-label">Format recommandé</span>
+                    <span className="format-reco-value">{contraintes.format}</span>
+                  </div>
+                </div>
                 <div className="field">
-                  <label htmlFor="r-caption">Legende</label>
+                  <label htmlFor="r-caption">Légende</label>
                   <textarea
                     id="r-caption"
                     rows={5}
@@ -990,7 +997,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     onBlur={(e) => saveReseau(reseauActif, { caption: e.target.value })}
                   />
                   <div className={`counter${(currentReseau.caption || '').length > contraintes.maxChars ? ' over' : ''}`}>
-                    <span>{(currentReseau.caption || '').length}</span> / {contraintes.maxChars} caracteres
+                    <span>{(currentReseau.caption || '').length}</span> / {contraintes.maxChars} caractères
                   </div>
                 </div>
                 {contraintes.maxHashtags > 0 ? (
@@ -1021,11 +1028,8 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     <span>Pas de hashtags sur {RESEAUX_LABELS[reseauActif] ?? reseauActif}.</span>
                   </div>
                 )}
-                <div className="format-hint">
-                  <Stack size={12} /> Format recommande : {contraintes.format}
-                </div>
                 <div className={`counter img-counter${brouillon.slides.length > contraintes.maxImages ? ' over' : ''}`}>
-                  {brouillon.slides.length} / {contraintes.maxImages} images max pour ce reseau
+                  {brouillon.slides.length} / {contraintes.maxImages} images max pour ce réseau
                 </div>
                 <div className="reseau-statut">
                   <span className="reseau-statut-label">Statut {RESEAUX_LABELS[reseauActif]}</span>
@@ -1048,7 +1052,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           <div className="sp-section planif-section">
             {estDocument ? (
               <div className="planif-nodoc">
-                <CheckCircle size={13} /> Livrable de communication : pas de programmation reseau
+                <CheckCircle size={13} /> Livrable de communication : pas de programmation réseau
               </div>
             ) : brouillon.programme ? (
               (() => {
@@ -1071,7 +1075,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 <button className="primary planif-btn" type="button" onClick={() => setPlanifOpen(true)}>
                   <CalendarBlank size={14} weight="bold" /> Programmer dans le calendrier
                 </button>
-                <div className="planif-hint">Quand le contenu est pret, planifiez sa publication.</div>
+                <div className="planif-hint">Quand le contenu est prêt, planifiez sa publication.</div>
               </>
             )}
           </div>
@@ -1118,7 +1122,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 <input id="p-heure" type="time" value={planifHeure} onChange={(e) => setPlanifHeure(e.target.value)} />
               </div>
               <div className="field">
-                <label htmlFor="p-reseau">Reseau</label>
+                <label htmlFor="p-reseau">Réseau</label>
                 <select id="p-reseau" value={planifReseau} onChange={(e) => setPlanifReseau(e.target.value)}>
                   {RESEAUX.map((r) => (
                     <option key={r} value={r}>{RESEAUX_LABELS[r] || r}</option>

@@ -444,8 +444,8 @@ main {
 /* ── Export du livrable (F-44) ──────────────────────────────────────── */
 .export-control { position: relative; }
 .export-btn {
-  border: 1px solid var(--color-line-default); background: var(--color-bg-level-2);
-  color: var(--color-ink-secondary); padding: 5px 11px; font-size: 11.5px;
+  border: 1px solid var(--color-line-default); background: transparent;
+  color: var(--color-ink-secondary); padding: 6px 11px; font-size: 11.5px;
   border-radius: var(--radius-input); cursor: pointer;
   display: inline-flex; align-items: center; gap: 7px; font-weight: 500;
 }
@@ -919,16 +919,18 @@ main {
 /* ── Controle de statut (dropdown) ──────────────────────────────────── */
 .statut-control { position: relative; }
 .statut-btn {
-  border: 1px solid var(--color-line-default); background: var(--color-bg-level-2);
-  color: var(--color-ink-primary); padding: 5px 11px; font-size: 11.5px;
+  border: 1px solid var(--color-line-strong); background: var(--color-bg-level-2);
+  color: var(--color-ink-primary); padding: 6px 13px; font-size: 12px;
   border-radius: var(--radius-input); cursor: pointer;
-  display: inline-flex; align-items: center; gap: 7px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 7px; font-weight: 600;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease), background var(--motion-duration-fast) var(--motion-ease);
 }
 .statut-btn:hover { border-color: var(--color-line-hover); }
 .statut-btn .dot { width: 6px; height: 6px; border-radius: 50%; }
 .statut-btn .statut-caret { opacity: 0.6; }
-.statut-btn.on--a-valider { border-color: var(--color-status-warn); color: var(--color-status-warn); }
-.statut-btn.on--valide, .statut-btn.on--publie { border-color: var(--color-status-ok); color: var(--color-status-ok); }
+.statut-btn.on--a-valider { border-color: var(--color-status-warn); color: var(--color-status-warn); background: var(--color-status-warn-soft); }
+.statut-btn.on--valide, .statut-btn.on--publie { border-color: var(--color-status-ok); color: var(--color-status-ok); background: var(--color-status-ok-soft); }
+.statut-btn.on--brouillon { background: var(--color-status-neutral); color: var(--color-ink-primary); }
 .statut-menu {
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
   background: var(--color-bg-level-3); border: 1px solid var(--color-line-default);
@@ -1017,6 +1019,22 @@ main {
   padding: 6px 9px;
 }
 
+/* Format recommande : l'info cle du tunnel, affichee en tete de l'onglet */
+.format-reco {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--color-bg-level-2);
+  border: 1px solid var(--color-line-default);
+  border-radius: 8px; padding: 9px 11px;
+  margin-bottom: var(--spacing-4);
+}
+.format-reco > svg { flex-shrink: 0; opacity: 0.75; }
+.format-reco-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.format-reco-label {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.09em;
+  font-weight: 600; color: var(--color-ink-tertiary);
+}
+.format-reco-value { font-size: 12px; font-weight: 600; color: var(--color-ink-primary); line-height: 1.35; }
+
 /* ── Programmer dans le calendrier ──────────────────────────────────── */
 .planif-section { border-top: 1px solid var(--color-line-default); padding-top: 14px; margin-top: auto; }
 .planif-btn { width: 100%; justify-content: center; padding: 10px 14px; }
@@ -1031,12 +1049,12 @@ main {
 /* ── Selecteur de type de contenu ───────────────────────────────────── */
 .type-select { position: relative; }
 .type-btn {
-  border: 1px solid var(--color-line-default); background: var(--color-bg-level-2);
-  color: var(--color-ink-primary); padding: 5px 11px; font-size: 11.5px;
+  border: 1px solid var(--color-line-default); background: transparent;
+  color: var(--color-ink-secondary); padding: 6px 11px; font-size: 11.5px;
   border-radius: var(--radius-input); cursor: pointer;
   display: inline-flex; align-items: center; gap: 7px; font-weight: 500;
 }
-.type-btn:hover { border-color: var(--color-line-hover); }
+.type-btn:hover { border-color: var(--color-line-hover); color: var(--color-ink-primary); }
 
 /* ── Modal ──────────────────────────────────────────────────────────── */
 .modal-overlay {
