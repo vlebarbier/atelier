@@ -71,7 +71,32 @@ export const ressources = sqliteTable('ressources', {
   updatedAt: text('updated_at')
 });
 
+/**
+ * Table journal : le fil d'activite reel des agents (et du user) sur le produit.
+ * Chaque action mutatrice (depot de source, regeneration, reponse chat,
+ * changement de statut, creation, depot de ressource...) y est inscrite par
+ * l'API. La page "Activite IA" lit ce journal au lieu d'un fil simule.
+ * brouillonTitre est fige a l'instant de l'action (l'historique reste lisible
+ * meme si le brouillon est renomme ou supprime).
+ */
+export const journal = sqliteTable('journal', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  /** Type d'action : creation, depot_source, regeneration, reponse_chat, message_user,
+   *  changement_statut, depot_ressource, charte_import, charte_maj, suppression, reorganisation. */
+  type: text('type').notNull(),
+  /** Qui a agi : 'agent' (via MCP/API), 'user' (via l'UI), 'system' (backfill, seed). */
+  auteur: text('auteur').notNull().default('agent'),
+  brouillonId: text('brouillon_id'),
+  brouillonTitre: text('brouillon_titre'),
+  /** Libelle humain de l'action (ex: "a change le statut de Brouillon a A valider"). */
+  message: text('message').notNull(),
+  /** Details structuraux en JSON (ex: {de, vers} pour un statut, {nb} pour une regeneration). */
+  details: text('details').notNull().default('{}'),
+  createdAt: text('created_at').notNull()
+});
+
 export type Brouillon = typeof brouillons.$inferSelect;
 export type Slide = typeof slides.$inferSelect;
 export type Charte = typeof chartes.$inferSelect;
 export type Ressource = typeof ressources.$inferSelect;
+export type Journal = typeof journal.$inferSelect;

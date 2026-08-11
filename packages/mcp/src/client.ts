@@ -55,9 +55,18 @@ export class AtelierClient {
     return this.request('/api/brouillons');
   }
 
-  /** GET /api/brouillon/:id → détail complet. */
+  /** GET /api/brouillon/:id → détail complet. */ 
   async lireBrouillon(id: string): Promise<unknown> {
     return this.request(`/api/brouillon/${encodeURIComponent(id)}`);
+  }
+
+  /** POST /api/brouillon/:id/message → ajoute un message a la conversation
+   *  (role 'agent' pour repondre a une demande du user). */
+  async repondreBrouillon(id: string, texte: string): Promise<unknown> {
+    return this.request(`/api/brouillon/${encodeURIComponent(id)}/message`, {
+      method: 'POST',
+      body: JSON.stringify({ texte, role: 'agent' })
+    });
   }
 
   /** POST /api/brouillon/:id {statut} */

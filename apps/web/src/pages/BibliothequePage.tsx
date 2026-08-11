@@ -8,6 +8,7 @@ import {
   type Ressource
 } from '../api';
 import { relTime } from '../format';
+import { Page, PageHeader, EmptyState } from '../components/ui';
 
 const CATEGORIES = ['visuel', 'texte', 'document', 'site', 'autre'] as const;
 
@@ -121,20 +122,23 @@ export function BibliothequePage() {
   const filtrees = filtre === 'tous' ? ressources : ressources.filter((r) => r.categorie === filtre);
 
   return (
-    <div>
-      <div className="toolbar">
-        <div className="toolbar-group">
-          <button className={filtre === 'tous' ? 'on' : ''} onClick={() => setFiltre('tous')} data-f="tous">
-            Tous
-          </button>
-          {CATEGORIES.filter((c) => c !== 'autre').map((c) => (
-            <button key={c} className={filtre === c ? 'on' : ''} onClick={() => setFiltre(c)} data-f={c}>
-              {c}
+    <Page>
+      <PageHeader
+        title="Bibliotheque"
+        sub="La memoire de votre marque : photos, pages de site, documents. Vos agents la lisent pour produire."
+        actions={
+          <div className="toolbar-group">
+            <button className={filtre === 'tous' ? 'on' : ''} onClick={() => setFiltre('tous')} data-f="tous">
+              Tous
             </button>
-          ))}
-        </div>
-        <div className="toolbar-count">{filtrees.length} ressource{filtrees.length > 1 ? 's' : ''}</div>
-      </div>
+            {CATEGORIES.filter((c) => c !== 'autre').map((c) => (
+              <button key={c} className={filtre === c ? 'on' : ''} onClick={() => setFiltre(c)} data-f={c}>
+                {c}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       <div
         className={`dropzone${dragOver ? ' over' : ''}`}
@@ -173,16 +177,13 @@ export function BibliothequePage() {
       {msg && <p className={`form-msg ${msg.type}`}>{msg.text}</p>}
 
       {loading ? (
-        <div className="empty">Chargement de la bibliothèque...</div>
+        <div className="placeholder">Chargement de la bibliothèque...</div>
       ) : filtrees.length === 0 ? (
-        <div className="empty">
-          <FolderOpen size={28} style={{ opacity: 0.4 }} />
-          <p>Aucune ressource{ressources.length === 0 ? ' pour l\'instant' : ` dans « ${filtre} »`}.</p>
-          <p className="empty-sub">
-            La bibliothèque est la mémoire de votre marque : photos, pages de site, documents.
-            Vos agents la lisent pour produire, et peuvent l\'enrichir eux-mêmes.
-          </p>
-        </div>
+        <EmptyState
+          icon={FolderOpen}
+          title={ressources.length === 0 ? 'Aucune ressource pour l\'instant' : `Aucune ressource dans « ${filtre} »`}
+          sub="La bibliothèque est la mémoire de votre marque : photos, pages de site, documents. Vos agents la lisent pour produire, et peuvent l'enrichir eux-mêmes."
+        />
       ) : (
         <div className="ressources-grid">
           {filtrees.map((r) => (
@@ -219,6 +220,6 @@ export function BibliothequePage() {
           ))}
         </div>
       )}
-    </div>
+    </Page>
   );
 }

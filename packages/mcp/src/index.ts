@@ -35,12 +35,29 @@ server.tool(
 
 server.tool(
   'lire_brouillon',
-  'Détail complet d\'un brouillon : slides, notes, statut et légendes par réseau (caption, hashtags, statut par réseau).',
+  'Détail complet d\'un brouillon : slides, notes, statut, légendes par réseau, type de contenu et conversation avec le user (messages user en attente de traitement + réponses agent).',
   { id: z.string().describe('Identifiant du brouillon (ex: carrousel-bordeluche-v7)') },
   async ({ id }) => {
     try {
       const data = await client.lireBrouillon(id);
       return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
+server.tool(
+  'repondre_brouillon',
+  'Répond dans la conversation d\'un brouillon après avoir exécuté les modifications demandées par le user. Le user voit la réponse dans le panneau Agent (chat).',
+  {
+    id: z.string().describe('Identifiant du brouillon'),
+    texte: z.string().describe('Réponse au user : ce qui a été fait (ex: "Slide 3 mise à jour, slides régénérées.")')
+  },
+  async ({ id, texte }) => {
+    try {
+      const data = (await client.repondreBrouillon(id, texte)) as Record<string, unknown>;
+      return rep(true, data);
     } catch (e) {
       return rep(false, { error: e instanceof Error ? e.message : String(e) });
     }

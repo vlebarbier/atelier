@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header, type Vue } from './components/Header';
-import { Toolbar } from './components/Toolbar';
-import { DraftGrid, GridSkeleton } from './components/DraftGrid';
+import { DraftGrid } from './components/DraftGrid';
 import { DraftDetail } from './components/DraftDetail';
 import { CommandPalette } from './components/CommandPalette';
+import { ContentListPage } from './components/ContentListPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { BrandPage } from './pages/BrandPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { BibliothequePage } from './pages/BibliothequePage';
+import { TYPES_DOCUMENTS } from './format';
 import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
 
 const PAGE_LABELS: Record<string, string> = {
-  brouillons: 'Dashboard',
+  brouillons: 'Contenus',
+  documents: 'Documents',
   calendrier: 'Calendrier',
   bibliotheque: 'Bibliothèque',
   charte: 'Charte graphique',
@@ -77,10 +79,12 @@ export default function App() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const filtered = useMemo(() => {
-    if (filtre === 'tous') return brouillons;
-    return brouillons.filter((b) => b.statut === filtre);
-  }, [brouillons, filtre]);
+  // La page Contenus ne montre que les types reseaux sociaux ; les documents
+  // ont leur propre page.
+  const contenus = useMemo(
+    () => brouillons.filter((b) => !TYPES_DOCUMENTS.includes(b.type ?? '')),
+    [brouillons]
+  );
 
   const crumb = PAGE_LABELS[page] || page;
   const aValider = useMemo(() => brouillons.filter((b) => b.statut === 'a-valider').length, [brouillons]);
@@ -101,6 +105,16 @@ export default function App() {
       openBrouillon(created.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de création');
+    }
+  }
+
+  async function createDocument(type: string) {
+    try {
+      const created = await createBrouillon(undefined, type);
+      await load();
+      openBrouillon(created.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de création du document');
     }
   }
 
@@ -134,25 +148,57 @@ export default function App() {
           vue={vue}
           onVueChange={setVue}
           onOpenPalette={() => setPaletteOpen(true)}
-          onNew={createNew}
         />
         <main>
           {page === 'brouillons' && selectedId && (
             <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} />
           )}
 
-          {page === 'brouillons' && !selectedId && (
-            <>
-              <Toolbar filtre={filtre} onFiltreChange={setFiltre} count={filtered.length} />
-              {error && <div className="empty">Erreur, {error}</div>}
-              {!error && loading && <GridSkeleton />}
-              {!error && !loading && (
-                <DraftGrid brouillons={filtered} vue={vue} onOpen={openBrouillon} onNew={createNew} onDelete={confirmDelete} />
-              )}
-            </>
+          {page === 'documents' && selectedId && (
+            <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} />
           )}
 
-          {page === 'calendrier' && <CalendarPage brouillons={brouillons} />}
+          {page === 'brouillons' && !selectedId && (
+            <ContentListPage
+              titre="Contenus"
+              sub="Vos creations pour les reseaux sociaux : carrousels, posts, videos, stories."
+              brouillons={contenus}
+              loading={loading}
+              error={error}
+              vue={vue}
+              onVueChange={setVue}
+              onOpen={openBrouillon}
+              onDelete={confirmDelete}
+              onCreate={createNew}
+              filtre={filtre}
+              onFiltreChange={setFiltre}
+              emptyTitle="Pas encore de contenu."
+              emptySub="Creez votre premier contenu avec votre agent : il utilisera vos elements de marque."
+            />
+          )}
+
+          {page === 'documents' && !selectedId && (
+            <ContentListPage
+              titre="Documents"
+              sub="Vos livrables de communication hors reseaux : pitch decks, flyers, affiches, cartes de visite, plaquettes."
+              brouillons={brouillons.filter((b) => TYPES_DOCUMENTS.includes(b.type ?? ''))}
+              loading={loading}
+              error={error}
+              vue={vue}
+              onVueChange={setVue}
+              onOpen={openBrouillon}
+              onDelete={confirmDelete}
+              onCreate={createNew}
+              typesNouveau={TYPES_DOCUMENTS}
+              onCreateType={(type) => createDocument(type)}
+              filtre={filtre}
+              onFiltreChange={setFiltre}
+              emptyTitle="Pas encore de document de communication."
+              emptySub="Pitch deck, flyer, affiche, carte de visite, plaquette — creez le premier livrable avec votre agent."
+            />
+          )}
+
+          {page === 'calendrier' && <CalendarPage brouillons={brouillons} onOpen={openBrouillon} onRefresh={load} />}
           {page === 'bibliotheque' && <BibliothequePage />}
           {page === 'charte' && <BrandPage />}
           {page === 'activite' && <ActivityPage brouillons={brouillons} />}

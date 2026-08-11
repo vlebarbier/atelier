@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm';
-import { brouillons, slides, chartes, ressources } from './schema-pg.js';
+import { eq, desc } from 'drizzle-orm';
+import { brouillons, slides, chartes, ressources, journal } from './schema-pg.js';
 import type { AppDbPg } from './client.js';
-import type { BrouillonPatch, BrouillonRow, CharteRow, NewBrouillon, NewCharte, NewRessource, NewSlide, Repo, RessourceRow, SlideRow } from './repo.js';
+import type { BrouillonPatch, BrouillonRow, CharteRow, JournalRow, NewBrouillon, NewCharte, NewJournal, NewRessource, NewSlide, Repo, RessourceRow, SlideRow } from './repo.js';
 
 /** Implementation Repo pour Postgres (node-postgres via drizzle-orm/node-postgres, nativement asynchrone). */
 export function createPgRepo(db: AppDbPg): Repo {
@@ -81,6 +81,29 @@ export function createPgRepo(db: AppDbPg): Repo {
 
     async deleteRessource(id: string): Promise<void> {
       await db.delete(ressources).where(eq(ressources.id, id));
+    },
+
+    async listJournal(limit: number): Promise<JournalRow[]> {
+      return db
+        .select()
+        .from(journal)
+        .orderBy(desc(journal.createdAt), desc(journal.id))
+        .limit(limit) as unknown as Promise<JournalRow[]>;
+    },
+
+    async countJournal(): Promise<number> {
+      const rows = await db.select({ n: journal.id }).from(journal).limit(1);
+      // count rapide : un SELECT COUNT(*) est plus lisible que drizzle pour ce cas.
+      const pool = (db as unknown as { $client?: { query?: (sql: string) => Promise<{ rows: unknown[] }> } }).$client;
+      if (pool?.query) {
+        const r = await pool.query('SELECT COUNT(*) AS n FROM journal');
+        return Number((r.rows[0] as { n: string }).n);
+      }
+      return rows.length > 0 ? 1 : 0;
+    },
+
+    async insertJournal(row: NewJournal): Promise<void> {
+      await db.insert(journal).values(row);
     }
   };
 }

@@ -46,6 +46,8 @@ export function createApp(repo: Repo, options: AppOptions) {
             id: row.id,
             titre: row.titre,
             statut: row.statut,
+            type: row.type || 'carrousel',
+            programme: row.programme ? JSON.parse(row.programme) : null,
             slideCount: fichiers.length,
             slides: fichiers,
             updated: row.updatedAt
@@ -57,14 +59,15 @@ export function createApp(repo: Repo, options: AppOptions) {
   });
 
   app.post('/api/brouillons', async (c) => {
-    const body = (await c.req.json().catch(() => ({}))) as { titre?: string };
+    const body = (await c.req.json().catch(() => ({}))) as { titre?: string; type?: string };
     const id = `brouillon-${Date.now().toString(36)}`;
     const titre = (body.titre || 'Nouveau brouillon').trim();
+    const type = body.type || 'carrousel';
     await repo.insertBrouillon({
       id,
       titre,
       statut: 'brouillon',
-      type: 'carrousel',
+      type,
       notes: '',
       reseaux: '{}',
       sourceHtml: null,
@@ -241,7 +244,7 @@ export function createApp(repo: Repo, options: AppOptions) {
 
     const body = (await c.req.json().catch(() => ({}))) as { slides?: unknown };
     if (!Array.isArray(body.slides) || body.slides.length === 0) {
-      return c.json({ error: 'slides requis (tableau de dataURL PNG)' }, 400);
+      return c.json({ error: 'slides requis (tableau de dataURL PNG ou MP4)' }, 400);
     }
 
     // Remplace toutes les slides : supprime l'existant, stocke les nouvelles.
@@ -249,15 +252,24 @@ export function createApp(repo: Repo, options: AppOptions) {
     const stored: { fichier: string; blobUrl: string | null }[] = [];
     for (let i = 0; i < body.slides.length; i++) {
       const dataUrl = body.slides[i];
-      if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+      if (typeof dataUrl !== 'string' || (!dataUrl.startsWith('data:image/') && !dataUrl.startsWith('data:video/'))) {
         await repo.deleteSlides(id); // rollback
-        return c.json({ error: `slide ${i + 1} invalide (dataURL attendu)` }, 400);
+        return c.json({ error: `slide ${i + 1} invalide (dataURL image ou video attendu)` }, 400);
       }
       const base64 = dataUrl.split(',')[1] ?? '';
       const buffer = Buffer.from(base64, 'base64');
-      const fichier = `slides/slide-${String(i + 1).padStart(2, '0')}.png`;
+      const isVideo = dataUrl.startsWith('data:video/');
+      const ext = isVideo ? 'mp4' : 'png';
+      const typeMedia = isVideo ? 'video' : 'image';
+      const fichier = `slides/slide-${String(i + 1).padStart(2, '0')}.${ext}`;
       const result = await storeSlide(id, fichier, buffer, options.dataDir);
-      await repo.insertSlide({ brouillonId: id, fichier: result.fichier, position: i + 1, blobUrl: result.blobUrl });
+      await repo.insertSlide({
+        brouillonId: id,
+        fichier: result.fichier,
+        position: i + 1,
+        typeMedia,
+        blobUrl: result.blobUrl
+      });
       stored.push(result);
     }
 

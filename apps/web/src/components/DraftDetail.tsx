@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, FileCode, Trash,
-  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera
+  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import type { BrouillonDetail, MessageChat, ReseauEntry, Statut } from '../api';
-import { deleteBrouillon, envoyerMessage, fetchBrouillon, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
-import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, formatDate } from '../format';
+import { deleteBrouillon, envoyerMessage, fetchBrouillon, fetchCharte, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
+import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate } from '../format';
+import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerHTML } from '../export';
 
 const RESEAU_ICONES: Record<string, Icon> = {
   instagram: InstagramLogo,
@@ -28,13 +29,6 @@ const RESEAU_CONTRAINTES: Record<string, { maxChars: number; maxHashtags: number
 
 type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source';
 
-const TYPE_LABELS: Record<string, string> = {
-  carrousel: 'Carrousel',
-  video: 'Vidéo',
-  post: 'Post',
-  story: 'Story'
-};
-
 interface DraftDetailProps {
   id: string;
   onClose: () => void;
@@ -52,6 +46,8 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   const [onglet, setOnglet] = useState<OngletPanneau>('agent');
   const [statutOpen, setStatutOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [planifOpen, setPlanifOpen] = useState(false);
   const [planifDate, setPlanifDate] = useState('');
   const [planifHeure, setPlanifHeure] = useState('09:00');
@@ -82,7 +78,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
       }
       setSlide(0);
       setReseauActif('instagram');
-      setOnglet('agent');
+      setOnglet(TYPES_DOCUMENTS.includes(data.type) ? 'slides' : 'agent');
       try {
         setConversation(JSON.parse(data.conversation || '[]'));
       } catch {
@@ -151,6 +147,32 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
     }
   }
 
+  /** Export du livrable (F-44) : HTML autonome ou apercu impression (PDF). */
+  async function onExporter(mode: 'html' | 'pdf') {
+    if (!brouillon || exporting) return;
+    setExportOpen(false);
+    // L'apercu s'ouvre SYNCHRONEMENT au clic pour garder le geste utilisateur
+    // (sinon le bloqueur de popups le tue), puis recoit le HTML une fois pret.
+    const win = mode === 'pdf' ? ouvrirApercuPDF() : null;
+    if (mode === 'pdf' && !win) {
+      setError('Le navigateur a bloque l ouverture. Autorisez les popups pour exporter en PDF.');
+      return;
+    }
+    setExporting(true);
+    try {
+      const html = await exporterHTMLAutonome(brouillon, { apercuImpression: mode === 'pdf' });
+      if (mode === 'html') {
+        telechargerHTML(html, `${slugifier(brouillon.titre || brouillon.id)}.html`);
+      } else if (win) {
+        ecrireDansApercu(win, html);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Export impossible');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   async function onDeposerSource() {
     if (!brouillon || !sourceDraft.trim()) return;
     setSourceBusy(true);
@@ -173,6 +195,35 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
     reader.onload = () => setSourceDraft(String(reader.result || ''));
     reader.readAsText(file);
     e.target.value = '';
+  }
+
+  /** Upload direct d'une video (.mp4/.webm) → remplace les slides par cette video. */
+  async function onSourceVideo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !brouillon) return;
+    if (!file.type.startsWith('video/')) {
+      setSourceMsg({ type: 'err', text: 'Fichier non video (.mp4/.webm attendu)' });
+      return;
+    }
+    setSourceBusy(true);
+    setSourceMsg(null);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
+        reader.readAsDataURL(file);
+      });
+      const res = await replaceSlides(id, [dataUrl]);
+      await updateBrouillon(id, { type: 'video' });
+      await load();
+      setSourceMsg({ type: 'ok', text: `Video deposee (${res.slideCount} media). Le type est passe en « Video ».` });
+    } catch (err) {
+      setSourceMsg({ type: 'err', text: err instanceof Error ? err.message : 'Erreur upload video' });
+    } finally {
+      setSourceBusy(false);
+    }
   }
 
   /** Capture chaque element .slide du HTML source en PNG (rendu navigateur), puis remplace les slides via l'API. */
@@ -367,6 +418,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   if (error || !brouillon) return <div className="empty">Erreur, {error || 'brouillon introuvable'}</div>;
 
   const currentReseau = brouillon.reseaux[reseauActif] || { caption: '', hashtags: '', statut: 'brouillon' };
+  const estDocument = TYPES_DOCUMENTS.includes(brouillon.type);
   const contraintes: { maxChars: number; maxHashtags: number; format: string } =
     RESEAU_CONTRAINTES[reseauActif] ?? { maxChars: 2200, maxHashtags: 30, format: 'Carré 1080×1080' };
   const nbHashtags = (currentReseau.hashtags || '').split(/\s+/).filter((h) => h.startsWith('#')).length;
@@ -399,7 +451,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
             {typeOpen && (
               <div className="statut-menu" role="listbox">
                 <div className="statut-menu-label">Type de contenu</div>
-                {(['carrousel', 'video', 'post', 'story'] as const).map((t) => (
+                {TYPES_CONTENUS.map((t) => (
                   <button
                     key={t}
                     type="button"
@@ -413,7 +465,27 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     }}
                   >
                     {t === 'video' ? <VideoCamera size={13} /> : <Stack size={13} />}
-                    {TYPE_LABELS[t]}
+                    {TYPE_LABELS[t] ?? t}
+                    {brouillon.type === t && <Check size={12} className="statut-check" />}
+                  </button>
+                ))}
+                <div className="statut-menu-sep" />
+                <div className="statut-menu-label">Documents</div>
+                {TYPES_DOCUMENTS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    role="option"
+                    aria-selected={brouillon.type === t}
+                    className={brouillon.type === t ? 'on' : ''}
+                    onClick={() => {
+                      setBrouillon({ ...brouillon, type: t });
+                      updateBrouillon(id, { type: t });
+                      setTypeOpen(false);
+                    }}
+                  >
+                    <FileText size={13} />
+                    {TYPE_LABELS[t] ?? t}
                     {brouillon.type === t && <Check size={12} className="statut-check" />}
                   </button>
                 ))}
@@ -452,6 +524,40 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     {brouillon.statut === s && <Check size={12} className="statut-check" />}
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+          <div className="export-control">
+            <button
+              type="button"
+              className="export-btn"
+              onClick={() => setExportOpen((o) => !o)}
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+              disabled={exporting}
+              title="Exporter le livrable (HTML autonome ou PDF)"
+            >
+              <DownloadSimple size={13} />
+              <span>{exporting ? 'Export...' : 'Exporter'}</span>
+              <CaretDown size={12} className="statut-caret" />
+            </button>
+            {exportOpen && (
+              <div className="statut-menu export-menu" role="menu">
+                <div className="statut-menu-label">Exporter le livrable</div>
+                <button type="button" role="menuitem" onClick={() => onExporter('html')} disabled={exporting}>
+                  <DownloadSimple size={14} />
+                  <span className="mi">
+                    <span className="mi-t">HTML autonome</span>
+                    <span className="mi-s">Slides + legendes, tout-en-un</span>
+                  </span>
+                </button>
+                <button type="button" role="menuitem" onClick={() => onExporter('pdf')} disabled={exporting}>
+                  <FilePdf size={14} />
+                  <span className="mi">
+                    <span className="mi-t">PDF</span>
+                    <span className="mi-s">Apercu impression, une slide par page</span>
+                  </span>
+                </button>
               </div>
             )}
           </div>
@@ -643,6 +749,10 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     <FileCode size={13} /> Importer un fichier .html
                     <input type="file" accept=".html,.htm" onChange={onSourceFile} hidden />
                   </label>
+                  <label className="ghost file-label" role="button">
+                    <VideoCamera size={13} /> Importer une video (.mp4)
+                    <input type="file" accept=".mp4,.webm,video/*" onChange={onSourceVideo} hidden />
+                  </label>
                   <button className="ghost" type="button" onClick={onDeposerSource} disabled={sourceBusy || !sourceDraft.trim()}>
                     <Check size={13} /> {sourceBusy ? 'Depot...' : 'Deposer la source'}
                   </button>
@@ -700,6 +810,15 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : estDocument ? (
+              <div className="doc-panel">
+                <FileText size={16} />
+                <p>Document de communication : {TYPE_LABELS[brouillon.type] ?? brouillon.type}</p>
+                <p className="doc-panel-sub">
+                  Pas de contraintes reseau ni de programmation pour ce livrable.
+                  Utilisez les onglets Slides et Source pour travailler le document.
+                </p>
               </div>
             ) : (
               <>
@@ -786,7 +905,11 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
           </div>
 
           <div className="sp-section planif-section">
-            {brouillon.programme ? (
+            {estDocument ? (
+              <div className="planif-nodoc">
+                <CheckCircle size={13} /> Livrable de communication : pas de programmation reseau
+              </div>
+            ) : brouillon.programme ? (
               (() => {
                 const prog = (() => { try { return JSON.parse(brouillon.programme || 'null'); } catch { return null; } })();
                 return prog ? (

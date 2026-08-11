@@ -86,6 +86,10 @@ export interface Repo {
   getRessource(id: string): Promise<RessourceRow | undefined>;
   insertRessource(row: NewRessource): Promise<void>;
   deleteRessource(id: string): Promise<void>;
+  /** Journal d'activite : les N dernieres actions, les plus recentes en premier. */
+  listJournal(limit: number): Promise<JournalRow[]>;
+  countJournal(): Promise<number>;
+  insertJournal(row: NewJournal): Promise<void>;
 }
 
 export interface CharteRow {
@@ -124,4 +128,25 @@ export interface NewRessource {
   taille: number;
   sourceUrl: string | null;
   updatedAt: string | null;
+}
+
+export interface JournalRow {
+  id: number;
+  type: string;
+  auteur: string;
+  brouillonId: string | null;
+  brouillonTitre: string | null;
+  message: string;
+  details: string;
+  createdAt: string;
+}
+
+export interface NewJournal {
+  type: string;
+  auteur: string;
+  brouillonId?: string | null;
+  brouillonTitre?: string | null;
+  message: string;
+  details?: string;
+  createdAt: string;
 }

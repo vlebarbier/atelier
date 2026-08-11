@@ -71,11 +71,14 @@ export async function fetchBrouillons(): Promise<Brouillon[]> {
   return handle<Brouillon[]>(res);
 }
 
-export async function createBrouillon(titre?: string): Promise<Brouillon> {
+export async function createBrouillon(titre?: string, type?: string): Promise<Brouillon> {
   const res = await fetch(apiUrl('/api/brouillons'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(titre ? { titre } : {})
+    body: JSON.stringify({
+      ...(titre ? { titre } : {}),
+      ...(type ? { type } : {})
+    })
   });
   return handle<Brouillon>(res);
 }

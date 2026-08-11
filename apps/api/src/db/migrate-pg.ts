@@ -51,4 +51,16 @@ export async function ensurePgTables(pool: Pool): Promise<void> {
     updated_at TEXT
   );`);
   await pool.query(`ALTER TABLE slides ADD COLUMN IF NOT EXISTS blob_url TEXT;`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS journal (
+      id SERIAL PRIMARY KEY,
+      type TEXT NOT NULL,
+      auteur TEXT NOT NULL DEFAULT 'agent',
+      brouillon_id TEXT,
+      brouillon_titre TEXT,
+      message TEXT NOT NULL,
+      details TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+  `);
 }
