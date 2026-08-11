@@ -1,4 +1,4 @@
-export const RESEAUX: readonly string[] = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok'];
+export const RESEAUX: readonly string[] = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok', 'gmb'];
 
 /** Types de contenu reseaux sociaux (programmables, publics). */
 export const TYPES_CONTENUS: readonly string[] = ['carrousel', 'video', 'post', 'story'];
@@ -29,7 +29,8 @@ export const RESEAUX_LABELS: Record<string, string> = {
   linkedin: 'LinkedIn',
   facebook: 'Facebook',
   x: 'X (Twitter)',
-  tiktok: 'TikTok'
+  tiktok: 'TikTok',
+  gmb: 'Google Business Profile'
 };
 
 export const STATUT_LABELS: Record<string, string> = {

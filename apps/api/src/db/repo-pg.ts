@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, count } from 'drizzle-orm';
 import { brouillons, slides, chartes, ressources, journal } from './schema-pg.js';
 import type { AppDbPg } from './client.js';
 import type { BrouillonPatch, BrouillonRow, CharteRow, JournalRow, NewBrouillon, NewCharte, NewJournal, NewRessource, NewSlide, Repo, RessourceRow, SlideRow } from './repo.js';
@@ -92,14 +92,8 @@ export function createPgRepo(db: AppDbPg): Repo {
     },
 
     async countJournal(): Promise<number> {
-      const rows = await db.select({ n: journal.id }).from(journal).limit(1);
-      // count rapide : un SELECT COUNT(*) est plus lisible que drizzle pour ce cas.
-      const pool = (db as unknown as { $client?: { query?: (sql: string) => Promise<{ rows: unknown[] }> } }).$client;
-      if (pool?.query) {
-        const r = await pool.query('SELECT COUNT(*) AS n FROM journal');
-        return Number((r.rows[0] as { n: string }).n);
-      }
-      return rows.length > 0 ? 1 : 0;
+      const rows = await db.select({ n: count() }).from(journal);
+      return rows[0]?.n ?? 0;
     },
 
     async insertJournal(row: NewJournal): Promise<void> {

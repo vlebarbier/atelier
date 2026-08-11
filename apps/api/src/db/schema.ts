@@ -25,6 +25,10 @@ export const brouillons = sqliteTable('brouillons', {
   /** Programmation calendrier (JSON : {date, heure, reseau} ou null). Affiche le brouillon
    *  sur son jour planifie dans le calendrier. */
   programme: text('programme'),
+  /** Metadonnees article de blog (JSON : {slug, chapo, seoTitle, seoDescription, category,
+   *  publishedAt, readingTime, cmsId, cmsUrl} ou null). Utilise uniquement pour type 'article'.
+   *  Le corps de l'article vit dans sourceHtml (le receptacle HTML). */
+  article: text('article'),
   updatedAt: text('updated_at')
 });
 

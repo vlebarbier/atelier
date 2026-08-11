@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, count } from 'drizzle-orm';
 import { brouillons, slides, chartes, ressources, journal } from './schema.js';
 import type { AppDb } from './client.js';
 import type { BrouillonPatch, BrouillonRow, CharteRow, JournalRow, NewBrouillon, NewCharte, NewJournal, NewRessource, NewSlide, Repo, RessourceRow, SlideRow } from './repo.js';
@@ -95,8 +95,8 @@ export function createSqliteRepo(db: AppDb): Repo {
     },
 
     async countJournal(): Promise<number> {
-      const row = db.select({ n: journal.id }).from(journal).all();
-      return row.length;
+      const rows = db.select({ n: count() }).from(journal).all();
+      return rows[0]?.n ?? 0;
     },
 
     async insertJournal(row: NewJournal): Promise<void> {

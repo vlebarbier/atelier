@@ -811,16 +811,43 @@ main {
 .radius-value { font-size: 10px; color: var(--color-ink-tertiary); }
 
 /* ── Page Activite IA ───────────────────────────────────────────── */
+.activite-filtres { max-width: 640px; margin: 0 auto; }
 .activite-feed { display: flex; flex-direction: column; gap: 2px; max-width: 640px; margin: 0 auto; }
 .activite-item {
   display: flex; align-items: flex-start; gap: 10px;
-  padding: 12px 14px; border-bottom: 1px solid var(--color-line-default);
+  padding: 10px 14px; border-bottom: 1px solid var(--color-line-default);
   text-align: left; font-size: 12.5px; color: var(--color-ink-secondary);
 }
-.activite-item .dot { width: 6px; height: 6px; border-radius: 2px; background: var(--color-accent-base); transform: rotate(45deg); margin-top: 5px; flex-shrink: 0; }
-.activite-item .txt strong { color: var(--color-ink-primary); font-weight: 500; }
-.activite-item .when { margin-left: auto; color: var(--color-ink-tertiary); font-size: 11px; flex-shrink: 0; }
+.activite-ico {
+  width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-bg-level-2); border: 1px solid var(--color-line-default);
+  color: var(--color-ink-secondary); margin-top: 1px;
+}
+.activite-item .activite-ico--reponse_chat,
+.activite-item .activite-ico--regeneration,
+.activite-item .activite-ico--depot_source { color: var(--color-ink-primary); }
+.activite-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.activite-auteur {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 500; color: var(--color-ink-secondary);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.activite-auteur.is-agent { color: var(--color-ink-primary); }
+.activite-msg { font-size: 12.5px; color: var(--color-ink-secondary); line-height: 1.45; }
+.activite-item .when { margin-left: auto; color: var(--color-ink-tertiary); font-size: 11px; flex-shrink: 0; padding-top: 2px; }
 .activite-note { text-align: center; margin-top: var(--spacing-5); font-size: 11.5px; color: var(--color-ink-tertiary); }
+.activite-skeleton {
+  max-width: 640px; margin: 0 auto; height: 48px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(90deg, var(--color-bg-level-2) 25%, var(--color-bg-level-3) 50%, var(--color-bg-level-2) 75%);
+  background-size: 200% 100%; animation: atelier-shimmer 1.4s infinite;
+  border: 1px solid var(--color-line-default); margin-bottom: 6px;
+}
+@keyframes atelier-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .activite-skeleton { animation: none; }
+}
 
 
 /* ── Checklist de validation ─────────────────────────────────────── */
@@ -916,6 +943,7 @@ main {
 .dot--brouillon { background: var(--color-ink-tertiary); }
 .dot--a-valider { background: var(--color-status-warn); }
 .dot--valide, .dot--publie { background: var(--color-status-ok); }
+.statut-btn .dot, .statut-menu button .dot, .dot.status-pop { animation: statusPop 250ms var(--motion-ease) backwards; }
 
 /* ── Onglets du panneau ─────────────────────────────────────────────── */
 .panel-tabs { display: flex; gap: 2px; background: var(--color-bg-level-2); border: 1px solid var(--color-line-default); border-radius: 8px; padding: 2px; }
@@ -974,6 +1002,7 @@ main {
 /* ── Contraintes reseau ─────────────────────────────────────────────── */
 .counter { font-size: 10.5px; color: var(--color-ink-tertiary); text-align: right; }
 .counter.over { color: var(--color-status-err); font-weight: 600; }
+.img-counter { margin-top: 6px; }
 .format-hint {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11px; color: var(--color-ink-tertiary);
@@ -1116,3 +1145,125 @@ main {
 .page-empty { padding: 56px 20px; }
 .page-empty svg { opacity: 0.45; margin-bottom: 10px; }
 .page-empty .empty-sub { font-size: 12px; color: var(--color-ink-tertiary); max-width: 360px; margin: 6px auto 0; line-height: 1.6; }
+
+/* ── Filtres de liste : statut + type ───────────────────────────────── */
+.liste-filtres { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.type-filter { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-ink-tertiary); }
+.type-filter select {
+  background: var(--color-bg-level-2); border: 1px solid var(--color-line-default);
+  color: var(--color-ink-primary); font-family: var(--font-family-ui);
+  font-size: 11.5px; border-radius: 6px; padding: 4px 8px; cursor: pointer;
+}
+.type-filter select:hover { border-color: var(--color-line-hover); }
+.type-filter select:focus { outline: none; border-color: var(--color-accent-base); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ANIMATIONS ATELIER — spec Apollon (t_429a4bef)
+   8 classes / 7 zones. 3 encres mono uniquement (aucun accent).
+   Entrees : 150-300ms · Etats infinis sobres limites aux moments
+   ou l'agent travaille reellement.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Chat agent : message qui arrive ─────────────────────────────────── */
+@keyframes msgStreamIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.chat-msg { animation: msgStreamIn var(--motion-duration-normal) var(--motion-ease) backwards; }
+
+/* Caret de streaming (l'agent "tape" sa reponse) : clignote 1s, 2px x 1em */
+@keyframes caretBlink {
+  0%, 45% { opacity: 1; }
+  50%, 95% { opacity: 0.15; }
+  100% { opacity: 1; }
+}
+.stream-caret {
+  display: inline-block; width: 2px; height: 1em;
+  background: color-mix(in srgb, var(--color-ink-secondary) 60%, transparent);
+  animation: caretBlink 1s steps(1) infinite;
+  vertical-align: text-bottom; margin-left: 2px;
+}
+
+/* ── Activite IA : equalizer quand l'agent travaille ─────────────────── */
+@keyframes eqBounce {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
+}
+.eq-bounce { display: inline-flex; align-items: flex-end; gap: 2px; height: 10px; }
+.eq-bounce span {
+  width: 2.5px; height: 10px; border-radius: 1px;
+  background: var(--color-ink-tertiary);
+  transform-origin: bottom;
+  animation: eqBounce 900ms ease-in-out infinite;
+}
+.eq-bounce span:nth-child(2) { animation-delay: 150ms; }
+.eq-bounce span:nth-child(3) { animation-delay: 300ms; }
+
+/* ── Activite IA / sidebar : lignes qui se deplient ──────────────────── */
+@keyframes rowsExpand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.expand-rows > * { animation: rowsExpand var(--motion-duration-normal) var(--motion-ease) backwards; }
+.expand-rows > *:nth-child(2) { animation-delay: 40ms; }
+.expand-rows > *:nth-child(3) { animation-delay: 80ms; }
+.expand-rows > *:nth-child(4) { animation-delay: 120ms; }
+
+/* ── Chargement : pixel-grid loader (etat infini, 650ms) ─────────────── */
+@keyframes pixelOn {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 1; }
+}
+.loader-pixels {
+  display: inline-grid; grid-template-columns: repeat(3, 3px); gap: 2px;
+}
+.loader-pixels span {
+  width: 3px; height: 3px; border-radius: 0.5px;
+  background: var(--color-ink-tertiary);
+  animation: pixelOn 650ms ease-in-out infinite;
+}
+.loader-pixels span:nth-child(2) { animation-delay: 100ms; }
+.loader-pixels span:nth-child(3) { animation-delay: 200ms; }
+.loader-pixels span:nth-child(4) { animation-delay: 50ms; }
+.loader-pixels span:nth-child(5) { animation-delay: 150ms; }
+.loader-pixels span:nth-child(6) { animation-delay: 250ms; }
+.loader-pixels span:nth-child(7) { animation-delay: 100ms; }
+.loader-pixels span:nth-child(8) { animation-delay: 200ms; }
+.loader-pixels span:nth-child(9) { animation-delay: 300ms; }
+
+/* ── Chargement : shimmer texte (1.4s, encre uniquement) ─────────────── */
+@keyframes shimmerLabel {
+  from { opacity: 0.35; }
+  to   { opacity: 1; }
+}
+.shimmer-label {
+  animation: shimmerLabel 1.4s ease-in-out infinite alternate;
+  color: var(--color-ink-tertiary);
+}
+
+/* ── Statuts : pop quand l'etat change (250ms) ───────────────────────── */
+@keyframes statusPop {
+  0%   { transform: scale(0.6); }
+  70%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.status-pop { animation: statusPop 250ms var(--motion-ease) backwards; }
+
+/* ── Carrousel : transition entre slides (translateX 250ms) ──────────── */
+.stage-media img#slide-img, .stage-media video {
+  transition: transform var(--motion-duration-normal) var(--motion-ease), opacity var(--motion-duration-normal) var(--motion-ease);
+}
+
+/* ── Modal : entrees 200ms / 150ms ───────────────────────────────────── */
+.modal-panel-in { animation: fadeUp var(--motion-duration-normal) var(--motion-ease) backwards; }
+.modal-overlay-in { animation: fadeIn var(--motion-duration-fast) var(--motion-ease) backwards; }
+
+/* ── reduced-motion : kill global + freeze dim cible des loaders ─────── */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  /* Freeze dim : etats infinis fige en etat "dim" plutot que pleins */
+  .eq-bounce span { transform: scaleY(0.35); }
+  .loader-pixels span { opacity: 0.15; }
+  .stream-caret { opacity: 0.15; }
+}
+.chat-typing { display: inline-flex; align-items: center; gap: 6px; min-width: 56px; }

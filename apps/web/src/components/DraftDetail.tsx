@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, FileCode, Trash,
-  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf
+  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import type { BrouillonDetail, MessageChat, ReseauEntry, Statut } from '../api';
-import { deleteBrouillon, envoyerMessage, fetchBrouillon, fetchCharte, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
+import { deleteBrouillon, envoyerMessage, fetchBrouillon, fetchCharte, parseProgramme, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
 import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate } from '../format';
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerHTML } from '../export';
 
@@ -14,17 +14,21 @@ const RESEAU_ICONES: Record<string, Icon> = {
   linkedin: LinkedinLogo,
   facebook: FacebookLogo,
   x: XLogo,
-  tiktok: TiktokLogo
+  tiktok: TiktokLogo,
+  gmb: GoogleLogo
 };
 
 /** Contraintes reelles de chaque reseau : limite de caracteres de la legende,
- *  nombre max de hashtags et format d'image recommande. */
-const RESEAU_CONTRAINTES: Record<string, { maxChars: number; maxHashtags: number; format: string }> = {
-  instagram: { maxChars: 2200, maxHashtags: 30, format: 'Carré 1080×1080 ou portrait 4:5' },
-  linkedin: { maxChars: 3000, maxHashtags: 3, format: 'Paysage 1200×627' },
-  facebook: { maxChars: 5000, maxHashtags: 5, format: 'Carré 1080×1080' },
-  x: { maxChars: 280, maxHashtags: 2, format: 'Paysage 1600×900' },
-  tiktok: { maxChars: 2200, maxHashtags: 5, format: 'Vertical 9:16' }
+ *  nombre max de hashtags, nombre max d'images et format d'image recommande.
+ *  Google Business Profile (gmb) : posts 1500 caracteres, 10 images max,
+ *  pas de hashtags (sans effet sur les posts GMB). */
+const RESEAU_CONTRAINTES: Record<string, { maxChars: number; maxHashtags: number; maxImages: number; format: string }> = {
+  instagram: { maxChars: 2200, maxHashtags: 30, maxImages: 10, format: 'Carré 1080×1080 ou portrait 4:5' },
+  linkedin: { maxChars: 3000, maxHashtags: 3, maxImages: 20, format: 'Paysage 1200×627' },
+  facebook: { maxChars: 5000, maxHashtags: 5, maxImages: 10, format: 'Carré 1080×1080' },
+  x: { maxChars: 280, maxHashtags: 2, maxImages: 4, format: 'Paysage 1600×900' },
+  tiktok: { maxChars: 2200, maxHashtags: 5, maxImages: 35, format: 'Vertical 9:16' },
+  gmb: { maxChars: 1500, maxHashtags: 0, maxImages: 10, format: 'Carré 1080×1080 (min 250×250)' }
 };
 
 type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source';
@@ -55,6 +59,8 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   const [conversation, setConversation] = useState<MessageChat[]>([]);
   const [chatDraft, setChatDraft] = useState('');
   const [chatEnvoi, setChatEnvoi] = useState(false);
+  // L'agent "travaille" : un message user est parti, pas encore de reponse agent apres.
+  const [agentEnTravail, setAgentEnTravail] = useState(false);
   const [sourceDraft, setSourceDraft] = useState('');
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourceMsg, setSourceMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -79,6 +85,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
       setSlide(0);
       setReseauActif('instagram');
       setOnglet(TYPES_DOCUMENTS.includes(data.type) ? 'slides' : 'agent');
+      setAgentEnTravail(false);
       try {
         setConversation(JSON.parse(data.conversation || '[]'));
       } catch {
@@ -100,7 +107,11 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
     const t = setInterval(async () => {
       try {
         const data = await fetchBrouillon(id);
-        setConversation(JSON.parse(data.conversation || '[]'));
+        const conv = JSON.parse(data.conversation || '[]') as MessageChat[];
+        setConversation(conv);
+        // L'agent a repondu si le dernier message est de lui (apres notre demande).
+        const dernier = conv[conv.length - 1];
+        setAgentEnTravail(dernier?.role === 'user');
       } catch {
         /* silencieux */
       }
@@ -112,6 +123,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
     const texte = chatDraft.trim();
     if (!texte || chatEnvoi) return;
     setChatEnvoi(true);
+    setAgentEnTravail(true);
     try {
       const res = await envoyerMessage(id, texte);
       setConversation(res.conversation);
@@ -419,8 +431,8 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
 
   const currentReseau = brouillon.reseaux[reseauActif] || { caption: '', hashtags: '', statut: 'brouillon' };
   const estDocument = TYPES_DOCUMENTS.includes(brouillon.type);
-  const contraintes: { maxChars: number; maxHashtags: number; format: string } =
-    RESEAU_CONTRAINTES[reseauActif] ?? { maxChars: 2200, maxHashtags: 30, format: 'Carré 1080×1080' };
+  const contraintes: { maxChars: number; maxHashtags: number; maxImages: number; format: string } =
+    RESEAU_CONTRAINTES[reseauActif] ?? { maxChars: 2200, maxHashtags: 30, maxImages: 10, format: 'Carré 1080×1080' };
   const nbHashtags = (currentReseau.hashtags || '').split(/\s+/).filter((h) => h.startsWith('#')).length;
   const currentSlideFichier = brouillon.slides[slide];
 
@@ -714,6 +726,18 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                       </div>
                     ))
                   )}
+                  {agentEnTravail && (
+                    <div className="chat-msg agent">
+                      <div className="chat-msg-head">
+                        <Sparkle size={11} />
+                        <span className="chat-role">Agent</span>
+                      </div>
+                      <div className="chat-msg-text chat-typing">
+                        <span className="eq-bounce"><span /><span /><span /></span>
+                        <span className="stream-caret" />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="chat-input">
                   <textarea
@@ -861,30 +885,39 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     <span>{(currentReseau.caption || '').length}</span> / {contraintes.maxChars} caracteres
                   </div>
                 </div>
-                <div className="field">
-                  <label htmlFor="r-hashtags">Hashtags</label>
-                  <input
-                    id="r-hashtags"
-                    value={currentReseau.hashtags || ''}
-                    placeholder="#Bordeaux #Conciergerie"
-                    onChange={(e) => {
-                      if (!brouillon) return;
-                      setBrouillon({
-                        ...brouillon,
-                        reseaux: {
-                          ...brouillon.reseaux,
-                          [reseauActif]: { ...currentReseau, hashtags: e.target.value }
-                        }
-                      });
-                    }}
-                    onBlur={(e) => saveReseau(reseauActif, { hashtags: e.target.value })}
-                  />
-                  <div className={`counter${nbHashtags > contraintes.maxHashtags ? ' over' : ''}`}>
-                    {nbHashtags} / {contraintes.maxHashtags} hashtags max
+                {contraintes.maxHashtags > 0 ? (
+                  <div className="field">
+                    <label htmlFor="r-hashtags">Hashtags</label>
+                    <input
+                      id="r-hashtags"
+                      value={currentReseau.hashtags || ''}
+                      placeholder="#Bordeaux #Conciergerie"
+                      onChange={(e) => {
+                        if (!brouillon) return;
+                        setBrouillon({
+                          ...brouillon,
+                          reseaux: {
+                            ...brouillon.reseaux,
+                            [reseauActif]: { ...currentReseau, hashtags: e.target.value }
+                          }
+                        });
+                      }}
+                      onBlur={(e) => saveReseau(reseauActif, { hashtags: e.target.value })}
+                    />
+                    <div className={`counter${nbHashtags > contraintes.maxHashtags ? ' over' : ''}`}>
+                      {nbHashtags} / {contraintes.maxHashtags} hashtags max
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="format-hint">
+                    <span>Pas de hashtags sur {RESEAUX_LABELS[reseauActif] ?? reseauActif}.</span>
+                  </div>
+                )}
                 <div className="format-hint">
                   <Stack size={12} /> Format recommande : {contraintes.format}
+                </div>
+                <div className={`counter img-counter${brouillon.slides.length > contraintes.maxImages ? ' over' : ''}`}>
+                  {brouillon.slides.length} / {contraintes.maxImages} images max pour ce reseau
                 </div>
                 <div className="reseau-statut">
                   <span className="reseau-statut-label">Statut {RESEAUX_LABELS[reseauActif]}</span>
@@ -911,13 +944,13 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
               </div>
             ) : brouillon.programme ? (
               (() => {
-                const prog = (() => { try { return JSON.parse(brouillon.programme || 'null'); } catch { return null; } })();
+                const prog = parseProgramme(brouillon.programme);
                 return prog ? (
                   <>
                     <div className="planif-fait">
                       <CheckCircle size={13} />
                       Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
-                      {prog.heure} sur {RESEAUX_LABELS[prog.reseau] ?? prog.reseau}
+                      {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
                     </div>
                     <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
                       Annuler la programmation

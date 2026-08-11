@@ -26,7 +26,12 @@ export class AtelierClient {
     try {
       res = await fetch(`${this.base}${path}`, {
         ...init,
-        headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) }
+        headers: {
+          'Content-Type': 'application/json',
+          // Le client MCP EST l'agent : l'API journalise ses actions avec cet auteur.
+          'x-atelier-auteur': 'agent',
+          ...(init?.headers || {})
+        }
       });
     } catch (e) {
       throw new AtelierApiError(
@@ -122,5 +127,10 @@ export class AtelierClient {
       method: 'POST',
       body: JSON.stringify(payload)
     });
+  }
+
+  /** GET /api/journal → le journal des actions agents (depots, regenerations, reponses chat, statuts). */
+  async lireJournal(): Promise<unknown> {
+    return this.request('/api/journal?limit=100');
   }
 }

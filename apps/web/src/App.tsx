@@ -9,7 +9,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { BrandPage } from './pages/BrandPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { BibliothequePage } from './pages/BibliothequePage';
-import { TYPES_DOCUMENTS } from './format';
+import { TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
 import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
 
 const PAGE_LABELS: Record<string, string> = {
@@ -170,6 +170,7 @@ export default function App() {
               onOpen={openBrouillon}
               onDelete={confirmDelete}
               onCreate={createNew}
+              typesFiltrables={TYPES_CONTENUS}
               filtre={filtre}
               onFiltreChange={setFiltre}
               emptyTitle="Pas encore de contenu."
@@ -190,6 +191,7 @@ export default function App() {
               onDelete={confirmDelete}
               onCreate={createNew}
               typesNouveau={TYPES_DOCUMENTS}
+              typesFiltrables={TYPES_DOCUMENTS}
               onCreateType={(type) => createDocument(type)}
               filtre={filtre}
               onFiltreChange={setFiltre}
@@ -201,7 +203,7 @@ export default function App() {
           {page === 'calendrier' && <CalendarPage brouillons={brouillons} onOpen={openBrouillon} onRefresh={load} />}
           {page === 'bibliotheque' && <BibliothequePage />}
           {page === 'charte' && <BrandPage />}
-          {page === 'activite' && <ActivityPage brouillons={brouillons} />}
+          {page === 'activite' && <ActivityPage />}
         </main>
       </div>
 

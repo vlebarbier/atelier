@@ -17,6 +17,7 @@ export const brouillons = pgTable('brouillons', {
   checklist: text('checklist').notNull().default('[]'),
   conversation: text('conversation').notNull().default('[]'),
   programme: text('programme'),
+  article: text('article'),
   updatedAt: text('updated_at')
 });
 

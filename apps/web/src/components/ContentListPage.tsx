@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Plus } from '@phosphor-icons/react';
+import { FileText, Plus, CaretDown } from '@phosphor-icons/react';
 import type { Brouillon, Statut } from '../api';
 import { TYPE_LABELS } from '../format';
 import { Page, PageHeader, EmptyState } from './ui';
@@ -22,6 +22,8 @@ interface ContentListPageProps {
   /** Si defini, le bouton "Nouveau" ouvre un menu de choix de type (documents). */
   typesNouveau?: readonly string[];
   onCreateType?: (type: string) => void;
+  /** Types filtrables affiches dans un select discret (ex: les 5 documents). */
+  typesFiltrables?: readonly string[];
   filtre: Statut | 'tous';
   onFiltreChange: (filtre: Statut | 'tous') => void;
   emptyTitle: string;
@@ -46,14 +48,23 @@ export function ContentListPage({
   onCreate,
   typesNouveau,
   onCreateType,
+  typesFiltrables,
   filtre,
   onFiltreChange,
   emptyTitle,
   emptySub
 }: ContentListPageProps) {
   const [choixOuvert, setChoixOuvert] = useState(false);
+  const [filtreType, setFiltreType] = useState<string>('tous');
 
-  const filtered = filtre === 'tous' ? brouillons : brouillons.filter((b) => b.statut === filtre);
+  // Filtre par statut, puis par type (si des types filtrables sont proposes).
+  const filtered = brouillons.filter(
+    (b) =>
+      (filtre === 'tous' || b.statut === filtre) &&
+      (filtreType === 'tous' || b.type === filtreType)
+  );
+
+  const typesEffectifs = typesFiltrables ?? (typesNouveau as readonly string[] | undefined);
 
   return (
     <Page>
@@ -95,7 +106,20 @@ export function ContentListPage({
           )
         }
       />
-      <Toolbar filtre={filtre} onFiltreChange={onFiltreChange} count={filtered.length} />
+      <div className="liste-filtres">
+        <Toolbar filtre={filtre} onFiltreChange={onFiltreChange} count={filtered.length} />
+        {typesEffectifs && typesEffectifs.length > 1 && (
+          <label className="type-filter">
+            <span>Type</span>
+            <select value={filtreType} onChange={(e) => setFiltreType(e.target.value)} aria-label="Filtrer par type">
+              <option value="tous">Tous</option>
+              {typesEffectifs.map((t) => (
+                <option key={t} value={t}>{TYPE_LABELS[t] ?? t}</option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
       {error && <div className="empty">Erreur, {error}</div>}
       {!error && loading && <GridSkeleton />}
       {!error && !loading && brouillons.length === 0 && (

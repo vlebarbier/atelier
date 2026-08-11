@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { serve } from '@hono/node-server';
-import { createApp } from './app.js';
+import { createApp, backfillJournal } from './app.js';
 import { createDb, createDbPg, createPgPool, isPostgres, openSqlite } from './db/client.js';
 import { ensureLegacyTables } from './db/legacy.js';
 import { migrateWithDrizzle } from './db/migrate.js';

@@ -22,6 +22,7 @@ export interface BrouillonRow {
   checklist: string;
   conversation: string;
   programme: string | null;
+  article: string | null;
   updatedAt: string | null;
 }
 
@@ -43,6 +44,7 @@ export interface BrouillonPatch {
   conversation?: string;
   type?: string;
   programme?: string | null;
+  article?: string | null;
   updatedAt?: string;
 }
 
@@ -58,6 +60,7 @@ export interface NewBrouillon {
   checklist?: string;
   conversation?: string;
   programme?: string | null;
+  article?: string | null;
   updatedAt: string | null;
 }
 

@@ -202,7 +202,7 @@ ${barre}
 <div class="sheet">
   <header class="en-tete">
     <h1>${echapper(brouillon.titre)}</h1>
-    <div class="meta">${echapper(typeLabel)} · ${total} slide(s) · exporte le ${echapper(date)}</div>
+    <div class="meta">${echapper(typeLabel)} · ${total} slide(s) · Exporté le ${echapper(date)}</div>
   </header>
 ${slidesHtml.join('\n')}${sectionLegendes}
 </div>

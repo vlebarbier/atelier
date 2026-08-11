@@ -23,7 +23,8 @@ export const updateBrouillonSchema = z
     checklist: z.string().optional(),
     conversation: z.string().optional(),
     type: z.string().optional(),
-    programme: z.string().nullable().optional()
+    programme: z.string().nullable().optional(),
+    article: z.string().nullable().optional()
   })
   .refine(
     (data) =>
@@ -34,7 +35,8 @@ export const updateBrouillonSchema = z
       data.checklist !== undefined ||
       data.conversation !== undefined ||
       data.type !== undefined ||
-      data.programme !== undefined,
+      data.programme !== undefined ||
+      data.article !== undefined,
     {
       message: 'Au moins un champ est requis'
     }

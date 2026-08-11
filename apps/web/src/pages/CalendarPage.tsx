@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from 'react';
 import type { Brouillon } from '../api';
-import { updateBrouillon } from '../api';
+import { updateBrouillon, parseProgramme } from '../api';
 import { Page, PageHeader } from '../components/ui';
 
 interface CalendarPageProps {
@@ -29,28 +29,18 @@ const MOIS_LABELS = [
 
 /** Extrait la date de programmation (YYYY-MM-DD) ou null. */
 function getProgrammeDate(b: Brouillon): string | null {
-  if (!b.programme) return null;
-  try {
-    const prog = JSON.parse(b.programme);
-    return prog?.date ?? null;
-  } catch {
-    return null;
-  }
+  const prog = parseProgramme(b.programme);
+  return prog?.date ?? null;
 }
 
 /** Construit un objet programme JSON pour une date donnee, en preservant heure/reseau existants. */
 function buildProgramme(b: Brouillon, newDate: string): string {
   let heure = '09:00';
   let reseau = 'instagram';
-  const existing = getProgrammeDate(b);
-  if (existing && b.programme) {
-    try {
-      const prog = JSON.parse(b.programme);
-      if (prog?.heure) heure = prog.heure;
-      if (prog?.reseau) reseau = prog.reseau;
-    } catch {
-      /* fallback defaut */
-    }
+  const prog = parseProgramme(b.programme);
+  if (prog) {
+    if (prog.heure) heure = prog.heure;
+    if (prog.reseau) reseau = prog.reseau;
   }
   return JSON.stringify({ date: newDate, heure, reseau });
 }
@@ -76,14 +66,8 @@ export function CalendarPage({ brouillons, onOpen, onRefresh }: CalendarPageProp
     const map = new Map<number, Brouillon[]>();
     for (const b of brouillons) {
       let d: Date | null = null;
-      if (b.programme) {
-        try {
-          const prog = JSON.parse(b.programme);
-          if (prog?.date) d = new Date(`${prog.date}T12:00:00`);
-        } catch {
-          d = null;
-        }
-      }
+      const prog = parseProgramme(b.programme);
+      if (prog?.date) d = new Date(`${prog.date}T12:00:00`);
       if (!d && b.updated) {
         d = new Date(b.updated);
         if (Number.isNaN(d.getTime())) d = null;

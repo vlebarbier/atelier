@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Mockup refonte : liste dense + brouillon héros</title>
+<style>
+  :root {
+    --bg-deepest: #050505;
+    --bg-1: #0a0a0a;
+    --bg-2: #101010;
+    --bg-3: #171717;
+    --ink-1: rgba(255,255,255,0.96);
+    --ink-2: rgba(255,255,255,0.64);
+    --ink-3: rgba(255,255,255,0.42);
+    --line-1: rgba(255,255,255,0.08);
+    --line-2: rgba(255,255,255,0.14);
+    --amber: #f5a623;
+    --green: #2fd06b;
+    --accent: #ffffff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg-deepest); color: var(--ink-1); font-family: 'Inter', -apple-system, sans-serif; font-size: 13px; -webkit-font-smoothing: antialiased; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+
+  /* ═══════ ÉCRAN 1 : LISTE DENSE ═══════ */
+  .screen { border-bottom: 1px solid var(--line-2); }
+  .screen-label { padding: 24px 28px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); }
+
+  .app { display: flex; min-height: 520px; }
+  .sidebar {
+    width: 200px; flex-shrink: 0;
+    background: var(--bg-1);
+    border-right: 1px solid var(--line-1);
+    padding: 16px 12px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; padding: 6px 8px 18px; }
+  .brand .mark { width: 14px; height: 14px; background: var(--accent); border-radius: 4px; transform: rotate(45deg); }
+  .brand .name { font-weight: 600; font-size: 13.5px; letter-spacing: -0.01em; }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 8px; border-radius: 6px;
+    color: var(--ink-2); cursor: pointer; font-size: 13px;
+  }
+  .nav-item.active { background: rgba(255,255,255,0.09); color: var(--ink-1); font-weight: 500; }
+  .nav-item .ico { width: 15px; height: 15px; opacity: 0.7; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .nav-item.active .ico { opacity: 1; }
+
+  .main { flex: 1; min-width: 0; }
+  .header {
+    height: 44px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; border-bottom: 1px solid var(--line-1);
+    position: sticky; top: 0; background: color-mix(in srgb, var(--bg-1) 85%, transparent); backdrop-filter: blur(12px);
+  }
+  .header .actions { display: flex; gap: 8px; align-items: center; }
+  .hint { font-size: 11px; color: var(--ink-3); border: 1px solid var(--line-1); border-radius: 6px; padding: 4px 9px; display: flex; align-items: center; gap: 6px; }
+  .hint kbd { font-size: 10px; opacity: 0.7; }
+  .btn { border: 1px solid var(--line-1); border-radius: 6px; padding: 5px 12px; font-size: 12px; color: var(--ink-2); cursor: pointer; background: transparent; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { border-color: var(--line-2); color: var(--ink-1); background: var(--bg-2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #050505; font-weight: 600; }
+  .btn.primary:hover { opacity: 0.9; }
+
+  /* Filtres silencieux : texte + point, pas de pilule */
+  .filters { display: flex; gap: 16px; padding: 14px 24px 10px; align-items: center; }
+  .filter { font-size: 12.5px; color: var(--ink-3); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 4px 2px; border-bottom: 1.5px solid transparent; }
+  .filter .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .filter.active { color: var(--ink-1); border-bottom-color: var(--accent); }
+  .filter.active .dot { background: var(--accent); }
+  .filter .count { font-size: 11px; color: var(--ink-3); }
+
+  /* Liste dense */
+  .list { padding: 6px 24px 30px; display: flex; flex-direction: column; }
+  .row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 12px; border-radius: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    cursor: pointer; position: relative;
+  }
+  .row:hover { background: var(--bg-2); }
+  .row .thumb { width: 34px; height: 34px; border-radius: 6px; overflow: hidden; background: var(--bg-3); flex-shrink: 0; }
+  .row .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .row .title { font-size: 13px; color: var(--ink-1); font-weight: 500; letter-spacing: -0.005em; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+  .row .status { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-2); flex-shrink: 0; }
+  .row .status .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .row .when { font-size: 11.5px; color: var(--ink-3); flex-shrink: 0; }
+  .row .row-actions { display: none; gap: 4px; flex-shrink: 0; }
+  .row:hover .row-actions { display: inline-flex; }
+  .row-actions .btn { padding: 4px 8px; font-size: 11.5px; }
+  .agent { font-size: 11px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 5px; }
+  .agent .lozenge { font-size: 9px; }
+
+  /* ═══════ ÉCRAN 2 : BROUILLON HÉROS ═══════ */
+  .screen2 { min-height: 640px; }
+  .app2 { display: flex; min-height: 640px; }
+  .detail-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg-deepest); }
+  .detail-header { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid var(--line-1); }
+  .detail-header .l { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; }
+  .detail-header .l .back { color: var(--ink-3); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .detail-header .l .back:hover { color: var(--ink-1); }
+  .detail-header .l .sep { color: var(--ink-3); font-weight: 400; }
+  .detail-header .l .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+  .detail-header .r { display: flex; gap: 8px; align-items: center; }
+  .statut-group { display: flex; gap: 2px; background: var(--bg-2); border: 1px solid var(--line-1); border-radius: 7px; padding: 2px; }
+  .statut-group .s { padding: 4px 10px; border-radius: 5px; font-size: 11.5px; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .statut-group .s.on { background: rgba(255,255,255,0.09); color: var(--ink-1); font-weight: 500; }
+  .statut-group .s .dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* Le héros : la slide lumineuse sur fond noir */
+  .stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px; overflow: hidden; }
+  .slide-frame {
+    width: min(520px, 60vh); aspect-ratio: 1 / 1;
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px rgba(0,0,0,0.6);
+    position: relative;
+  }
+  .slide-content {
+    width: 100%; height: 100%;
+    background: #f1efea; color: #422928;
+    padding: 34px; display: flex; flex-direction: column; justify-content: space-between;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+  .slide-content .top { display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; }
+  .slide-content .brand { color: #422928; font-weight: 600; display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .slide-content .brand .mark2 { width: 10px; height: 10px; background: #422928; border-radius: 3px; transform: rotate(45deg); }
+  .slide-content .pagenum { font-size: 10.5px; opacity: 0.6; }
+  .slide-content .quote { font-size: clamp(24px, 4.6vw, 34px); line-height: 1.12; font-weight: 500; letter-spacing: -0.01em; max-width: 90%; }
+  .slide-content .meta { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7; }
+  .stage-nav { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: rgba(10,10,10,0.8); border: 1px solid var(--line-1); border-radius: 999px; padding: 6px 14px; backdrop-filter: blur(8px); }
+  .stage-nav .n { font-size: 11px; color: var(--ink-2); cursor: pointer; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .stage-nav .n:hover { background: var(--bg-3); color: var(--ink-1); }
+  .stage-nav .cnt { font-size: 11px; color: var(--ink-2); min-width: 34px; text-align: center; }
+
+  /* Panneau droit : notes, checklist, légendes — étroit et silencieux */
+  .side-panel {
+    width: 320px; flex-shrink: 0;
+    background: var(--bg-1);
+    border-left: 1px solid var(--line-1);
+    padding: 18px 18px 30px;
+    display: flex; flex-direction: column; gap: 20px;
+    overflow-y: auto;
+  }
+  .sp-section { display: flex; flex-direction: column; gap: 8px; }
+  .sp-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); display: flex; align-items: center; justify-content: space-between; }
+  .sp-label .chip { font-size: 10px; letter-spacing: 0.04em; border: 1px solid var(--line-1); border-radius: 4px; padding: 2px 6px; color: var(--ink-2); text-transform: none; }
+  .sp-textarea { background: var(--bg-2); border: 1px solid var(--line-1); border-radius: 8px; padding: 10px 12px; color: var(--ink-1); font-size: 12px; font-family: inherit; min-height: 84px; resize: none; }
+  .sp-textarea::placeholder { color: var(--ink-3); }
+  .checklist { display: flex; flex-direction: column; gap: 2px; }
+  .check-item { display: flex; align-items: center; gap: 9px; padding: 5px 6px; border-radius: 6px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+  .check-item:hover { background: var(--bg-2); }
+  .check-item .box { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--line-2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+  .check-item.done .box { background: var(--accent); border-color: var(--accent); color: #050505; }
+  .check-item.done { color: var(--ink-1); }
+  .check-item.done .txt { text-decoration: line-through; opacity: 0.55; }
+  .check-progress { font-size: 11px; color: var(--ink-3); padding-left: 6px; }
+
+  .reseau-tabs { display: flex; gap: 2px; background: var(--bg-2); border: 1px solid var(--line-1); border-radius: 7px; padding: 2px; }
+  .reseau-tabs .rt { flex: 1; text-align: center; padding: 5px 4px; border-radius: 5px; font-size: 11px; color: var(--ink-3); cursor: pointer; }
+  .reseau-tabs .rt.on { background: rgba(255,255,255,0.09); color: var(--ink-1); font-weight: 500; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); }
+  .field input, .field textarea { background: var(--bg-2); border: 1px solid var(--line-1); border-radius: 7px; padding: 8px 10px; color: var(--ink-1); font-size: 12px; font-family: inherit; resize: none; }
+  .field .count { font-size: 10.5px; color: var(--ink-3); text-align: right; }
+
+  .src-toggle { font-size: 11.5px; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; }
+  .src-toggle:hover { background: var(--bg-2); color: var(--ink-1); }
+  .delete { color: var(--ink-3); font-size: 11.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 6px; }
+  .delete:hover { color: #ff5252; background: rgba(255,82,82,0.08); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ ÉCRAN 1 : LISTE DENSE ═══════════════ -->
+<div class="screen">
+  <div class="screen-label">01 · Brouillons — liste dense (nouvelle vue par défaut)</div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="mark"></span><span class="name">Atelier</span></div>
+      <div class="nav-item active"><span class="ico">▦</span> Brouillons</div>
+      <div class="nav-item"><span class="ico">▤</span> Calendrier</div>
+      <div class="nav-item"><span class="ico">🗀</span> Bibliothèque</div>
+      <div class="nav-item"><span class="ico">◫</span> Charte graphique</div>
+      <div class="nav-item"><span class="ico">✦</span> Activité IA</div>
+    </aside>
+    <div class="main">
+      <div class="header">
+        <div></div>
+        <div class="actions">
+          <span class="hint">Rechercher <kbd>⌘K</kbd></span>
+          <span class="btn">▦ / ☰</span>
+          <span class="btn primary">+ Nouveau</span>
+          <span class="btn">↻ Actualiser</span>
+        </div>
+      </div>
+      <div class="filters">
+        <span class="filter active"><span class="dot"></span> Tous <span class="count">3</span></span>
+        <span class="filter"><span class="dot" style="background:var(--ink-3)"></span> Brouillon <span class="count">1</span></span>
+        <span class="filter"><span class="dot" style="background:var(--amber)"></span> À valider <span class="count">1</span></span>
+        <span class="filter"><span class="dot" style="background:var(--green)"></span> Validé <span class="count">1</span></span>
+        <span class="filter"><span class="dot" style="background:var(--green)"></span> Publié <span class="count">0</span></span>
+        <span style="margin-left:auto; font-size:11.5px; color:var(--ink-3)">3 brouillons</span>
+      </div>
+      <div class="list">
+        <div class="row">
+          <div class="thumb"><img src="https://atelier-api-three.vercel.app/b/carrousel-bordeluche-v7/slides/slide-01.png" alt=""></div>
+          <div style="flex:1; min-width:0">
+            <div class="title">Carrousel — Pourquoi Bordeluche existe (v7)</div>
+            <div class="sub">9 slides · 3 logements · Mûriers, Esplanade, Échappée</div>
+          </div>
+          <span class="agent"><span class="lozenge">✦</span> généré par Hermes</span>
+          <span class="status"><span class="dot" style="background:var(--amber)"></span> À valider</span>
+          <span class="when">il y a 19 min</span>
+          <span class="row-actions">
+            <span class="btn">Ouvrir</span>
+            <span class="btn" style="color:#ff5252">Suppr.</span>
+          </span>
+        </div>
+        <div class="row">
+          <div class="thumb" style="background:var(--bg-3); display:flex; align-items:center; justify-content:center; color:var(--ink-3); font-size:12px">⟨/⟩</div>
+          <div style="flex:1; min-width:0">
+            <div class="title">Post — Visite du duplex Gambetta</div>
+            <div class="sub">3 slides · format story · charte Bordeluche</div>
+          </div>
+          <span class="agent"><span class="lozenge">✦</span> généré par Hermes</span>
+          <span class="status"><span class="dot" style="background:var(--ink-3)"></span> Brouillon</span>
+          <span class="when">hier</span>
+          <span class="row-actions">
+            <span class="btn">Ouvrir</span>
+            <span class="btn" style="color:#ff5252">Suppr.</span>
+          </span>
+        </div>
+        <div class="row">
+          <div class="thumb" style="background:var(--bg-3); display:flex; align-items:center; justify-content:center; color:var(--ink-3); font-size:12px">◉</div>
+          <div style="flex:1; min-width:0">
+            <div class="title">Carrousel — Témoignages propriétaires</div>
+            <div class="sub">5 slides · charte Bordeluche</div>
+          </div>
+          <span class="agent"><span class="lozenge">✦</span> généré par Hermes</span>
+          <span class="status"><span class="dot" style="background:var(--green)"></span> Validé</span>
+          <span class="when">3 août</span>
+          <span class="row-actions">
+            <span class="btn">Ouvrir</span>
+            <span class="btn" style="color:#ff5252">Suppr.</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ ÉCRAN 2 : BROUILLON HÉROS ═══════════════ -->
+<div class="screen screen2">
+  <div class="screen-label">02 · Brouillon — le document est le héros (plein écran + panneau droit)</div>
+  <div class="app2">
+    <aside class="sidebar">
+      <div class="brand"><span class="mark"></span><span class="name">Atelier</span></div>
+      <div class="nav-item active"><span class="ico">▦</span> Brouillons</div>
+      <div class="nav-item"><span class="ico">▤</span> Calendrier</div>
+      <div class="nav-item"><span class="ico">🗀</span> Bibliothèque</div>
+      <div class="nav-item"><span class="ico">◫</span> Charte graphique</div>
+      <div class="nav-item"><span class="ico">✦</span> Activité IA</div>
+    </aside>
+    <div class="detail-main">
+      <div class="detail-header">
+        <div class="l">
+          <span class="back">← Brouillons</span>
+          <span class="sep">/</span>
+          <span class="title">Carrousel — Pourquoi Bordeluche existe (v7)</span>
+        </div>
+        <div class="r">
+          <span class="statut-group">
+            <span class="s"><span class="dot" style="background:var(--ink-3)"></span>Brouillon</span>
+            <span class="s on"><span class="dot" style="background:var(--amber)"></span>À valider</span>
+            <span class="s"><span class="dot" style="background:var(--green)"></span>Validé</span>
+            <span class="s"><span class="dot" style="background:var(--green)"></span>Publié</span>
+          </span>
+          <span class="src-toggle">⟨/⟩ Source</span>
+          <span class="delete">Supprimer</span>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="slide-frame">
+          <div class="slide-content">
+            <div class="top">
+              <span class="brand"><span class="mark2"></span> BORDELUCHE</span>
+              <span class="pagenum">01 / 09</span>
+            </div>
+            <div class="quote">« J'ai vécu ce que vivent les propriétaires. Je gère leurs logements comme les miens. »</div>
+            <div class="meta">Bordeaux · Conciergerie</div>
+          </div>
+        </div>
+        <div class="stage-nav">
+          <span class="n">‹</span>
+          <span class="cnt">1 / 9</span>
+          <span class="n">›</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="side-panel">
+      <div class="sp-section">
+        <div class="sp-label">Notes de révision <span class="chip">sauvé</span></div>
+        <div class="sp-textarea">9 slides, 3 logements (Mûriers 3, Esplanade 5, Échappée 7), slide 8 = piliers du site, slide 9 = notes temps réel. À valider avant brouillon Postiz.</div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-label">Checklist de validation <span class="chip">1/4</span></div>
+        <div class="checklist">
+          <div class="check-item done"><span class="box">✓</span><span class="txt">Charte respectée</span></div>
+          <div class="check-item"><span class="box"></span><span class="txt">Textes relus</span></div>
+          <div class="check-item"><span class="box"></span><span class="txt">Liens vérifiés</span></div>
+          <div class="check-item"><span class="box"></span><span class="txt">Formats par réseau</span></div>
+        </div>
+        <div class="check-progress">1/4 vérifiés</div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-label">Légendes et déclinaisons</div>
+        <div class="reseau-tabs">
+          <span class="rt on">IG</span>
+          <span class="rt">IN</span>
+          <span class="rt">FB</span>
+          <span class="rt">X</span>
+          <span class="rt">TT</span>
+        </div>
+        <div class="field">
+          <label>Texte du post</label>
+          <textarea rows="3" placeholder="Légende pour Instagram..."></textarea>
+          <span class="count">0 caractères</span>
+        </div>
+        <div class="field">
+          <label>Hashtags</label>
+          <input value="#Bordeaux #Conciergerie">
+        </div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-label">Statut Instagram</div>
+        <div class="field">
+          <input value="Brouillon">
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+</body>
+</html>

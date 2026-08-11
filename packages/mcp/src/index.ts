@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { AtelierClient, AtelierApiError } from './client.js';
 
 const STATUTS = ['brouillon', 'a-valider', 'valide', 'publie'] as const;
-const RESEAUX = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok'] as const;
+const RESEAUX = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok', 'gmb'] as const;
 
 const client = new AtelierClient();
 const server = new McpServer({ name: 'atelier', version: '0.1.0' });
@@ -100,7 +100,7 @@ server.tool(
 
 server.tool(
   'set_legende',
-  'Écrit la légende (caption + hashtags) d\'un réseau social pour un brouillon. Réseaux : instagram, linkedin, facebook, x, tiktok.',
+  'Écrit la légende (caption + hashtags) d\'un réseau social pour un brouillon. Réseaux : instagram, linkedin, facebook, x, tiktok, gmb (Google Business Profile, sans hashtags).',
   {
     id: z.string().describe('Identifiant du brouillon'),
     reseau: z.enum(RESEAUX).describe('Réseau social'),
@@ -352,6 +352,22 @@ server.tool(
       ];
       const r = execFileSync('postiz', cmd, { env, encoding: 'utf8', timeout: 120_000 });
       return rep(true, { id, reseau, slides_uploaded: mediaUrls.length, postiz: r.slice(0, 300) });
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
+// ═════════════════ JOURNAL D'ACTIVITE ════════════════════════════════
+
+server.tool(
+  'lire_journal',
+  'Lit le journal des actions agents sur le produit (depots de source, regenerations, reponses chat, changements de statut, depots de ressources...). Utile pour comprendre ce qui a deja ete fait et en rendre compte au user.',
+  {},
+  async () => {
+    try {
+      const data = await client.lireJournal();
+      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
     } catch (e) {
       return rep(false, { error: e instanceof Error ? e.message : String(e) });
     }
