@@ -48,6 +48,10 @@ if (imported > 0) {
   console.log(`Atelier API : ${imported} brouillon(s) importe(s) depuis le prototype.`);
 }
 
+// Derive le journal des updatedAt existants au premier boot : le fil d'activite
+// est vrai des le premier chargement (meme comportement que le mode Postgres).
+await backfillJournal(repo);
+
 const app = createApp(repo, { dataDir: DATA_DIR });
 
 serve({ fetch: app.fetch, port: PORT }, (info) => {
