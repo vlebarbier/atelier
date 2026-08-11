@@ -1370,6 +1370,7 @@ main {
   color: var(--color-ink-secondary); cursor: pointer;
   transition: border-color var(--motion-duration-fast) var(--motion-ease), background var(--motion-duration-fast) var(--motion-ease), color var(--motion-duration-fast) var(--motion-ease);
 }
+.icon-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 .icon-btn:hover { border-color: var(--color-line-hover); background: var(--color-bg-level-2); color: var(--color-ink-primary); }
 .icon-btn.on { background: color-mix(in srgb, var(--color-ink-primary) 9%, transparent); border-color: var(--color-line-hover); color: var(--color-ink-primary); }
 .notif-btn { position: relative; }
