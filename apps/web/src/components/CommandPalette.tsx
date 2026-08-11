@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MagnifyingGlass } from '@phosphor-icons/react';
 import type { Brouillon } from '../api';
-import type { Vue } from './Header';
+import type { Vue } from './ContentListPage';
 
 interface Command {
   grp: string;

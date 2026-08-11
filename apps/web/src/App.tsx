@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
-import { Header, type Vue } from './components/Header';
+import { Header } from './components/Header';
+import type { Vue } from './components/ContentListPage';
 import { DraftGrid } from './components/DraftGrid';
 import { DraftDetail } from './components/DraftDetail';
 import { CommandPalette } from './components/CommandPalette';
@@ -35,6 +36,18 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creationOpen, setCreationOpen] = useState(false);
+  const [panneauReplie, setPanneauReplie] = useState(false);
+
+  // Theme sombre/clair : init depuis localStorage ou le systeme, applique sur <html>.
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('atelier-theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  });
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('atelier-theme', theme);
+  }, [theme]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -173,18 +186,27 @@ export default function App() {
       <Sidebar activePage={page} onNavigate={navigate} aValider={aValider} />
       <div className="shell">
         <Header
-          page={page}
-          vue={vue}
-          onVueChange={setVue}
           onOpenPalette={() => setPaletteOpen(true)}
+          aValider={aValider}
+          onOpenNotifications={() => navigate('brouillons')}
+          brouillonOuvert={page === 'brouillons' && !!selectedId}
+          panneauReplie={panneauReplie}
+          onTogglePanneau={() => setPanneauReplie((v) => !v)}
+          theme={theme}
+          onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
         />
         <main>
           {page === 'brouillons' && selectedId && (
-            <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} />
+            <DraftDetail
+              id={selectedId}
+              onClose={closeBrouillon}
+              onDelete={() => handleDelete(selectedId)}
+              panneauReplie={panneauReplie}
+            />
           )}
 
           {page === 'documents' && selectedId && (
-            <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} />
+            <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} panneauReplie={panneauReplie} />
           )}
 
           {page === 'brouillons' && !selectedId && (

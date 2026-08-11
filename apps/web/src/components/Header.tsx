@@ -1,22 +1,25 @@
-import { MagnifyingGlass, SquaresFour, List } from '@phosphor-icons/react';
-
-export type Vue = 'grille' | 'liste';
+import { MagnifyingGlass, Bell, ArrowsInLineVertical, Sun, Moon } from '@phosphor-icons/react';
 
 interface HeaderProps {
-  vue: Vue;
-  onVueChange: (vue: Vue) => void;
   onOpenPalette: () => void;
-  /** La page courante permet de n'afficher les actions contextuelles que la ou elles servent. */
-  page: string;
+  /** Nombre de brouillons a valider — badge de la cloche. */
+  aValider: number;
+  onOpenNotifications: () => void;
+  /** Vue detail ouverte : on peut replier le panneau d'edition pour voir la slide en grand. */
+  brouillonOuvert: boolean;
+  panneauReplie: boolean;
+  onTogglePanneau: () => void;
+  /** Theme sombre/clair (toggle manuel). */
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
 
 /**
- * Barre d'actions globale (pattern Linear) : PAS de titre ici — le titre et le
- * sous-titre vivent dans le PageHeader de chaque page. Cette barre ne porte que
- * les actions contextuelles : recherche ⌘K + toggle de vue (sur les listes).
+ * Barre d'actions GLOBALE (pattern PushRank/Linear) : ce qui est vrai sur
+ * toutes les pages — recherche ⌘K, theme, replier la page, notifications.
+ * Les controles contextuels (toggle vue, filtres, Nouveau) vivent dans la page.
  */
-export function Header({ vue, onVueChange, onOpenPalette, page }: HeaderProps) {
-  const surListe = page === 'brouillons' || page === 'documents';
+export function Header({ onOpenPalette, aValider, onOpenNotifications, brouillonOuvert, panneauReplie, onTogglePanneau, theme, onToggleTheme }: HeaderProps) {
   return (
     <header className="app-bar">
       <div className="actions">
@@ -25,16 +28,23 @@ export function Header({ vue, onVueChange, onOpenPalette, page }: HeaderProps) {
           <span>Rechercher</span>
           <kbd>{'\u2318'}K</kbd>
         </button>
-        {surListe && (
-          <div className="view-toggle">
-            <button className={vue === 'grille' ? 'on' : ''} onClick={() => onVueChange('grille')} title="Grille">
-              <SquaresFour size={15} />
-            </button>
-            <button className={vue === 'liste' ? 'on' : ''} onClick={() => onVueChange('liste')} title="Liste">
-              <List size={15} />
-            </button>
-          </div>
+        <button className="icon-btn" type="button" onClick={onToggleTheme} title={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}>
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
+        {brouillonOuvert && (
+          <button
+            className={`icon-btn${panneauReplie ? ' on' : ''}`}
+            type="button"
+            onClick={onTogglePanneau}
+            title={panneauReplie ? 'Déplier le panneau d\'édition' : 'Replier le panneau d\'édition'}
+          >
+            <ArrowsInLineVertical size={15} />
+          </button>
         )}
+        <button className="icon-btn notif-btn" type="button" onClick={onOpenNotifications} title="Notifications">
+          <Bell size={15} />
+          {aValider > 0 && <span className="notif-badge">{aValider}</span>}
+        </button>
       </div>
     </header>
   );

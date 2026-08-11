@@ -517,6 +517,11 @@ main {
   display: flex; flex-direction: column; gap: 22px;
   overflow-y: auto;
   scrollbar-width: thin;
+  transition: width var(--motion-duration-normal) var(--motion-ease), padding var(--motion-duration-normal) var(--motion-ease), opacity var(--motion-duration-normal) var(--motion-ease);
+}
+.side-panel.is-replie {
+  width: 0; padding-left: 0; padding-right: 0; opacity: 0; overflow: hidden;
+  border-left-color: transparent;
 }
 .sp-section { display: flex; flex-direction: column; gap: 8px; }
 .sp-label {
@@ -1356,3 +1361,84 @@ main {
 .integ-test-ok svg { color: var(--color-status-ok); }
 .integ-test-err { color: var(--color-status-err); }
 .integ-test-err svg { color: var(--color-status-err); }
+
+/* ── Barre d'actions globale : icon-btn, notif, replier ──────────────── */
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 7px;
+  border: 1px solid var(--color-line-default); background: transparent;
+  color: var(--color-ink-secondary); cursor: pointer;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease), background var(--motion-duration-fast) var(--motion-ease), color var(--motion-duration-fast) var(--motion-ease);
+}
+.icon-btn:hover { border-color: var(--color-line-hover); background: var(--color-bg-level-2); color: var(--color-ink-primary); }
+.icon-btn.on { background: color-mix(in srgb, var(--color-ink-primary) 9%, transparent); border-color: var(--color-line-hover); color: var(--color-ink-primary); }
+.notif-btn { position: relative; }
+.notif-badge {
+  position: absolute; top: -4px; right: -4px;
+  min-width: 15px; height: 15px; border-radius: 999px;
+  background: var(--color-status-warn); color: #fff;
+  font-size: 9.5px; font-weight: 600; line-height: 15px; text-align: center;
+  padding: 0 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THEME MANUEL — toggle sombre/clair (barre du haut)
+   Les tokens sont dark-first (tokens.css) avec un fallback light via
+   prefers-color-scheme. On ajoute un override explicite par data-theme :
+   - data-theme="light"  → force le clair (meme si l'OS est sombre)
+   - data-theme="dark"   → force le sombre (meme si l'OS est clair)
+   ═══════════════════════════════════════════════════════════════════════ */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-bg-deepest: #FAFAFA;
+  --color-bg-level-1: #FFFFFF;
+  --color-bg-level-2: #F2F2EF;
+  --color-bg-level-3: #E8E8E4;
+  --color-ink-primary: rgba(10, 10, 10, 0.96);
+  --color-ink-secondary: rgba(10, 10, 10, 0.70);
+  --color-ink-tertiary: rgba(10, 10, 10, 0.52);
+  --color-line-default: rgba(10, 10, 10, 0.12);
+  --color-line-hover: rgba(10, 10, 10, 0.20);
+  --color-line-strong: rgba(10, 10, 10, 0.28);
+  --color-accent-base: #0A0A0A;
+  --color-accent-hover: #262626;
+  --color-accent-soft: rgba(10, 10, 10, 0.08);
+  --color-accent-on-accent: #FFFFFF;
+  --color-status-warn: #B45309;
+  --color-status-warn-soft: rgba(180, 83, 9, 0.12);
+  --color-status-ok: #16A34A;
+  --color-status-ok-soft: rgba(22, 163, 74, 0.12);
+  --color-status-err: #DC2626;
+  --color-status-err-soft: rgba(220, 38, 38, 0.10);
+  --color-status-neutral: rgba(23, 22, 20, 0.06);
+  --color-shadow-sm: 0 1px 3px rgba(23, 22, 20, 0.08), 0 1px 2px rgba(23, 22, 20, 0.04);
+  --color-shadow-md: 0 4px 16px rgba(23, 22, 20, 0.10), 0 2px 4px rgba(23, 22, 20, 0.06);
+  --color-shadow-lg: 0 12px 40px rgba(23, 22, 20, 0.12), 0 4px 12px rgba(23, 22, 20, 0.06);
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg-deepest: #050505;
+  --color-bg-level-1: #0A0A0A;
+  --color-bg-level-2: #101010;
+  --color-bg-level-3: #171717;
+  --color-ink-primary: rgba(255, 255, 255, 0.96);
+  --color-ink-secondary: rgba(255, 255, 255, 0.64);
+  --color-ink-tertiary: rgba(255, 255, 255, 0.42);
+  --color-line-default: rgba(255, 255, 255, 0.08);
+  --color-line-hover: rgba(255, 255, 255, 0.14);
+  --color-line-strong: rgba(255, 255, 255, 0.22);
+  --color-accent-base: #FFFFFF;
+  --color-accent-hover: rgba(255, 255, 255, 0.85);
+  --color-accent-soft: rgba(255, 255, 255, 0.12);
+  --color-accent-on-accent: #050505;
+  --color-status-warn: #F5A623;
+  --color-status-warn-soft: rgba(245, 166, 35, 0.15);
+  --color-status-ok: #2FD06B;
+  --color-status-ok-soft: rgba(47, 208, 107, 0.15);
+  --color-status-err: #FF5252;
+  --color-status-err-soft: rgba(255, 82, 82, 0.14);
+  --color-status-neutral: rgba(208, 214, 224, 0.10);
+  --color-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --color-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --color-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
