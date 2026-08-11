@@ -37,6 +37,11 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creationOpen, setCreationOpen] = useState(false);
   const [panneauReplie, setPanneauReplie] = useState(false);
+  // Sidebar repliee : le bouton vit dans la barre du haut (pattern PushRank).
+  const [sidebarRepliee, setSidebarRepliee] = useState(() => localStorage.getItem('atelier.sidebar.collapsed') === '1');
+  useEffect(() => {
+    localStorage.setItem('atelier.sidebar.collapsed', sidebarRepliee ? '1' : '0');
+  }, [sidebarRepliee]);
 
   // Theme sombre/clair : init depuis localStorage ou le systeme, applique sur <html>.
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -183,7 +188,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar activePage={page} onNavigate={navigate} aValider={aValider} />
+      <Sidebar
+        activePage={page}
+        onNavigate={navigate}
+        aValider={aValider}
+        collapsed={sidebarRepliee}
+        onToggleCollapse={() => setSidebarRepliee((v) => !v)}
+      />
       <div className="shell">
         <Header
           onOpenPalette={() => setPaletteOpen(true)}
@@ -194,6 +205,8 @@ export default function App() {
           onTogglePanneau={() => setPanneauReplie((v) => !v)}
           theme={theme}
           onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+          sidebarRepliee={sidebarRepliee}
+          onToggleSidebar={() => setSidebarRepliee((v) => !v)}
         />
         <main>
           {page === 'brouillons' && selectedId && (

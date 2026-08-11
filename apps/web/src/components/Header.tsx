@@ -1,4 +1,4 @@
-import { MagnifyingGlass, Bell, ArrowsInLineVertical, Sun, Moon } from '@phosphor-icons/react';
+import { MagnifyingGlass, Bell, ArrowsInLineVertical, Sun, Moon, CaretDoubleLeft, CaretDoubleRight } from '@phosphor-icons/react';
 
 interface HeaderProps {
   onOpenPalette: () => void;
@@ -12,17 +12,24 @@ interface HeaderProps {
   /** Theme sombre/clair (toggle manuel). */
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  /** Sidebar repliee (le volet vit ici, pattern PushRank). */
+  sidebarRepliee: boolean;
+  onToggleSidebar: () => void;
 }
 
 /**
  * Barre d'actions GLOBALE (pattern PushRank/Linear) : ce qui est vrai sur
- * toutes les pages — recherche ⌘K, theme, replier la page, notifications.
- * Les controles contextuels (toggle vue, filtres, Nouveau) vivent dans la page.
+ * toutes les pages — volet sidebar, recherche ⌘K, theme, replier la page,
+ * notifications. Les controles contextuels (toggle vue, filtres, Nouveau)
+ * vivent dans la page.
  */
-export function Header({ onOpenPalette, aValider, onOpenNotifications, brouillonOuvert, panneauReplie, onTogglePanneau, theme, onToggleTheme }: HeaderProps) {
+export function Header({ onOpenPalette, aValider, onOpenNotifications, brouillonOuvert, panneauReplie, onTogglePanneau, theme, onToggleTheme, sidebarRepliee, onToggleSidebar }: HeaderProps) {
   return (
     <header className="app-bar">
       <div className="actions">
+        <button className="icon-btn" type="button" onClick={onToggleSidebar} title={sidebarRepliee ? 'Déplier la barre latérale' : 'Replier la barre latérale'}>
+          {sidebarRepliee ? <CaretDoubleRight size={15} /> : <CaretDoubleLeft size={15} />}
+        </button>
         <button className="cmdk-hint" type="button" onClick={onOpenPalette}>
           <MagnifyingGlass size={14} />
           <span>Rechercher</span>

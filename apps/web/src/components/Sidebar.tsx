@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   SquaresFour,
   CalendarBlank,
@@ -7,8 +7,6 @@ import {
   Sparkle,
   Gear,
   Question,
-  CaretDoubleLeft,
-  CaretDoubleRight,
   FileText,
   PlugsConnected
 } from '@phosphor-icons/react';
@@ -18,6 +16,9 @@ interface SidebarProps {
   onNavigate: (page: string) => void;
   /** Nombre de contenus a valider (badge sur Dashboard). */
   aValider?: number;
+  /** Etat controle par la barre du haut (le bouton replier y vit, pattern PushRank). */
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 type NavItem = { id: string; label: string; Icon: typeof SquaresFour };
@@ -47,26 +48,9 @@ const GROUPES: { label: string; items: NavItem[] }[] = [
   }
 ];
 
-const STORAGE_KEY = 'atelier.sidebar.collapsed';
-
-export function Sidebar({ activePage, onNavigate, aValider = 0 }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
+export function Sidebar({ activePage, onNavigate, aValider = 0, collapsed, onToggleCollapse }: SidebarProps) {
   const [hovering, setHovering] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
-    } catch {
-      /* stockage indisponible : ignorer */
-    }
-  }, [collapsed]);
 
   // Hover intent : delai de deploiement (150ms) et de repli (250ms) pour eviter
   // le clignotement et le redepoiement immediat apres un clic sur "Replier".
@@ -81,7 +65,7 @@ export function Sidebar({ activePage, onNavigate, aValider = 0 }: SidebarProps) 
   function toggleCollapse() {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
     setHovering(false);
-    setCollapsed((c) => !c);
+    onToggleCollapse();
   }
 
   // Deployee = etat persiste OU survol temporaire (pattern epingle).
@@ -101,18 +85,6 @@ export function Sidebar({ activePage, onNavigate, aValider = 0 }: SidebarProps) 
         <button className="brand-home" onClick={goHome} title="Dashboard" aria-label="Retour au dashboard">
           <span className="mark" />
           {deployee && <span className="name">Atelier</span>}
-        </button>
-        <button
-          className="nav-collapse"
-          onClick={() => setCollapsed((c) => !c)}
-          title={collapsed ? 'Deplier la barre' : 'Replier la barre'}
-          aria-label={collapsed ? 'Deplier la barre laterale' : 'Replier la barre laterale'}
-        >
-          {collapsed ? (
-            <CaretDoubleRight size={13} weight="bold" />
-          ) : (
-            <CaretDoubleLeft size={13} weight="bold" />
-          )}
         </button>
       </div>
 
