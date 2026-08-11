@@ -48,7 +48,7 @@ export function DraftList({ brouillons, onOpen, onDelete }: DraftListProps) {
             <span>généré par Hermes, {relTime(b.updated)}</span>
           </div>
           <div className="status-dot" title={STATUT_LABELS[b.statut as Statut] ?? b.statut}>
-            <span className="dot" style={{ background: STATUT_DOT[b.statut] ?? 'var(--color-ink-tertiary)' }} />
+            <span className="dot status-pop" style={{ background: STATUT_DOT[b.statut] ?? 'var(--color-ink-tertiary)' }} />
             {STATUT_LABELS[b.statut as Statut] ?? b.statut}
           </div>
           <div className="row-actions">

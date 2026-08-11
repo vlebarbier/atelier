@@ -47,6 +47,8 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [slide, setSlide] = useState(0);
+  // Direction de transition du carrousel (spec Apollon) : 'next' | 'prev' | null
+  const [slideDir, setSlideDir] = useState<'next' | 'prev' | null>(null);
   const [reseauActif, setReseauActif] = useState<string>('instagram');
   const [onglet, setOnglet] = useState<OngletPanneau>('agent');
   const [statutOpen, setStatutOpen] = useState(false);
@@ -390,14 +392,32 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
       if (tag === 'TEXTAREA' || tag === 'INPUT') return;
       if (!brouillon || brouillon.slides.length === 0) return;
       if (e.key === 'ArrowRight') {
-        setSlide((s) => (s + 1) % brouillon.slides.length);
+        changerSlide(slide + 1, 'next');
       } else if (e.key === 'ArrowLeft') {
-        setSlide((s) => (s - 1 + brouillon.slides.length) % brouillon.slides.length);
+        changerSlide(slide - 1, 'prev');
       }
     }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [brouillon]);
+  }, [brouillon, slide]);
+
+  /**
+   * Carrousel : change de slide avec une transition directionnelle 250ms
+   * (spec Apollon) : classe .is-next/.is-prev posee un instant, puis retiree
+   * pour que la transition CSS (translateX 8px → 0) joue a l'entree.
+   */
+  function changerSlide(next: number, dir: 'next' | 'prev') {
+    if (!brouillon || brouillon.slides.length === 0) return;
+    const total = brouillon.slides.length;
+    const target = ((next % total) + total) % total;
+    setSlideDir(dir);
+    setSlide(target);
+    // Deux rAF : laisse le navigateur peindre l'etat initial (decalage 8px,
+    // opacity 0) avant de retirer la classe et declencher la transition.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setSlideDir(null));
+    });
+  }
 
   async function setStatut(statut: Statut) {
     if (!brouillon) return;
@@ -643,16 +663,26 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
             <>
               <div className="stage-media">
                 {currentSlideFichier.endsWith('.mp4') || currentSlideFichier.endsWith('.webm') ? (
-                  <video key={currentSlideFichier} src={slideUrl(brouillon.id, currentSlideFichier)} controls autoPlay muted loop />
+                  <video
+                    key={currentSlideFichier}
+                    className={slideDir === 'next' ? 'is-next' : slideDir === 'prev' ? 'is-prev' : ''}
+                    src={slideUrl(brouillon.id, currentSlideFichier)}
+                    controls autoPlay muted loop
+                  />
                 ) : (
-                  <img id="slide-img" src={slideUrl(brouillon.id, currentSlideFichier)} alt="" />
+                  <img
+                    id="slide-img"
+                    className={slideDir === 'next' ? 'is-next' : slideDir === 'prev' ? 'is-prev' : ''}
+                    src={slideUrl(brouillon.id, currentSlideFichier)}
+                    alt=""
+                  />
                 )}
                 {brouillon.slides.length > 1 && (
                   <>
                     <button
                       type="button"
                       className="stage-arrow prev"
-                      onClick={() => setSlide((s) => (s - 1 + brouillon.slides.length) % brouillon.slides.length)}
+                      onClick={() => changerSlide(slide - 1, 'prev')}
                       aria-label="Slide precedente"
                     >
                       <CaretLeft size={18} weight="bold" />
@@ -660,7 +690,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     <button
                       type="button"
                       className="stage-arrow next"
-                      onClick={() => setSlide((s) => (s + 1) % brouillon.slides.length)}
+                      onClick={() => changerSlide(slide + 1, 'next')}
                       aria-label="Slide suivante"
                     >
                       <CaretRight size={18} weight="bold" />
@@ -833,6 +863,14 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     {rendering ? 'Rendu en cours...' : 'Regenerer les slides'}
                   </button>
                 </div>
+                {rendering && (
+                  <div className="render-status" role="status">
+                    <span className="loader-pixels" aria-hidden="true">
+                      <span /><span /><span /><span /><span /><span /><span /><span /><span />
+                    </span>
+                    <span className="shimmer-label">Generation du rendu</span>
+                  </div>
+                )}
                 {sourceMsg && (
                   <div className={`source-msg ${sourceMsg.type}`}>
                     {sourceMsg.type === 'ok' ? <CheckCircle size={13} /> : <Check size={13} />} {sourceMsg.text}
@@ -977,7 +1015,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                       onClick={() => saveReseau(reseauActif, { statut: s as Statut })}
                       type="button"
                     >
-                      <span className={`dot dot--${s}`} />
+                      <span className={`dot dot--${s} status-pop`} />
                       {STATUT_LABELS[s]}
                     </button>
                   ))}
@@ -1020,8 +1058,8 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
       </div>
 
       {planifOpen && (
-        <div className="modal-overlay" onClick={() => setPlanifOpen(false)}>
-          <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay modal-overlay-in" onClick={() => setPlanifOpen(false)}>
+          <div className="modal modal-panel-in" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>Programmer la publication</h3>
               <button className="modal-x" type="button" onClick={() => setPlanifOpen(false)} aria-label="Fermer">

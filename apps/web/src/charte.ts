@@ -154,5 +154,5 @@ export function buildCharteFontLink(charte: CharteData): string | null {
     .filter((f): f is string => f !== null)
     .filter((f, i, arr) => arr.indexOf(f) === i);
   if (familles.length === 0) return null;
-  return `https://fonts.googleapis.com/css2?family=${familles.join('&family=')}&display=swap`;
+  return `https://fonts.googleapis.com/css2?family=${familles.join('&family=').replace(/\s+/g, '+')}&display=swap`;
 }
