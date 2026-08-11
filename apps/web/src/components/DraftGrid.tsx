@@ -1,4 +1,4 @@
-import type { Vue } from './Header';
+import type { Vue } from './ContentListPage';
 import type { Brouillon } from '../api';
 import { DraftCard } from './DraftCard';
 import { DraftList } from './DraftList';

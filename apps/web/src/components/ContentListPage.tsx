@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { FileText, Plus, CaretDown } from '@phosphor-icons/react';
+import { FileText, Plus, CaretDown, SquaresFour, List } from '@phosphor-icons/react';
 import type { Brouillon, Statut } from '../api';
 import { TYPE_LABELS } from '../format';
 import { Page, PageHeader, EmptyState } from './ui';
 import { DraftGrid, GridSkeleton } from './DraftGrid';
 import { Toolbar } from './Toolbar';
+
+export type Vue = 'grille' | 'liste';
 
 interface ContentListPageProps {
   /** Titre de la page (ex: "Contenus", "Documents"). */
@@ -73,37 +75,47 @@ export function ContentListPage({
         count={brouillons.length}
         sub={sub}
         actions={
-          typesNouveau ? (
-            <div className="page-actions-group">
-              {choixOuvert && (
-                <div className="page-choix">
-                  {typesNouveau.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => {
-                        setChoixOuvert(false);
-                        onCreateType?.(t);
-                      }}
-                    >
-                      <FileText size={12} /> {TYPE_LABELS[t] ?? t}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button
-                className="primary"
-                type="button"
-                onClick={() => setChoixOuvert((o) => !o)}
-              >
-                <Plus size={13} weight="bold" /> Nouveau
+          <div className="page-actions">
+            <div className="view-toggle">
+              <button className={vue === 'grille' ? 'on' : ''} onClick={() => onVueChange('grille')} title="Grille">
+                <SquaresFour size={15} />
+              </button>
+              <button className={vue === 'liste' ? 'on' : ''} onClick={() => onVueChange('liste')} title="Liste">
+                <List size={15} />
               </button>
             </div>
-          ) : (
-            <button className="primary" type="button" onClick={onCreate}>
-              <Plus size={13} weight="bold" /> Nouveau
-            </button>
-          )
+            {typesNouveau ? (
+              <div className="page-actions-group">
+                {choixOuvert && (
+                  <div className="page-choix">
+                    {typesNouveau.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          setChoixOuvert(false);
+                          onCreateType?.(t);
+                        }}
+                      >
+                        <FileText size={12} /> {TYPE_LABELS[t] ?? t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={() => setChoixOuvert((o) => !o)}
+                >
+                  <Plus size={13} weight="bold" /> Nouveau
+                </button>
+              </div>
+            ) : (
+              <button className="primary" type="button" onClick={onCreate}>
+                <Plus size={13} weight="bold" /> Nouveau
+              </button>
+            )}
+          </div>
         }
       />
       <div className="liste-filtres">
