@@ -259,6 +259,34 @@ export async function envoyerMessage(
 
 // ── Journal d'activite ────────────────────────────────────────────────
 
+export interface PostizDraftResult {
+  ok: boolean;
+  postId: string;
+  integrationId: string;
+  reseau: string;
+  slides_uploaded: number;
+  date: string;
+  statut: 'draft';
+}
+
+/**
+ * POST /api/brouillon/:id/postiz — depuis un brouillon VALIDÉ, crée le
+ * brouillon de publication Postiz (upload slides + légende + hashtags +
+ * date programmée). JAMAIS de publication automatique : le post reste un
+ * draft, la programmation est un acte humain dans Postiz.
+ */
+export async function envoyerVersPostiz(
+  id: string,
+  opts: { reseau?: string; caption?: string; hashtags?: string; date?: string; heure?: string; integration_id?: string } = {}
+): Promise<PostizDraftResult> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/postiz`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(opts)
+  });
+  return handle<PostizDraftResult>(res);
+}
+
 export interface JournalEntry {
   id: number;
   type: string;
