@@ -64,6 +64,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       id,
       titre,
       statut: 'brouillon',
+      type: 'carrousel',
       notes: '',
       reseaux: '{}',
       sourceHtml: null,
@@ -138,10 +139,13 @@ export function createApp(repo: Repo, options: AppOptions) {
       id: row.id,
       titre: row.titre,
       statut: row.statut,
+      type: row.type || 'carrousel',
       notes: row.notes,
       sourceHtml: row.sourceHtml || null,
       charteId: row.charteId || 'principale',
       checklist: row.checklist || '[]',
+      conversation: row.conversation || '[]',
+      programme: row.programme ? JSON.parse(row.programme) : null,
       reseaux,
       updated: row.updatedAt,
       slideCount: fichiers.length,
@@ -174,6 +178,9 @@ export function createApp(repo: Repo, options: AppOptions) {
     const nextNotes = patch.notes ?? row.notes;
     const nextSourceHtml = patch.sourceHtml !== undefined ? patch.sourceHtml : row.sourceHtml;
     const nextChecklist = patch.checklist !== undefined ? patch.checklist : row.checklist;
+    const nextConversation = patch.conversation !== undefined ? patch.conversation : row.conversation;
+    const nextType = patch.type !== undefined ? patch.type : row.type;
+    const nextProgramme = patch.programme !== undefined ? patch.programme : row.programme;
 
     await repo.updateBrouillon(id, {
       statut: nextStatut,
@@ -181,6 +188,9 @@ export function createApp(repo: Repo, options: AppOptions) {
       reseaux: JSON.stringify(nextReseaux),
       sourceHtml: nextSourceHtml,
       checklist: nextChecklist,
+      conversation: nextConversation,
+      type: nextType,
+      programme: nextProgramme,
       updatedAt
     });
 
@@ -195,6 +205,33 @@ export function createApp(repo: Repo, options: AppOptions) {
         updated: updatedAt
       }
     });
+  });
+
+  // POST /api/brouillon/:id/message → ajoute un message user a la conversation avec l'agent.
+  // L'agent (via MCP lire_brouillon) voit les messages en attente, execute, puis repond
+  // via le meme endpoint avec { role: 'agent' } (ou via l'outil MCP dedie).
+  app.post('/api/brouillon/:id/message', async (c) => {
+    const id = c.req.param('id');
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+    const body = await c.req.json().catch(() => null);
+    const texte = typeof body?.texte === 'string' ? body.texte.trim() : '';
+    if (!texte) return c.json({ error: 'texte requis' }, 400);
+    const role = body?.role === 'agent' ? 'agent' : 'user';
+    let conversation: { role: string; texte: string; at: string }[] = [];
+    try {
+      conversation = JSON.parse(row.conversation || '[]');
+    } catch {
+      conversation = [];
+    }
+    conversation.push({ role, texte, at: new Date().toISOString() });
+    // Garde les 200 derniers messages (la conversation reste lisible pour l'agent).
+    const garde = conversation.slice(-200);
+    await repo.updateBrouillon(id, {
+      conversation: JSON.stringify(garde),
+      updatedAt: new Date().toISOString()
+    });
+    return c.json({ ok: true, conversation: garde });
   });
 
   app.post('/api/brouillon/:id/slides', async (c) => {
@@ -228,6 +265,31 @@ export function createApp(repo: Repo, options: AppOptions) {
     await repo.updateBrouillon(id, { updatedAt });
 
     return c.json({ ok: true, slideCount: stored.length, slides: stored.map((s) => s.fichier) });
+  });
+
+  // POST /api/brouillon/:id/order → reordonne les slides (body: { fichiers: string[] })
+  app.post('/api/brouillon/:id/order', async (c) => {
+    const id = c.req.param('id');
+    if (!(await repo.brouillonExists(id))) return c.json({ error: 'brouillon introuvable' }, 404);
+    const body = await c.req.json().catch(() => null);
+    const fichiers = body?.fichiers;
+    if (!Array.isArray(fichiers) || fichiers.length === 0) {
+      return c.json({ error: 'fichiers (tableau) attendu' }, 400);
+    }
+    const slides = await repo.listSlides(id);
+    const parFichier = new Map(slides.map((s) => [s.fichier, s]));
+    // Valide que chaque fichier existe
+    for (const f of fichiers) {
+      if (!parFichier.has(f)) return c.json({ error: `slide inconnue : ${f}` }, 400);
+    }
+    await repo.deleteSlides(id);
+    for (let i = 0; i < fichiers.length; i++) {
+      const s = parFichier.get(fichiers[i]);
+      if (!s) continue;
+      await repo.insertSlide({ brouillonId: id, fichier: s.fichier, position: i + 1, blobUrl: s.blobUrl });
+    }
+    await repo.updateBrouillon(id, { updatedAt: new Date().toISOString() });
+    return c.json({ ok: true, slideCount: fichiers.length });
   });
 
   // ═════════════════ BIBLIOTHEQUE (ressources) ═══════════════════════════

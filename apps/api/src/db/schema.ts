@@ -8,6 +8,9 @@ export const brouillons = sqliteTable('brouillons', {
   id: text('id').primaryKey(),
   titre: text('titre').notNull(),
   statut: text('statut').notNull().default('brouillon'),
+  /** Type de contenu : carrousel (defaut), video, post, story. Pilote le rendu du stage
+   *  et les contraintes reseau affichees dans le panneau d'edition. */
+  type: text('type').notNull().default('carrousel'),
   notes: text('notes').notNull().default(''),
   reseaux: text('reseaux').notNull().default('{}'),
   /** Source HTML du document (le vrai "réceptacle" : l'agent produit du HTML, les PNG sont dérivés). */
@@ -16,6 +19,12 @@ export const brouillons = sqliteTable('brouillons', {
   charteId: text('charte_id').default('principale'),
   /** Checklist de validation (JSON : [{id,label,checked}]). */
   checklist: text('checklist').notNull().default('[]'),
+  /** Conversation avec l'agent (JSON : [{role:'user'|'agent', texte, at}]). Le user demande
+   *  des modifications, l'agent (via MCP) les execute et repond. */
+  conversation: text('conversation').notNull().default('[]'),
+  /** Programmation calendrier (JSON : {date, heure, reseau} ou null). Affiche le brouillon
+   *  sur son jour planifie dans le calendrier. */
+  programme: text('programme'),
   updatedAt: text('updated_at')
 });
 
@@ -28,6 +37,8 @@ export const slides = sqliteTable('slides', {
   brouillonId: text('brouillon_id').notNull(),
   fichier: text('fichier').notNull(),
   position: integer('position').notNull(),
+  /** Type de media : image (defaut) ou video. Le stage affiche <video> si video. */
+  typeMedia: text('type_media').notNull().default('image'),
   blobUrl: text('blob_url')
 });
 

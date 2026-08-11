@@ -46,6 +46,15 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
   if (!brouillonsCols.some((c) => c.name === 'checklist')) {
     sqlite.exec(`ALTER TABLE brouillons ADD COLUMN checklist TEXT NOT NULL DEFAULT '[]';`);
   }
+  if (!brouillonsCols.some((c) => c.name === 'conversation')) {
+    sqlite.exec(`ALTER TABLE brouillons ADD COLUMN conversation TEXT NOT NULL DEFAULT '[]';`);
+  }
+  if (!brouillonsCols.some((c) => c.name === 'type')) {
+    sqlite.exec(`ALTER TABLE brouillons ADD COLUMN type TEXT NOT NULL DEFAULT 'carrousel';`);
+  }
+  if (!brouillonsCols.some((c) => c.name === 'programme')) {
+    sqlite.exec(`ALTER TABLE brouillons ADD COLUMN programme TEXT;`);
+  }
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS ressources (
       id TEXT PRIMARY KEY,
@@ -62,5 +71,8 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
   const slidesCols = sqlite.prepare(`PRAGMA table_info(slides)`).all() as { name: string }[];
   if (!slidesCols.some((c) => c.name === 'blob_url')) {
     sqlite.exec(`ALTER TABLE slides ADD COLUMN blob_url TEXT;`);
+  }
+  if (!slidesCols.some((c) => c.name === 'type_media')) {
+    sqlite.exec(`ALTER TABLE slides ADD COLUMN type_media TEXT NOT NULL DEFAULT 'image';`);
   }
 }

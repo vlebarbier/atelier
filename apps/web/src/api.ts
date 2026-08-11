@@ -8,6 +8,8 @@ export interface Brouillon {
   slideCount: number;
   slides: string[];
   updated: string | null;
+  type?: string;
+  programme?: string | null;
 }
 
 export interface ReseauEntry {
@@ -18,10 +20,19 @@ export interface ReseauEntry {
 
 export interface BrouillonDetail extends Brouillon {
   notes: string;
+  type: string;
   reseaux: Record<string, ReseauEntry>;
   sourceHtml?: string | null;
   charteId?: string;
   checklist?: string;
+  conversation?: string;
+  programme?: string | null;
+}
+
+export interface MessageChat {
+  role: 'user' | 'agent';
+  texte: string;
+  at: string;
 }
 
 export interface Charte {
@@ -114,7 +125,7 @@ export async function importCharte(css: string, nom?: string): Promise<ImportCha
 
 export async function updateBrouillon(
   id: string,
-  patch: Partial<Pick<BrouillonDetail, 'statut' | 'notes' | 'reseaux' | 'sourceHtml' | 'checklist'>>
+  patch: Partial<Pick<BrouillonDetail, 'statut' | 'notes' | 'reseaux' | 'sourceHtml' | 'checklist' | 'type' | 'programme'>>
 ): Promise<{ ok: boolean }> {
   const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}`), {
     method: 'POST',
@@ -132,6 +143,19 @@ export async function replaceSlides(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ slides })
+  });
+  return handle<{ ok: boolean; slideCount: number }>(res);
+}
+
+/** Reordonne les slides d'un brouillon (body: fichiers dans le nouvel ordre). */
+export async function reorderSlides(
+  id: string,
+  fichiers: string[]
+): Promise<{ ok: boolean; slideCount: number }> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/order`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fichiers })
   });
   return handle<{ ok: boolean; slideCount: number }>(res);
 }
@@ -182,4 +206,19 @@ export async function deleteRessource(id: string): Promise<{ ok: boolean }> {
     method: 'DELETE'
   });
   return handle<{ ok: boolean }>(res);
+}
+
+// ── Conversation avec l'agent ─────────────────────────────────────────
+
+export async function envoyerMessage(
+  id: string,
+  texte: string,
+  role: 'user' | 'agent' = 'user'
+): Promise<{ ok: boolean; conversation: MessageChat[] }> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/message`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ texte, role })
+  });
+  return handle<{ ok: boolean; conversation: MessageChat[] }>(res);
 }

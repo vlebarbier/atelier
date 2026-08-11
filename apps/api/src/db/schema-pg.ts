@@ -9,11 +9,14 @@ export const brouillons = pgTable('brouillons', {
   id: text('id').primaryKey(),
   titre: text('titre').notNull(),
   statut: text('statut').notNull().default('brouillon'),
+  type: text('type').notNull().default('carrousel'),
   notes: text('notes').notNull().default(''),
   reseaux: text('reseaux').notNull().default('{}'),
   sourceHtml: text('source_html'),
   charteId: text('charte_id').default('principale'),
   checklist: text('checklist').notNull().default('[]'),
+  conversation: text('conversation').notNull().default('[]'),
+  programme: text('programme'),
   updatedAt: text('updated_at')
 });
 
@@ -22,6 +25,7 @@ export const slides = pgTable('slides', {
   brouillonId: text('brouillon_id').notNull(),
   fichier: text('fichier').notNull(),
   position: integer('position').notNull(),
+  typeMedia: text('type_media').notNull().default('image'),
   blobUrl: text('blob_url')
 });
 

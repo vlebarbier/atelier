@@ -30,9 +30,22 @@ export function CalendarPage({ brouillons }: CalendarPageProps) {
   const byDay = useMemo(() => {
     const map = new Map<number, Brouillon[]>();
     for (const b of brouillons) {
-      if (!b.updated) continue;
-      const d = new Date(b.updated);
-      if (Number.isNaN(d.getTime())) continue;
+      // Un brouillon programme apparait sur sa date de programmation ;
+      // sinon sur sa date de mise a jour.
+      let d: Date | null = null;
+      if (b.programme) {
+        try {
+          const prog = JSON.parse(b.programme);
+          if (prog?.date) d = new Date(`${prog.date}T12:00:00`);
+        } catch {
+          d = null;
+        }
+      }
+      if (!d && b.updated) {
+        d = new Date(b.updated);
+        if (Number.isNaN(d.getTime())) d = null;
+      }
+      if (!d) continue;
       if (d.getFullYear() !== year || d.getMonth() !== month) continue;
       const day = d.getDate();
       const list = map.get(day) || [];
