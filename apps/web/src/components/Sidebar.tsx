@@ -8,7 +8,10 @@ import {
   Gear,
   Question,
   FileText,
-  PlugsConnected
+  PlugsConnected,
+  CaretDoubleLeft,
+  CaretDoubleRight,
+  Article
 } from '@phosphor-icons/react';
 
 interface SidebarProps {
@@ -29,6 +32,7 @@ const GROUPES: { label: string; items: NavItem[] }[] = [
     items: [
       { id: 'brouillons', label: 'Contenus', Icon: SquaresFour },
       { id: 'documents', label: 'Documents', Icon: FileText },
+      { id: 'blog', label: 'Blog', Icon: Article },
       { id: 'calendrier', label: 'Calendrier', Icon: CalendarBlank }
     ]
   },

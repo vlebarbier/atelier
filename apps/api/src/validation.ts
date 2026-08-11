@@ -16,6 +16,7 @@ export const reseauxSchema = z.record(z.string(), reseauEntrySchema);
 
 export const updateBrouillonSchema = z
   .object({
+    titre: z.string().optional(),
     statut: statutSchema.optional(),
     notes: z.string().optional(),
     reseaux: reseauxSchema.optional(),

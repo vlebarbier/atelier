@@ -305,6 +305,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       checklist: row.checklist || '[]',
       conversation: row.conversation || '[]',
       programme: row.programme ? JSON.parse(row.programme) : null,
+      article: row.article ? JSON.parse(row.article) : null,
       reseaux,
       updated: row.updatedAt,
       slideCount: fichiers.length,
@@ -340,6 +341,7 @@ export function createApp(repo: Repo, options: AppOptions) {
     const nextConversation = patch.conversation !== undefined ? patch.conversation : row.conversation;
     const nextType = patch.type !== undefined ? patch.type : row.type;
     const nextProgramme = patch.programme !== undefined ? patch.programme : row.programme;
+    const nextArticle = patch.article !== undefined ? patch.article : row.article;
 
     await repo.updateBrouillon(id, {
       statut: nextStatut,
@@ -350,6 +352,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       conversation: nextConversation,
       type: nextType,
       programme: nextProgramme,
+      article: nextArticle,
       updatedAt
     });
 
@@ -855,6 +858,87 @@ export function createApp(repo: Repo, options: AppOptions) {
       slides_uploaded: mediaUrls.length,
       date: iso,
       statut: 'draft' // jamais publié automatiquement
+    }, 201);
+  });
+
+  // POST /api/brouillon/:id/publier-cms → publie un article (type 'article') vers le CMS
+  // Sanity. Réconciliation avec le pipeline Notion→Sanity existant : le module
+  // integrations/sanity.ts utilise _id = 'article-<slug>' (createOrReplace idempotent).
+  // Garde-fou inaliénable : seul un brouillon 'valide' part au CMS, et le statut
+  // passe à 'publie' uniquement après succès (jamais de publication automatique).
+  app.post('/api/brouillon/:id/publier-cms', async (c) => {
+    const id = c.req.param('id');
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+
+    const type = row.type || 'carrousel';
+    if (type !== 'article') {
+      return c.json({ error: `Type '${type}' : seuls les brouillons 'article' se publient vers le CMS` }, 409);
+    }
+    if (row.statut !== 'valide') {
+      return c.json({ error: `Statut '${row.statut}' : seul un article 'valide' peut être publié vers le CMS` }, 409);
+    }
+
+    let article: Record<string, unknown> = {};
+    try {
+      article = row.article ? JSON.parse(row.article) : {};
+    } catch {
+      article = {};
+    }
+    const slug = typeof article.slug === 'string' && article.slug.trim() ? article.slug.trim() : '';
+    const chapo = typeof article.chapo === 'string' ? article.chapo : '';
+    const corpsHtml = row.sourceHtml || '';
+    if (!slug) return c.json({ error: 'Slug manquant : renseignez le slug de l\'article avant publication' }, 400);
+    if (!corpsHtml.trim()) return c.json({ error: 'Corps vide : déposez la source HTML de l\'article avant publication' }, 400);
+
+    const { getSanityConfig, publierArticleCms } = await import('./integrations/sanity.js');
+    if (!getSanityConfig()) {
+      return c.json(
+        { error: 'CMS non configuré : PUBLIC_SANITY_PROJECT_ID / PUBLIC_SANITY_DATASET / SANITY_WRITE_TOKEN requis (env Vercel).' },
+        503
+      );
+    }
+
+    let result: { id: string; url: string; slug: string };
+    try {
+      result = await publierArticleCms({
+        slug,
+        title: row.titre,
+        excerpt: chapo,
+        rawHtml: corpsHtml,
+        seoTitle: typeof article.seoTitle === 'string' ? article.seoTitle : undefined,
+        seoDescription: typeof article.seoDescription === 'string' ? article.seoDescription : undefined,
+        category: typeof article.category === 'string' ? article.category : undefined,
+        publishedAt: typeof article.publishedAt === 'string' ? article.publishedAt : undefined,
+        readingTime: typeof article.readingTime === 'number' ? article.readingTime : undefined
+      });
+    } catch (e) {
+      return c.json({ error: `Publication CMS: ${e instanceof Error ? e.message : String(e)}` }, 502);
+    }
+
+    // Persiste l'identifiant CMS + l'URL + le statut publié (uniquement après succès).
+    const nextArticle = { ...article, cmsId: result.id, cmsUrl: result.url, cmsSlug: result.slug };
+    const updatedAt = new Date().toISOString();
+    await repo.updateBrouillon(id, {
+      article: JSON.stringify(nextArticle),
+      statut: 'publie',
+      updatedAt
+    });
+    await journaliser(repo, {
+      type: 'publication_cms',
+      auteur: auteurDe(c),
+      brouillonId: id,
+      brouillonTitre: row.titre,
+      message: `a publié l'article \"${row.titre}\" vers le CMS (${result.slug})`,
+      details: { cmsId: result.id, cmsUrl: result.url }
+    });
+
+    return c.json({
+      ok: true,
+      cmsId: result.id,
+      cmsUrl: result.url,
+      slug: result.slug,
+      statut: 'publie'
     }, 201);
   });
 
