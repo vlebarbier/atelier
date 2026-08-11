@@ -124,6 +124,28 @@ describe('Dissociation contenus / documents (type)', () => {
     expect(types).toContain('carrousel'); // brouillon seede
     expect(types).toContain('flyer');
   });
+
+  it('POST /api/brouillons avec une conversation pre-remplie la persiste (porte entree creation)', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        titre: 'Carrousel temoignage',
+        type: 'carrousel',
+        conversation: [{ role: 'user', texte: 'Cree un carrousel temoignage pour la Maison des Mûriers.' }]
+      })
+    });
+    expect(res.status).toBe(201);
+    const created = (await res.json()) as { id: string };
+    const detail = await app.request(`/api/brouillon/${created.id}`);
+    const body = (await detail.json()) as { conversation: string };
+    const conv = JSON.parse(body.conversation) as { role: string; texte: string; at: string }[];
+    expect(conv).toHaveLength(1);
+    expect(conv[0]?.role).toBe('user');
+    expect(conv[0]?.texte).toContain('temoignage');
+    expect(conv[0]?.at).toBeDefined(); // timestamp genere serveur
+  });
 });
 
 describe('Journal d activite (GET /api/journal)', () => {

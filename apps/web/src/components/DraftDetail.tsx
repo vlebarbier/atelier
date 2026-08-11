@@ -6,6 +6,7 @@ import {
 import type { Icon } from '@phosphor-icons/react';
 import type { BrouillonDetail, MessageChat, ReseauEntry, Statut } from '../api';
 import { deleteBrouillon, envoyerMessage, fetchBrouillon, fetchCharte, parseProgramme, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
+import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
 import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate } from '../format';
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerHTML } from '../export';
 
@@ -249,12 +250,28 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
     setRendering(true);
     setSourceMsg(null);
     try {
+      // F-29 : la charte (GET /api/charte) est injectée dans le rendu au moment de la
+      // capture. Ses couleurs/polices/rayons deviennent des variables CSS exposées au
+      // HTML source (var(--bordeaux), var(--charte-police-titre)...) et ses polices
+      // sont chargées, pour que les slides portent la marque.
+      let charte: CharteData | null = null;
+      try {
+        const c = await fetchCharte();
+        charte = parseCharte(c.data);
+      } catch {
+        charte = null; // charte indisponible : rendu tel quel, sans injection
+      }
+
       // Rendu hors-écran du document source.
       const holder = document.createElement('div');
       holder.style.cssText = 'position:fixed;left:-20000px;top:0;width:1080px;background:#fff;';
       holder.innerHTML = html;
       document.body.appendChild(holder);
-      await new Promise((r) => setTimeout(r, 300)); // laisse les styles/polices s'appliquer
+
+      // Style et polices de la charte, injectés APRÈS le HTML source : en cascade,
+      // les variables de la charte priment sur celles éventuellement en dur.
+      if (charte) injecterCharteRendu(holder, charte);
+      await attendreRendu(charte);
 
       const slideEls = holder.querySelectorAll<HTMLElement>('.slide');
       if (slideEls.length === 0) {
@@ -284,6 +301,38 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
       setSourceMsg({ type: 'err', text: err instanceof Error ? err.message : 'Régénération impossible' });
     } finally {
       setRendering(false);
+    }
+  }
+
+  /** F-29 : applique la charte au holder de capture (variables CSS + polices). */
+  function injecterCharteRendu(holder: HTMLElement, charte: CharteData) {
+    const tokensCss = buildCharteCss(charte);
+    const fallbackCss = buildCharteFallbackCss(charte);
+    if (tokensCss || fallbackCss) {
+      const style = document.createElement('style');
+      style.textContent = [tokensCss, fallbackCss].filter(Boolean).join('\n');
+      holder.appendChild(style);
+    }
+    const fontLink = buildCharteFontLink(charte);
+    if (fontLink) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = fontLink;
+      holder.appendChild(link);
+    }
+  }
+
+  /** Laisse les styles et les polices (charte incluse) s'appliquer avant la capture. */
+  async function attendreRendu(charte: CharteData | null) {
+    await new Promise((r) => setTimeout(r, 350));
+    if (charte) {
+      // document.fonts.ready se ré-arme quand le <link> Google Fonts déclenche
+      // de nouveaux chargements ; un filet de 2,5s évite de bloquer sur un échec.
+      await Promise.race([
+        document.fonts.ready.then(() => undefined),
+        new Promise((r) => setTimeout(r, 2500))
+      ]);
+      await new Promise((r) => setTimeout(r, 120));
     }
   }
 

@@ -154,10 +154,31 @@ export function createApp(repo: Repo, options: AppOptions) {
   });
 
   app.post('/api/brouillons', async (c) => {
-    const body = (await c.req.json().catch(() => ({}))) as { titre?: string; type?: string };
+    const body = (await c.req.json().catch(() => ({}))) as {
+      titre?: string;
+      type?: string;
+      conversation?: { role?: string; texte?: string }[];
+    };
     const id = `brouillon-${Date.now().toString(36)}`;
     const titre = (body.titre || 'Nouveau brouillon').trim();
     const type = body.type || 'carrousel';
+
+    // Conversation pre-remplie (porte d'entree creation : phrase libre ou template).
+    // Le timestamp est genere serveur, jamais envoye par le client.
+    let conversation = '[]';
+    if (Array.isArray(body.conversation) && body.conversation.length > 0) {
+      const messages: { role: 'agent' | 'user'; texte: string; at: string }[] = [];
+      for (const m of body.conversation) {
+        if (!m || typeof m.texte !== 'string' || !m.texte.trim()) continue;
+        messages.push({
+          role: m.role === 'agent' ? 'agent' : 'user',
+          texte: m.texte.trim(),
+          at: new Date().toISOString()
+        });
+      }
+      if (messages.length > 0) conversation = JSON.stringify(messages);
+    }
+
     await repo.insertBrouillon({
       id,
       titre,
@@ -167,6 +188,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       reseaux: '{}',
       sourceHtml: null,
       charteId: 'principale',
+      conversation,
       updatedAt: new Date().toISOString()
     });
     await journaliser(repo, {
@@ -175,7 +197,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       brouillonId: id,
       brouillonTitre: titre,
       message: `a cree le brouillon "${titre}"`,
-      details: { type }
+      details: { type, avecDemande: conversation !== '[]' }
     });
     return c.json({ id, titre, statut: 'brouillon', slideCount: 0, slides: [], updated: new Date().toISOString() }, 201);
   });

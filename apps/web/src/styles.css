@@ -1267,3 +1267,25 @@ main {
   .stream-caret { opacity: 0.15; }
 }
 .chat-typing { display: inline-flex; align-items: center; gap: 6px; min-width: 56px; }
+
+/* ── Modale de creation (SPEC-CREATION.md) ───────────────────────────── */
+.creation-modal { width: min(520px, calc(100vw - 32px)); }
+.creation-submit { width: 100%; justify-content: center; margin-top: 10px; }
+.creation-sep {
+  text-align: center; font-size: 11px; color: var(--color-ink-tertiary);
+  margin: 14px 0 10px; text-transform: uppercase; letter-spacing: 0.08em;
+}
+.creation-templates {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px;
+}
+.creation-template {
+  all: unset; cursor: pointer; font-family: var(--font-family-ui);
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+  background: var(--color-bg-level-2); border: 1px solid var(--color-line-default);
+  border-radius: 10px; padding: 12px;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease), background var(--motion-duration-fast) var(--motion-ease);
+}
+.creation-template:hover { border-color: var(--color-line-hover); background: var(--color-bg-level-3); }
+.creation-template-emoji { font-size: 18px; line-height: 1; }
+.creation-template-nom { font-size: 12.5px; font-weight: 600; color: var(--color-ink-primary); }
+.creation-template-desc { font-size: 11px; color: var(--color-ink-tertiary); line-height: 1.45; }
