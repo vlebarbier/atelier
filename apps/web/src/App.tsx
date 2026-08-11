@@ -91,7 +91,6 @@ export default function App() {
     [brouillons]
   );
 
-  const crumb = PAGE_LABELS[page] || page;
   const aValider = useMemo(() => brouillons.filter((b) => b.statut === 'a-valider').length, [brouillons]);
 
   function openBrouillon(id: string) {
@@ -174,7 +173,6 @@ export default function App() {
       <Sidebar activePage={page} onNavigate={navigate} aValider={aValider} />
       <div className="shell">
         <Header
-          titre={crumb}
           page={page}
           vue={vue}
           onVueChange={setVue}

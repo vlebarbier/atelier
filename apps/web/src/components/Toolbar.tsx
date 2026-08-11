@@ -29,7 +29,7 @@ export function Toolbar({ filtre, onFiltreChange, count }: ToolbarProps) {
           {f.label}
         </button>
       ))}
-      <span className="count">
+      <span className="toolbar-count">
         {count} brouillon{count > 1 ? 's' : ''}
       </span>
     </div>
