@@ -1,5 +1,5 @@
 /**
- * Intégration Postiz (self-hosted, issue #5) — API REST publique.
+ * Intégration Postiz (self-hosted, issue #5) : API REST publique.
  *
  * Spec extraite du code du CLI officiel (postiz 2.0.15) :
  *   - Upload : POST {apiUrl}/public/v1/upload  (FormData "file", header Authorization: <apiKey>)

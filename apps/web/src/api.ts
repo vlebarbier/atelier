@@ -270,7 +270,7 @@ export interface PostizDraftResult {
 }
 
 /**
- * POST /api/brouillon/:id/postiz — depuis un brouillon VALIDÉ, crée le
+ * POST /api/brouillon/:id/postiz : depuis un brouillon VALIDÉ, crée le
  * brouillon de publication Postiz (upload slides + légende + hashtags +
  * date programmée). JAMAIS de publication automatique : le post reste un
  * draft, la programmation est un acte humain dans Postiz.
