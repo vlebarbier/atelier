@@ -136,9 +136,19 @@ export async function postizCreateDraft(config: PostizConfig, input: PostizDraft
     const err = await res.text();
     throw new Error(`Postiz posts:create failed (${res.status}): ${err.slice(0, 400)}`);
   }
-  const json = (await res.json()) as { id?: string };
-  if (!json.id) throw new Error(`Postiz posts:create: id absent de la réponse: ${JSON.stringify(json).slice(0, 300)}`);
-  return json.id;
+  // Postiz répond un TABLEAU : [{ postId, integration }] (le CLI l'affiche tel quel).
+  // Accepter aussi un objet { id } / { postId } par robustesse.
+  const json = (await res.json()) as unknown;
+  let postId = '';
+  if (Array.isArray(json)) {
+    const first = json[0] as { postId?: string } | undefined;
+    postId = first?.postId ?? '';
+  } else if (json && typeof json === 'object') {
+    const obj = json as { id?: string; postId?: string };
+    postId = obj.id ?? obj.postId ?? '';
+  }
+  if (!postId) throw new Error(`Postiz posts:create: id absent de la réponse: ${JSON.stringify(json).slice(0, 300)}`);
+  return postId;
 }
 
 /** Liste les canaux connectés. Retourne la liste brute (champ `id` + `name` + `disabled`). */

@@ -9,7 +9,8 @@ import {
   Question,
   CaretDoubleLeft,
   CaretDoubleRight,
-  FileText
+  FileText,
+  PlugsConnected
 } from '@phosphor-icons/react';
 
 interface SidebarProps {
@@ -39,7 +40,10 @@ const GROUPES: { label: string; items: NavItem[] }[] = [
   },
   {
     label: 'Agents',
-    items: [{ id: 'activite', label: 'Activité IA', Icon: Sparkle }]
+    items: [
+      { id: 'activite', label: 'Activité IA', Icon: Sparkle },
+      { id: 'integrations', label: 'Intégrations', Icon: PlugsConnected }
+    ]
   }
 ];
 

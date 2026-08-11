@@ -11,6 +11,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { BrandPage } from './pages/BrandPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { BibliothequePage } from './pages/BibliothequePage';
+import { IntegrationsPage } from './pages/IntegrationsPage';
 import { TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
 import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
 
@@ -20,7 +21,8 @@ const PAGE_LABELS: Record<string, string> = {
   calendrier: 'Calendrier',
   bibliotheque: 'Bibliothèque',
   charte: 'Charte graphique',
-  activite: 'Activite IA'
+  activite: 'Activite IA',
+  integrations: 'Intégrations'
 };
 
 export default function App() {
@@ -233,6 +235,7 @@ export default function App() {
           {page === 'bibliotheque' && <BibliothequePage />}
           {page === 'charte' && <BrandPage />}
           {page === 'activite' && <ActivityPage />}
+          {page === 'integrations' && <IntegrationsPage />}
         </main>
       </div>
 
