@@ -261,7 +261,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
       <header className="detail-bar">
         <div className="l">
           <button className="back" type="button" onClick={onClose}>
-            <ArrowLeft size={13} /> Brouillons
+            <ArrowLeft size={13} /> Dashboard
           </button>
           <span className="sep">/</span>
           <span className="title" title={brouillon.titre}>{brouillon.titre}</span>
@@ -450,7 +450,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                   <textarea
                     id="r-caption"
                     rows={5}
-                    placeholder={`Texte du post pour ${RESEAUX_LABELS[reseauActif]}`}
+                    placeholder={`Ajouter la légende pour ${RESEAUX_LABELS[reseauActif]}`}
                     value={currentReseau.caption || ''}
                     onChange={(e) => {
                       if (!brouillon) return;
@@ -496,6 +496,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                       onClick={() => saveReseau(reseauActif, { statut: s as Statut })}
                       type="button"
                     >
+                      <span className={`dot dot--${s}`} />
                       {STATUT_LABELS[s]}
                     </button>
                   ))}

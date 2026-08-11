@@ -12,7 +12,7 @@ import { BibliothequePage } from './pages/BibliothequePage';
 import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
 
 const PAGE_LABELS: Record<string, string> = {
-  brouillons: 'Brouillons',
+  brouillons: 'Dashboard',
   calendrier: 'Calendrier',
   bibliotheque: 'Bibliothèque',
   charte: 'Charte graphique',
@@ -42,9 +42,28 @@ export default function App() {
     }
   }, []);
 
+  // Recharge sans toucher au state loading : pour le polling silencieux.
+  const loadSilencieux = useCallback(async () => {
+    try {
+      const data = await fetchBrouillons();
+      setBrouillons(data);
+    } catch {
+      /* silencieux : on garde l'etat courant */
+    }
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  // Polling silencieux : le receptacle vit, les agents deposent pendant qu'on travaille.
+  // Recharge toutes les 30s sans interruption (pas de spinner, pas de flash).
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (page === 'brouillons' && !selectedId) loadSilencieux();
+    }, 30000);
+    return () => clearInterval(t);
+  }, [page, selectedId, loadSilencieux]);
 
   // Raccourci global Cmd+K / Ctrl+K pour ouvrir la palette de commandes.
   useEffect(() => {
@@ -64,6 +83,7 @@ export default function App() {
   }, [brouillons, filtre]);
 
   const crumb = PAGE_LABELS[page] || page;
+  const aValider = useMemo(() => brouillons.filter((b) => b.statut === 'a-valider').length, [brouillons]);
 
   function openBrouillon(id: string) {
     setSelectedId(id);
@@ -106,14 +126,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar activePage={page} onNavigate={navigate} />
+      <Sidebar activePage={page} onNavigate={navigate} aValider={aValider} />
       <div className="shell">
         <Header
-          crumb={crumb}
+          titre={crumb}
+          page={page}
           vue={vue}
           onVueChange={setVue}
-          onRefresh={load}
-          refreshing={loading}
           onOpenPalette={() => setPaletteOpen(true)}
           onNew={createNew}
         />
