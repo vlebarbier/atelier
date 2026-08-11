@@ -78,7 +78,7 @@ export function CommandPalette({
     });
     for (const b of brouillons) {
       cmds.push({
-        grp: 'Brouillons',
+        grp: 'Contenus',
         label: `Ouvrir : ${b.titre}`,
         run: () => {
           onClose();

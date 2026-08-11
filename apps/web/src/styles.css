@@ -93,12 +93,29 @@ button.ghost.danger:hover { background: var(--color-status-err-soft); border-col
 }
 .sidebar.collapsed { width: 56px; padding-left: 10px; padding-right: 10px; }
 
-.brand { display: flex; align-items: center; gap: 9px; padding: var(--spacing-2) var(--spacing-2) var(--spacing-5); white-space: nowrap; }
+.brand { display: flex; align-items: center; gap: 6px; padding: var(--spacing-2) var(--spacing-2) var(--spacing-5); white-space: nowrap; position: relative; }
+.brand-home {
+  all: unset; cursor: pointer; font-family: var(--font-family-ui);
+  display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0;
+  padding: 2px 2px; border-radius: 6px;
+}
+.brand-home:hover { opacity: 0.85; }
 .brand .mark { width: 16px; height: 16px; flex-shrink: 0; background: var(--color-accent-base); border-radius: 4px; transform: rotate(45deg); }
 .brand .name { font-size: var(--font-size-md); font-weight: 600; letter-spacing: -0.01em; color: var(--color-ink-primary); }
-.sidebar.collapsed .brand { justify-content: center; padding-left: 0; padding-right: 0; }
+.sidebar.collapsed .brand { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
+.sidebar.collapsed .brand-home { justify-content: center; }
+.nav-collapse {
+  all: unset; cursor: pointer; font-family: var(--font-family-ui);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px;
+  color: var(--color-ink-tertiary); flex-shrink: 0;
+  transition: background var(--motion-duration-fast) var(--motion-ease), color var(--motion-duration-fast) var(--motion-ease);
+}
+.nav-collapse:hover { background: var(--color-bg-level-2); color: var(--color-ink-primary); }
+.sidebar.collapsed .nav-collapse { position: absolute; top: 6px; right: -12px; background: var(--color-bg-level-1); border: 1px solid var(--color-line-default); width: 22px; height: 22px; }
+.sidebar.collapsed .nav-collapse:hover { background: var(--color-bg-level-3); color: var(--color-ink-primary); }
 
-.side-nav { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.side-nav { display: flex; flex-direction: column; gap: 14px; flex: 1; overflow-y: auto; scrollbar-width: thin; min-height: 0; }
 .nav-group { display: flex; flex-direction: column; gap: 2px; }
 .nav-group-label {
   font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
@@ -135,7 +152,7 @@ button.ghost.danger:hover { background: var(--color-status-err-soft); border-col
   line-height: 1;
 }
 
-.nav-footer { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid var(--color-line-default); }
+.nav-footer { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid var(--color-line-default); margin-top: auto; flex-shrink: 0; }
 .nav-footer button {
   all: unset; cursor: pointer; font-family: var(--font-family-ui);
   display: flex; align-items: center; gap: 9px;

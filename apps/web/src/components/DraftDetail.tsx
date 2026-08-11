@@ -261,7 +261,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
       <header className="detail-bar">
         <div className="l">
           <button className="back" type="button" onClick={onClose}>
-            <ArrowLeft size={13} /> Brouillons
+            <ArrowLeft size={13} /> Dashboard
           </button>
           <span className="sep">/</span>
           <span className="title" title={brouillon.titre}>{brouillon.titre}</span>

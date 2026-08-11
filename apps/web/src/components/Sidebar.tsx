@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   SquaresFour,
   CalendarBlank,
@@ -7,13 +7,14 @@ import {
   Sparkle,
   Gear,
   Question,
-  SidebarSimple
+  CaretDoubleLeft,
+  CaretDoubleRight
 } from '@phosphor-icons/react';
 
 interface SidebarProps {
   activePage: string;
   onNavigate: (page: string) => void;
-  /** Nombre de brouillons a valider (badge sur Brouillons). */
+  /** Nombre de contenus a valider (badge sur Dashboard). */
   aValider?: number;
 }
 
@@ -23,7 +24,7 @@ const GROUPES: { label: string; items: NavItem[] }[] = [
   {
     label: 'Travail',
     items: [
-      { id: 'brouillons', label: 'Brouillons', Icon: SquaresFour },
+      { id: 'brouillons', label: 'Dashboard', Icon: SquaresFour },
       { id: 'calendrier', label: 'Calendrier', Icon: CalendarBlank }
     ]
   },
@@ -50,6 +51,8 @@ export function Sidebar({ activePage, onNavigate, aValider = 0 }: SidebarProps) 
       return false;
     }
   });
+  const [hovering, setHovering] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     try {
@@ -59,17 +62,58 @@ export function Sidebar({ activePage, onNavigate, aValider = 0 }: SidebarProps) 
     }
   }, [collapsed]);
 
+  // Hover intent : delai de deploiement (150ms) et de repli (250ms) pour eviter
+  // le clignotement et le redepoiement immediat apres un clic sur "Replier".
+  function enter() {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHovering(true), 150);
+  }
+  function leave() {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHovering(false), 250);
+  }
+  function toggleCollapse() {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    setHovering(false);
+    setCollapsed((c) => !c);
+  }
+
+  // Deployee = etat persiste OU survol temporaire (pattern epingle).
+  const deployee = !collapsed || hovering;
+
+  function goHome() {
+    onNavigate('brouillons');
+  }
+
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+    <aside
+      className={`sidebar${deployee ? '' : ' collapsed'}`}
+      onMouseEnter={enter}
+      onMouseLeave={leave}
+    >
       <div className="brand">
-        <span className="mark" />
-        {!collapsed && <span className="name">Atelier</span>}
+        <button className="brand-home" onClick={goHome} title="Dashboard" aria-label="Retour au dashboard">
+          <span className="mark" />
+          {deployee && <span className="name">Atelier</span>}
+        </button>
+        <button
+          className="nav-collapse"
+          onClick={() => setCollapsed((c) => !c)}
+          title={collapsed ? 'Deplier la barre' : 'Replier la barre'}
+          aria-label={collapsed ? 'Deplier la barre laterale' : 'Replier la barre laterale'}
+        >
+          {collapsed ? (
+            <CaretDoubleRight size={13} weight="bold" />
+          ) : (
+            <CaretDoubleLeft size={13} weight="bold" />
+          )}
+        </button>
       </div>
 
       <nav className="side-nav">
         {GROUPES.map((g) => (
           <div className="nav-group" key={g.label}>
-            {!collapsed && <div className="nav-group-label">{g.label}</div>}
+            {deployee && <div className="nav-group-label">{g.label}</div>}
             {g.items.map(({ id, label, Icon }) => {
               const showBadge = id === 'brouillons' && aValider > 0;
               return (
@@ -77,12 +121,12 @@ export function Sidebar({ activePage, onNavigate, aValider = 0 }: SidebarProps) 
                   key={id}
                   className={id === activePage ? 'active' : ''}
                   onClick={() => onNavigate(id)}
-                  title={collapsed ? label : undefined}
+                  title={!deployee ? label : undefined}
                   aria-label={label}
                 >
                   <Icon size={16} weight="regular" className="nav-ico" />
-                  {!collapsed && <span className="nav-label">{label}</span>}
-                  {!collapsed && showBadge && (
+                  {deployee && <span className="nav-label">{label}</span>}
+                  {deployee && showBadge && (
                     <span className="nav-badge" title="A valider">{aValider}</span>
                   )}
                 </button>
@@ -93,22 +137,13 @@ export function Sidebar({ activePage, onNavigate, aValider = 0 }: SidebarProps) 
       </nav>
 
       <div className="nav-footer">
-        <button className={activePage === 'parametres' ? 'active' : ''} onClick={() => onNavigate('parametres')} title={collapsed ? 'Parametres' : undefined} aria-label="Parametres">
+        <button className={activePage === 'parametres' ? 'active' : ''} onClick={() => onNavigate('parametres')} title={!deployee ? 'Parametres' : undefined} aria-label="Parametres">
           <Gear size={16} weight="regular" className="nav-ico" />
-          {!collapsed && <span className="nav-label">Paramètres</span>}
+          {deployee && <span className="nav-label">Paramètres</span>}
         </button>
-        <button title={collapsed ? 'Aide' : undefined} aria-label="Aide">
+        <button title={!deployee ? 'Aide' : undefined} aria-label="Aide">
           <Question size={16} weight="regular" className="nav-ico" />
-          {!collapsed && <span className="nav-label">Aide</span>}
-        </button>
-        <button
-          className="nav-collapse"
-          onClick={() => setCollapsed((c) => !c)}
-          title={collapsed ? 'Deplier la barre' : 'Replier la barre'}
-          aria-label={collapsed ? 'Deplier la barre laterale' : 'Replier la barre laterale'}
-        >
-          <SidebarSimple size={16} weight="regular" className="nav-ico" />
-          {!collapsed && <span className="nav-label">Replier</span>}
+          {deployee && <span className="nav-label">Aide</span>}
         </button>
       </div>
     </aside>

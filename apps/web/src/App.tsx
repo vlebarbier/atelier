@@ -12,7 +12,7 @@ import { BibliothequePage } from './pages/BibliothequePage';
 import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
 
 const PAGE_LABELS: Record<string, string> = {
-  brouillons: 'Brouillons',
+  brouillons: 'Dashboard',
   calendrier: 'Calendrier',
   bibliotheque: 'Bibliothèque',
   charte: 'Charte graphique',
