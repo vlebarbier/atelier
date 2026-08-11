@@ -14,11 +14,14 @@ export interface BrouillonRow {
   id: string;
   titre: string;
   statut: string;
+  type: string;
   notes: string;
   reseaux: string;
   sourceHtml: string | null;
   charteId: string | null;
   checklist: string;
+  conversation: string;
+  programme: string | null;
   updatedAt: string | null;
 }
 
@@ -27,6 +30,7 @@ export interface SlideRow {
   brouillonId: string;
   fichier: string;
   position: number;
+  typeMedia: string;
   blobUrl: string | null;
 }
 
@@ -36,6 +40,9 @@ export interface BrouillonPatch {
   reseaux?: string;
   sourceHtml?: string | null;
   checklist?: string;
+  conversation?: string;
+  type?: string;
+  programme?: string | null;
   updatedAt?: string;
 }
 
@@ -43,11 +50,14 @@ export interface NewBrouillon {
   id: string;
   titre: string;
   statut: string;
+  type?: string;
   notes: string;
   reseaux: string;
   sourceHtml?: string | null;
   charteId?: string | null;
   checklist?: string;
+  conversation?: string;
+  programme?: string | null;
   updatedAt: string | null;
 }
 
@@ -55,6 +65,7 @@ export interface NewSlide {
   brouillonId: string;
   fichier: string;
   position: number;
+  typeMedia?: string;
   blobUrl: string | null;
 }
 

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, Code, CheckCircle, FileCode, Trash,
-  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo
+  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, FileCode, Trash,
+  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
-import type { BrouillonDetail, ReseauEntry, Statut } from '../api';
-import { deleteBrouillon, fetchBrouillon, replaceSlides, slideUrl, updateBrouillon } from '../api';
-import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS } from '../format';
+import type { BrouillonDetail, MessageChat, ReseauEntry, Statut } from '../api';
+import { deleteBrouillon, envoyerMessage, fetchBrouillon, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
+import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, formatDate } from '../format';
 
 const RESEAU_ICONES: Record<string, Icon> = {
   instagram: InstagramLogo,
@@ -14,6 +14,25 @@ const RESEAU_ICONES: Record<string, Icon> = {
   facebook: FacebookLogo,
   x: XLogo,
   tiktok: TiktokLogo
+};
+
+/** Contraintes reelles de chaque reseau : limite de caracteres de la legende,
+ *  nombre max de hashtags et format d'image recommande. */
+const RESEAU_CONTRAINTES: Record<string, { maxChars: number; maxHashtags: number; format: string }> = {
+  instagram: { maxChars: 2200, maxHashtags: 30, format: 'Carré 1080×1080 ou portrait 4:5' },
+  linkedin: { maxChars: 3000, maxHashtags: 3, format: 'Paysage 1200×627' },
+  facebook: { maxChars: 5000, maxHashtags: 5, format: 'Carré 1080×1080' },
+  x: { maxChars: 280, maxHashtags: 2, format: 'Paysage 1600×900' },
+  tiktok: { maxChars: 2200, maxHashtags: 5, format: 'Vertical 9:16' }
+};
+
+type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source';
+
+const TYPE_LABELS: Record<string, string> = {
+  carrousel: 'Carrousel',
+  video: 'Vidéo',
+  post: 'Post',
+  story: 'Story'
 };
 
 interface DraftDetailProps {
@@ -30,7 +49,16 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   const [error, setError] = useState<string | null>(null);
   const [slide, setSlide] = useState(0);
   const [reseauActif, setReseauActif] = useState<string>('instagram');
-  const [showSource, setShowSource] = useState(false);
+  const [onglet, setOnglet] = useState<OngletPanneau>('agent');
+  const [statutOpen, setStatutOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [planifOpen, setPlanifOpen] = useState(false);
+  const [planifDate, setPlanifDate] = useState('');
+  const [planifHeure, setPlanifHeure] = useState('09:00');
+  const [planifReseau, setPlanifReseau] = useState('instagram');
+  const [conversation, setConversation] = useState<MessageChat[]>([]);
+  const [chatDraft, setChatDraft] = useState('');
+  const [chatEnvoi, setChatEnvoi] = useState(false);
   const [sourceDraft, setSourceDraft] = useState('');
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourceMsg, setSourceMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -54,7 +82,12 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
       }
       setSlide(0);
       setReseauActif('instagram');
-      setShowSource(false);
+      setOnglet('agent');
+      try {
+        setConversation(JSON.parse(data.conversation || '[]'));
+      } catch {
+        setConversation([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
@@ -65,6 +98,58 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Polling de la conversation : l'agent repond quand il a execute la demande.
+  useEffect(() => {
+    const t = setInterval(async () => {
+      try {
+        const data = await fetchBrouillon(id);
+        setConversation(JSON.parse(data.conversation || '[]'));
+      } catch {
+        /* silencieux */
+      }
+    }, 8000);
+    return () => clearInterval(t);
+  }, [id]);
+
+  async function onEnvoyerChat() {
+    const texte = chatDraft.trim();
+    if (!texte || chatEnvoi) return;
+    setChatEnvoi(true);
+    try {
+      const res = await envoyerMessage(id, texte);
+      setConversation(res.conversation);
+      setChatDraft('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur d\'envoi');
+    } finally {
+      setChatEnvoi(false);
+    }
+  }
+
+  async function onProgrammer() {
+    if (!brouillon || !planifDate) return;
+    try {
+      await updateBrouillon(id, {
+        programme: JSON.stringify({ date: planifDate, heure: planifHeure, reseau: planifReseau })
+      });
+      setPlanifOpen(false);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de programmation');
+    }
+  }
+
+  async function onAnnulerProgramme() {
+    if (!brouillon) return;
+    try {
+      await updateBrouillon(id, { programme: null });
+      setPlanifOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur');
+    }
+  }
 
   async function onDeposerSource() {
     if (!brouillon || !sourceDraft.trim()) return;
@@ -250,10 +335,41 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
     }
   }
 
+  async function deplacerSlide(index: number, direction: -1 | 1) {
+    if (!brouillon) return;
+    const target = index + direction;
+    if (target < 0 || target >= brouillon.slides.length) return;
+    const next = [...brouillon.slides];
+    [next[index], next[target]] = [next[target] ?? '', next[index] ?? ''];
+    setBrouillon({ ...brouillon, slides: next });
+    setSlide(target);
+    try {
+      await reorderSlides(id, next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de réordonnancement');
+    }
+  }
+
+  async function supprimerSlide(index: number) {
+    if (!brouillon) return;
+    if (!window.confirm(`Supprimer la slide ${index + 1} ?`)) return;
+    const next = brouillon.slides.filter((_, i) => i !== index);
+    setBrouillon({ ...brouillon, slides: next });
+    setSlide((s) => Math.min(s, next.length - 1));
+    try {
+      await reorderSlides(id, next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de suppression');
+    }
+  }
+
   if (loading) return <div className="empty">Chargement...</div>;
   if (error || !brouillon) return <div className="empty">Erreur, {error || 'brouillon introuvable'}</div>;
 
   const currentReseau = brouillon.reseaux[reseauActif] || { caption: '', hashtags: '', statut: 'brouillon' };
+  const contraintes: { maxChars: number; maxHashtags: number; format: string } =
+    RESEAU_CONTRAINTES[reseauActif] ?? { maxChars: 2200, maxHashtags: 30, format: 'Carré 1080×1080' };
+  const nbHashtags = (currentReseau.hashtags || '').split(/\s+/).filter((h) => h.startsWith('#')).length;
   const currentSlideFichier = brouillon.slides[slide];
 
   return (
@@ -267,30 +383,81 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
           <span className="title" title={brouillon.titre}>{brouillon.titre}</span>
         </div>
         <div className="r">
-          <div className="statut-group">
-            {STATUTS_ORDRE.map((s) => (
-              <button
-                key={s}
-                className={brouillon.statut === s ? `on on--${s}` : ''}
-                onClick={() => setStatut(s as Statut)}
-                type="button"
-              >
-                <span className={`dot dot--${s}`} />
-                {STATUT_LABELS[s]}
-              </button>
-            ))}
+          <div className="type-select">
+            <button
+              type="button"
+              className="type-btn"
+              onClick={() => setTypeOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={typeOpen}
+              title="Type de contenu"
+            >
+              {brouillon.type === 'video' ? <VideoCamera size={13} /> : <Stack size={13} />}
+              <span className="type-label">{TYPE_LABELS[brouillon.type] ?? 'Carrousel'}</span>
+              <CaretDown size={12} className="statut-caret" />
+            </button>
+            {typeOpen && (
+              <div className="statut-menu" role="listbox">
+                <div className="statut-menu-label">Type de contenu</div>
+                {(['carrousel', 'video', 'post', 'story'] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    role="option"
+                    aria-selected={brouillon.type === t}
+                    className={brouillon.type === t ? 'on' : ''}
+                    onClick={() => {
+                      setBrouillon({ ...brouillon, type: t });
+                      updateBrouillon(id, { type: t });
+                      setTypeOpen(false);
+                    }}
+                  >
+                    {t === 'video' ? <VideoCamera size={13} /> : <Stack size={13} />}
+                    {TYPE_LABELS[t]}
+                    {brouillon.type === t && <Check size={12} className="statut-check" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="statut-control">
+            <button
+              type="button"
+              className={`statut-btn on--${brouillon.statut}`}
+              onClick={() => setStatutOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={statutOpen}
+            >
+              <span className={`dot dot--${brouillon.statut}`} />
+              <span className="statut-label">{STATUT_LABELS[brouillon.statut] ?? brouillon.statut}</span>
+              <CaretDown size={12} className="statut-caret" />
+            </button>
+            {statutOpen && (
+              <div className="statut-menu" role="listbox">
+                <div className="statut-menu-label">Changer le statut</div>
+                {STATUTS_ORDRE.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    role="option"
+                    aria-selected={brouillon.statut === s}
+                    className={brouillon.statut === s ? 'on' : ''}
+                    onClick={() => {
+                      setStatut(s as Statut);
+                      setStatutOpen(false);
+                    }}
+                  >
+                    <span className={`dot dot--${s}`} />
+                    {STATUT_LABELS[s]}
+                    {brouillon.statut === s && <Check size={12} className="statut-check" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button
             type="button"
-            className={`src-toggle${showSource ? ' on' : ''}`}
-            onClick={() => setShowSource((s) => !s)}
-            title="Afficher la source HTML du document"
-          >
-            <Code size={13} /> Source
-          </button>
-          <button
-            className="delete"
-            type="button"
+            className={`delete`}
             onClick={() => {
               if (window.confirm('Supprimer ce brouillon ? Cette action est definitive.')) {
                 onDelete();
@@ -307,29 +474,37 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
         <div className="detail-stage">
           {brouillon.slides.length > 0 && currentSlideFichier ? (
             <>
-              <div className="media-frame">
-                <div className="slider">
+              <div className="stage-media">
+                {currentSlideFichier.endsWith('.mp4') || currentSlideFichier.endsWith('.webm') ? (
+                  <video key={currentSlideFichier} src={slideUrl(brouillon.id, currentSlideFichier)} controls autoPlay muted loop />
+                ) : (
                   <img id="slide-img" src={slideUrl(brouillon.id, currentSlideFichier)} alt="" />
-                </div>
+                )}
+                {brouillon.slides.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      className="stage-arrow prev"
+                      onClick={() => setSlide((s) => (s - 1 + brouillon.slides.length) % brouillon.slides.length)}
+                      aria-label="Slide precedente"
+                    >
+                      <CaretLeft size={18} weight="bold" />
+                    </button>
+                    <button
+                      type="button"
+                      className="stage-arrow next"
+                      onClick={() => setSlide((s) => (s + 1) % brouillon.slides.length)}
+                      aria-label="Slide suivante"
+                    >
+                      <CaretRight size={18} weight="bold" />
+                    </button>
+                  </>
+                )}
               </div>
               <div className="stage-nav">
-                <button
-                  type="button"
-                  onClick={() => setSlide((s) => (s - 1 + brouillon.slides.length) % brouillon.slides.length)}
-                  aria-label="Slide precedente"
-                >
-                  <CaretLeft size={14} />
-                </button>
                 <span className="counter">
                   {slide + 1} / {brouillon.slideCount}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setSlide((s) => (s + 1) % brouillon.slides.length)}
-                  aria-label="Slide suivante"
-                >
-                  <CaretRight size={14} />
-                </button>
               </div>
               <div className="thumbs">
                 {brouillon.slides.map((s, i) => (
@@ -393,8 +568,67 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
           </div>
 
           <div className="sp-section">
-            <div className="sp-label">Legendes et declinaisons</div>
-            {showSource ? (
+            <div className="sp-label">Edition du contenu</div>
+            <div className="panel-tabs">
+              <button type="button" className={onglet === 'agent' ? 'on' : ''} onClick={() => setOnglet('agent')}>
+                <Sparkle size={12} /> Agent
+              </button>
+              <button type="button" className={onglet === 'reseaux' ? 'on' : ''} onClick={() => setOnglet('reseaux')}>
+                <ArrowRight size={12} /> Reseaux
+              </button>
+              <button type="button" className={onglet === 'slides' ? 'on' : ''} onClick={() => setOnglet('slides')}>
+                <Stack size={12} /> Slides
+              </button>
+              <button type="button" className={onglet === 'source' ? 'on' : ''} onClick={() => setOnglet('source')}>
+                <Code size={12} /> Source
+              </button>
+            </div>
+
+            {onglet === 'agent' ? (
+              <div className="chat-panel">
+                <div className="chat-feed">
+                  {conversation.length === 0 ? (
+                    <div className="chat-empty">
+                      <Sparkle size={18} className="chat-empty-ico" />
+                      <p>Demandez a votre agent de modifier ce contenu.</p>
+                      <p className="chat-empty-sub">
+                        « Change le texte de la slide 3 », « Ajoute une slide sur le duplex »...
+                        L'agent execute et repond ici. Ne fonctionne que si votre agent est
+                        connecte a Atelier (MCP ou API).
+                      </p>
+                    </div>
+                  ) : (
+                    conversation.map((m, i) => (
+                      <div key={i} className={`chat-msg ${m.role}`}>
+                        <div className="chat-msg-head">
+                          {m.role === 'agent' ? <Sparkle size={11} /> : <span className="chat-you">Vous</span>}
+                          <span className="chat-role">{m.role === 'agent' ? 'Agent' : ''}</span>
+                        </div>
+                        <div className="chat-msg-text">{m.texte}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="chat-input">
+                  <textarea
+                    value={chatDraft}
+                    onChange={(e) => setChatDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        onEnvoyerChat();
+                      }
+                    }}
+                    placeholder="Demander une modification a votre agent..."
+                    rows={2}
+                    aria-label="Message a l'agent"
+                  />
+                  <button className="primary" type="button" onClick={onEnvoyerChat} disabled={chatEnvoi || !chatDraft.trim()}>
+                    <PaperPlaneTilt size={13} weight="bold" /> {chatEnvoi ? 'Envoi...' : 'Envoyer'}
+                  </button>
+                </div>
+              </div>
+            ) : onglet === 'source' ? (
               <div className="source-panel">
                 <textarea
                   className="source-textarea"
@@ -426,6 +660,46 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     <CheckCircle size={13} /> Document HTML de l'agent, {brouillon.sourceHtml.length} caracteres
                   </div>
                 )}
+              </div>
+            ) : onglet === 'slides' ? (
+              <div className="slides-editor">
+                <div className="slides-editor-note">
+                  Réorganisez les slides avec les fleches. La slide 1 est la couverture.
+                </div>
+                {brouillon.slides.map((s, i) => (
+                  <div key={s} className={`slide-row${i === slide ? ' active' : ''}`} onClick={() => setSlide(i)}>
+                    <img src={slideUrl(brouillon.id, s)} alt={`Slide ${i + 1}`} />
+                    <span className="slide-num">{i + 1}</span>
+                    <div className="slide-row-actions">
+                      <button
+                        type="button"
+                        className="ghost"
+                        disabled={i === 0}
+                        onClick={(e) => { e.stopPropagation(); deplacerSlide(i, -1); }}
+                        title="Monter"
+                      >
+                        <CaretUp size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost"
+                        disabled={i === brouillon.slides.length - 1}
+                        onClick={(e) => { e.stopPropagation(); deplacerSlide(i, 1); }}
+                        title="Descendre"
+                      >
+                        <CaretDown size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost danger"
+                        onClick={(e) => { e.stopPropagation(); supprimerSlide(i); }}
+                        title="Supprimer"
+                      >
+                        <Trash size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <>
@@ -464,8 +738,8 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     }}
                     onBlur={(e) => saveReseau(reseauActif, { caption: e.target.value })}
                   />
-                  <div className="counter">
-                    <span>{(currentReseau.caption || '').length}</span> caracteres
+                  <div className={`counter${(currentReseau.caption || '').length > contraintes.maxChars ? ' over' : ''}`}>
+                    <span>{(currentReseau.caption || '').length}</span> / {contraintes.maxChars} caracteres
                   </div>
                 </div>
                 <div className="field">
@@ -486,6 +760,12 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
                     }}
                     onBlur={(e) => saveReseau(reseauActif, { hashtags: e.target.value })}
                   />
+                  <div className={`counter${nbHashtags > contraintes.maxHashtags ? ' over' : ''}`}>
+                    {nbHashtags} / {contraintes.maxHashtags} hashtags max
+                  </div>
+                </div>
+                <div className="format-hint">
+                  <Stack size={12} /> Format recommande : {contraintes.format}
                 </div>
                 <div className="reseau-statut">
                   <span className="reseau-statut-label">Statut {RESEAUX_LABELS[reseauActif]}</span>
@@ -504,8 +784,74 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
               </>
             )}
           </div>
+
+          <div className="sp-section planif-section">
+            {brouillon.programme ? (
+              (() => {
+                const prog = (() => { try { return JSON.parse(brouillon.programme || 'null'); } catch { return null; } })();
+                return prog ? (
+                  <>
+                    <div className="planif-fait">
+                      <CheckCircle size={13} />
+                      Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
+                      {prog.heure} sur {RESEAUX_LABELS[prog.reseau] ?? prog.reseau}
+                    </div>
+                    <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
+                      Annuler la programmation
+                    </button>
+                  </>
+                ) : null;
+              })()
+            ) : (
+              <>
+                <button className="primary planif-btn" type="button" onClick={() => setPlanifOpen(true)}>
+                  <CalendarBlank size={14} weight="bold" /> Programmer dans le calendrier
+                </button>
+                <div className="planif-hint">Quand le contenu est pret, planifiez sa publication.</div>
+              </>
+            )}
+          </div>
         </aside>
       </div>
+
+      {planifOpen && (
+        <div className="modal-overlay" onClick={() => setPlanifOpen(false)}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>Programmer la publication</h3>
+              <button className="modal-x" type="button" onClick={() => setPlanifOpen(false)} aria-label="Fermer">
+                X
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="field">
+                <label htmlFor="p-date">Date</label>
+                <input id="p-date" type="date" value={planifDate} onChange={(e) => setPlanifDate(e.target.value)} />
+              </div>
+              <div className="field">
+                <label htmlFor="p-heure">Heure</label>
+                <input id="p-heure" type="time" value={planifHeure} onChange={(e) => setPlanifHeure(e.target.value)} />
+              </div>
+              <div className="field">
+                <label htmlFor="p-reseau">Reseau</label>
+                <select id="p-reseau" value={planifReseau} onChange={(e) => setPlanifReseau(e.target.value)}>
+                  {RESEAUX.map((r) => (
+                    <option key={r} value={r}>{RESEAUX_LABELS[r] || r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="modal-foot">
+              <button className="ghost" type="button" onClick={() => setPlanifOpen(false)}>
+                Annuler
+              </button>
+              <button className="primary" type="button" onClick={onProgrammer} disabled={!planifDate}>
+                <CalendarBlank size={13} weight="bold" /> Programmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
