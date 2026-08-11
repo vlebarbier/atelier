@@ -76,14 +76,6 @@ export function ContentListPage({
         sub={sub}
         actions={
           <div className="page-actions">
-            <div className="view-toggle">
-              <button className={vue === 'grille' ? 'on' : ''} onClick={() => onVueChange('grille')} title="Grille">
-                <SquaresFour size={15} />
-              </button>
-              <button className={vue === 'liste' ? 'on' : ''} onClick={() => onVueChange('liste')} title="Liste">
-                <List size={15} />
-              </button>
-            </div>
             {typesNouveau ? (
               <div className="page-actions-group">
                 {choixOuvert && (
@@ -120,17 +112,27 @@ export function ContentListPage({
       />
       <div className="liste-filtres">
         <Toolbar filtre={filtre} onFiltreChange={onFiltreChange} count={filtered.length} />
-        {typesEffectifs && typesEffectifs.length > 1 && (
-          <label className="type-filter">
-            <span>Type</span>
-            <select value={filtreType} onChange={(e) => setFiltreType(e.target.value)} aria-label="Filtrer par type">
-              <option value="tous">Tous</option>
-              {typesEffectifs.map((t) => (
-                <option key={t} value={t}>{TYPE_LABELS[t] ?? t}</option>
-              ))}
-            </select>
-          </label>
-        )}
+        <div className="liste-filtres-droite">
+          {typesEffectifs && typesEffectifs.length > 1 && (
+            <label className="type-filter">
+              <span>Type</span>
+              <select value={filtreType} onChange={(e) => setFiltreType(e.target.value)} aria-label="Filtrer par type">
+                <option value="tous">Tous</option>
+                {typesEffectifs.map((t) => (
+                  <option key={t} value={t}>{TYPE_LABELS[t] ?? t}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          <div className="view-toggle">
+            <button className={vue === 'grille' ? 'on' : ''} onClick={() => onVueChange('grille')} title="Grille">
+              <SquaresFour size={15} />
+            </button>
+            <button className={vue === 'liste' ? 'on' : ''} onClick={() => onVueChange('liste')} title="Liste">
+              <List size={15} />
+            </button>
+          </div>
+        </div>
       </div>
       {error && <div className="empty">Erreur, {error}</div>}
       {!error && loading && <GridSkeleton />}

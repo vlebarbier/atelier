@@ -26,10 +26,12 @@ interface HeaderProps {
 export function Header({ onOpenPalette, aValider, onOpenNotifications, brouillonOuvert, panneauReplie, onTogglePanneau, theme, onToggleTheme, sidebarRepliee, onToggleSidebar }: HeaderProps) {
   return (
     <header className="app-bar">
-      <div className="actions">
+      <div className="app-bar-left">
         <button className="icon-btn" type="button" onClick={onToggleSidebar} title={sidebarRepliee ? 'Déplier la barre latérale' : 'Replier la barre latérale'}>
           {sidebarRepliee ? <CaretDoubleRight size={15} /> : <CaretDoubleLeft size={15} />}
         </button>
+      </div>
+      <div className="actions">
         <button className="cmdk-hint" type="button" onClick={onOpenPalette}>
           <MagnifyingGlass size={14} />
           <span>Rechercher</span>

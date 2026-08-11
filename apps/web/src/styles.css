@@ -183,7 +183,7 @@ button, .badge, .cmdk-hint, .nslides, .agent-badge, .reseau-tabs button, .saved 
 header.app-bar {
   position: sticky; top: 0; z-index: 20;
   height: 44px;
-  display: flex; align-items: center; justify-content: flex-end;
+  display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
   padding: 0 var(--spacing-5);
   border-bottom: 1px solid var(--color-line-default);
@@ -191,6 +191,7 @@ header.app-bar {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+header.app-bar .app-bar-left { display: flex; align-items: center; }
 header.app-bar .actions { display: flex; gap: 8px; align-items: center; }
 .view-toggle { display: inline-flex; gap: 2px; padding: 2px; background: var(--color-bg-level-2); border: 1px solid var(--color-line-default); border-radius: var(--radius-btn); }
 .view-toggle button { border: none; padding: 6px 13px; font-size: 12px; }
@@ -1154,6 +1155,7 @@ main {
 
 /* ── Filtres de liste : statut + type ───────────────────────────────── */
 .liste-filtres { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.liste-filtres-droite { display: flex; align-items: center; gap: 10px; }
 .type-filter { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-ink-tertiary); }
 .type-filter select {
   background: var(--color-bg-level-2); border: 1px solid var(--color-line-default);
