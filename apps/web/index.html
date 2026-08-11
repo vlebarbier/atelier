@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Atelier, revision de contenu</title>
   <meta name="color-scheme" content="dark light" />
+  <script>
+    // Applique le theme avant le premier rendu (evite le flash dark→light).
+    (function () {
+      try {
+        var t = localStorage.getItem('atelier-theme');
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23050505'/><rect x='32' y='32' width='36' height='36' rx='7' fill='%23FFFFFF' transform='rotate(45 50 50)'/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

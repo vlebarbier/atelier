@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { updateBrouillonSchema } from './validation.js';
 import { storeSlide, storeRessource } from './storage/blob.js';
+import { isPostgres } from './db/client.js';
 import type { Repo } from './db/repo.js';
 
 const RESEAUX_DEFAUT = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok', 'gmb'];
@@ -129,6 +130,17 @@ export function createApp(repo: Repo, options: AppOptions) {
   const app = new Hono();
 
   app.use('*', cors({ origin: '*' }));
+
+  // GET /api/health → heartbeat pour la page Integrations (test de connexion).
+  // Renvoie le mode de stockage (sqlite local / postgres cloud) sans toucher
+  // la base : utile pour verifier qu'une instance est joignable depuis l'UI.
+  app.get('/api/health', (c) => {
+    return c.json({
+      ok: true,
+      mode: isPostgres() ? 'postgres' : 'sqlite',
+      at: new Date().toISOString()
+    });
+  });
 
   app.get('/api/brouillons', async (c) => {
     const rows = await repo.listBrouillons();

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
-import { Header, type Vue } from './components/Header';
+import { Header } from './components/Header';
+import type { Vue } from './components/ContentListPage';
 import { DraftGrid } from './components/DraftGrid';
 import { DraftDetail } from './components/DraftDetail';
 import { CommandPalette } from './components/CommandPalette';
@@ -35,6 +36,23 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creationOpen, setCreationOpen] = useState(false);
+  const [panneauReplie, setPanneauReplie] = useState(false);
+  // Sidebar repliee : le bouton vit dans la barre du haut (pattern PushRank).
+  const [sidebarRepliee, setSidebarRepliee] = useState(() => localStorage.getItem('atelier.sidebar.collapsed') === '1');
+  useEffect(() => {
+    localStorage.setItem('atelier.sidebar.collapsed', sidebarRepliee ? '1' : '0');
+  }, [sidebarRepliee]);
+
+  // Theme sombre/clair : init depuis localStorage ou le systeme, applique sur <html>.
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('atelier-theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  });
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('atelier-theme', theme);
+  }, [theme]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,7 +109,6 @@ export default function App() {
     [brouillons]
   );
 
-  const crumb = PAGE_LABELS[page] || page;
   const aValider = useMemo(() => brouillons.filter((b) => b.statut === 'a-valider').length, [brouillons]);
 
   function openBrouillon(id: string) {
@@ -171,22 +188,38 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar activePage={page} onNavigate={navigate} aValider={aValider} />
+      <Sidebar
+        activePage={page}
+        onNavigate={navigate}
+        aValider={aValider}
+        collapsed={sidebarRepliee}
+        onToggleCollapse={() => setSidebarRepliee((v) => !v)}
+      />
       <div className="shell">
         <Header
-          titre={crumb}
-          page={page}
-          vue={vue}
-          onVueChange={setVue}
           onOpenPalette={() => setPaletteOpen(true)}
+          aValider={aValider}
+          onOpenNotifications={() => navigate('brouillons')}
+          brouillonOuvert={page === 'brouillons' && !!selectedId}
+          panneauReplie={panneauReplie}
+          onTogglePanneau={() => setPanneauReplie((v) => !v)}
+          theme={theme}
+          onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+          sidebarRepliee={sidebarRepliee}
+          onToggleSidebar={() => setSidebarRepliee((v) => !v)}
         />
         <main>
           {page === 'brouillons' && selectedId && (
-            <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} />
+            <DraftDetail
+              id={selectedId}
+              onClose={closeBrouillon}
+              onDelete={() => handleDelete(selectedId)}
+              panneauReplie={panneauReplie}
+            />
           )}
 
           {page === 'documents' && selectedId && (
-            <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} />
+            <DraftDetail id={selectedId} onClose={closeBrouillon} onDelete={() => handleDelete(selectedId)} panneauReplie={panneauReplie} />
           )}
 
           {page === 'brouillons' && !selectedId && (

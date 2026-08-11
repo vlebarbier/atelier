@@ -38,11 +38,13 @@ interface DraftDetailProps {
   id: string;
   onClose: () => void;
   onDelete: () => void;
+  /** Panneau d'edition replie (bouton de la barre globale) : la slide prend tout l'espace. */
+  panneauReplie?: boolean;
 }
 
 const REVISION_DEBOUNCE_MS = 400;
 
-export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
+export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: DraftDetailProps) {
   const [brouillon, setBrouillon] = useState<BrouillonDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -739,7 +741,7 @@ export function DraftDetail({ id, onClose, onDelete }: DraftDetailProps) {
           )}
         </div>
 
-        <aside className="side-panel">
+        <aside className={`side-panel${panneauReplie ? ' is-replie' : ''}`}>
           <div className="sp-section">
             <div className="sp-label">
               <span>Notes de revision</span>

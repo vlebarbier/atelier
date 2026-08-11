@@ -287,6 +287,12 @@ export async function envoyerVersPostiz(
   return handle<PostizDraftResult>(res);
 }
 
+/** GET /api/health → heartbeat : { ok, mode: 'sqlite'|'postgres', at }. */
+export async function fetchHealth(): Promise<{ ok: boolean; mode: string; at: string }> {
+  const res = await fetch(apiUrl('/api/health'));
+  return handle<{ ok: boolean; mode: string; at: string }>(res);
+}
+
 export interface JournalEntry {
   id: number;
   type: string;
