@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createApp } from '../src/app.js';
 import { createDb, openSqlite } from '../src/db/client.js';
 import { ensureLegacyTables } from '../src/db/legacy.js';
@@ -207,5 +207,100 @@ describe('Journal d activite (GET /api/journal)', () => {
     const j = (await (await app.request('/api/journal')).json()) as { type: string; auteur: string }[];
     expect(j[0]?.type).toBe('reponse_chat');
     expect(j[0]?.auteur).toBe('agent');
+  });
+});
+
+// ═════════════════ RACCORD POSTIZ (F-45 / issue #5) ═══════════════════════
+// Le routeur exige un brouillon 'valide', des slides, et une config Postiz
+// (POSTIZ_API_URL + POSTIZ_API_KEY, ou POSTIZ_CLI_ENV). Les appels réseau vers
+// Postiz sont mockés : on teste le contrat de la route, pas l'instance réelle.
+describe('POST /api/brouillon/:id/postiz', () => {
+  const ENV_KEYS = ['POSTIZ_API_URL', 'POSTIZ_API_KEY', 'POSTIZ_CLI_ENV', 'ATELIER_INSTAGRAM_INTEGRATION_ID'];
+  const savedEnv: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const k of ENV_KEYS) {
+      savedEnv[k] = process.env[k];
+      delete process.env[k];
+    }
+  });
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (savedEnv[k] === undefined) delete process.env[k];
+      else process.env[k] = savedEnv[k];
+    }
+  });
+
+  async function postizier(app: ReturnType<typeof buildTestApp>['app'], id: string, statut: string, reseaux: string) {
+    // `reseaux` est un JSON string en entree de test ; l'API attend un objet (Zod record).
+    let reseauxObj: Record<string, unknown> = {};
+    try { reseauxObj = JSON.parse(reseaux); } catch { reseauxObj = {}; }
+    return app.request(`/api/brouillon/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statut, reseaux: reseauxObj })
+    });
+  }
+
+  it('repond 404 pour un brouillon inconnu', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillon/inconnu/postiz', { method: 'POST' });
+    expect(res.status).toBe(404);
+  });
+
+  it('rejette 409 si le statut n est pas valide (workflow inalienable)', async () => {
+    const { app } = buildTestApp();
+    // Le brouillon seede est en 'brouillon' : l envoi Postiz doit etre refuse.
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7/postiz', { method: 'POST' });
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("seul un brouillon 'valide'");
+  });
+
+  it('rejette 400 si aucune slide', async () => {
+    const { app } = buildTestApp();
+    const created = await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'Sans slides' })
+    });
+    const b = (await created.json()) as { id: string };
+    await postizier(app, b.id, 'valide', JSON.stringify({ instagram: { caption: 'Test', hashtags: '', statut: 'valide' } }));
+    const res = await app.request(`/api/brouillon/${b.id}/postiz`, { method: 'POST' });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain('Aucune slide');
+  });
+
+  it('rejette 503 si le raccord Postiz n est pas configure', async () => {
+    const { app } = buildTestApp();
+    await postizier(app, 'carrousel-bordeluche-v7', 'valide', JSON.stringify({ instagram: { caption: 'Test', hashtags: '', statut: 'valide' } }));
+    process.env.POSTIZ_CLI_ENV = '/nonexistent/cli.env';
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7/postiz', { method: 'POST' });
+    expect(res.status).toBe(503);
+    expect(((await res.json()) as { error: string }).error).toContain('non configuré');
+  });
+
+  it('rejette 400 si la legende est vide (body et brouillon)', async () => {
+    const { app } = buildTestApp();
+    await postizier(app, 'carrousel-bordeluche-v7', 'valide', JSON.stringify({ instagram: { caption: '', hashtags: '', statut: 'valide' } }));
+    process.env.POSTIZ_CLI_ENV = '/nonexistent/cli.env';
+    process.env.POSTIZ_API_URL = 'http://localhost:4007/api';
+    process.env.POSTIZ_API_KEY = 'test-key';
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7/postiz', { method: 'POST' });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain('Légende vide');
+  });
+});
+
+describe('GET /api/health', () => {
+  it('repond 200 ok avec le mode de stockage (sqlite sans env Postgres)', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/health');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; mode: string; at: string };
+    expect(body.ok).toBe(true);
+    expect(body.mode).toBe('sqlite');
+    expect(typeof body.at).toBe('string');
   });
 });
