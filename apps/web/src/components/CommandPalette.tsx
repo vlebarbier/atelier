@@ -19,6 +19,8 @@ interface CommandPaletteProps {
   onGoBrouillons: () => void;
   /** Navigation vers la page Blog (les articles ont leur editeur dedie). */
   onGoBlog: () => void;
+  /** Ouvre la modale de creation (Nouvelle creation). */
+  onOpenCreation: () => void;
   vue: Vue;
 }
 
@@ -30,6 +32,7 @@ export function CommandPalette({
   onToggleVue,
   onGoBrouillons,
   onGoBlog,
+  onOpenCreation,
   vue
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
@@ -55,9 +58,7 @@ export function CommandPalette({
       run: () => {
         onClose();
         onGoBrouillons();
-        window.alert(
-          "Les brouillons sont crees par les agents IA via MCP. Deposez un dossier dans brouillons/ puis actualisez."
-        );
+        onOpenCreation();
       }
     });
     cmds.push({
@@ -99,7 +100,7 @@ export function CommandPalette({
     if (!query) return cmds.slice(0, 8);
     const q = query.toLowerCase();
     return cmds.filter((c) => c.label.toLowerCase().includes(q)).slice(0, 8);
-  }, [query, brouillons, onClose, onGoBrouillons, onGoBlog, onOpenBrouillon, onToggleVue, vue]);
+  }, [query, brouillons, onClose, onGoBrouillons, onGoBlog, onOpenBrouillon, onOpenCreation, onToggleVue, vue]);
 
   useEffect(() => {
     if (selected >= commands.length) setSelected(0);
