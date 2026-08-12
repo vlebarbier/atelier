@@ -148,6 +148,78 @@ describe('Dissociation contenus / documents (type)', () => {
   });
 });
 
+describe('GET /api/conversations/en-attente (worker asynchrone)', () => {
+  it('ne liste rien quand aucune conversation ou dernier message agent', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/conversations/en-attente');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([]);
+  });
+
+  it('liste un brouillon dont le dernier message est user, avec la queue de messages', async () => {
+    const { app } = buildTestApp();
+    await app.request('/api/brouillon/carrousel-bordeluche-v7/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: 'Corrige la slide 3' })
+    });
+    const res = await app.request('/api/conversations/en-attente');
+    const body = (await res.json()) as {
+      id: string;
+      titre: string;
+      statut: string;
+      messages: { role: string; texte: string; at: string }[];
+    }[];
+    expect(body).toHaveLength(1);
+    expect(body[0]?.id).toBe('carrousel-bordeluche-v7');
+    expect(body[0]?.titre).toContain('Pourquoi Bordeluche');
+    const dernier = body[0]?.messages[body[0].messages.length - 1];
+    expect(dernier?.role).toBe('user');
+    expect(dernier?.texte).toBe('Corrige la slide 3');
+    expect(dernier?.at).toBeDefined();
+  });
+
+  it('sort le brouillon des en-attente des que l agent repond (etat derive, pas de flag)', async () => {
+    const { app } = buildTestApp();
+    await app.request('/api/brouillon/carrousel-bordeluche-v7/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: 'Corrige la slide 3' })
+    });
+    await app.request('/api/brouillon/carrousel-bordeluche-v7/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: 'C est fait.', role: 'agent' })
+    });
+    const res = await app.request('/api/conversations/en-attente');
+    expect(await res.json()).toEqual([]);
+  });
+
+  it('renvoie une sortie triee par id (deterministe pour le monitor du worker)', async () => {
+    const { app } = buildTestApp();
+    const cree = [];
+    for (const titre of ['Brouillon B', 'Brouillon A']) {
+      const res = await app.request('/api/brouillons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titre })
+      });
+      cree.push(((await res.json()) as { id: string }).id);
+    }
+    // Le POST /message sur des ids generes cote serveur (pas de collision de timestamp).
+    for (const id of cree) {
+      await app.request(`/api/brouillon/${id}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texte: 'En attente' })
+      });
+    }
+    const res = await app.request('/api/conversations/en-attente');
+    const body = (await res.json()) as { id: string }[];
+    expect(body.map((b) => b.id)).toEqual([...cree].sort());
+  });
+});
+
 describe('POST /api/brouillon/:id/publier-cms (Blog → CMS Sanity)', () => {
   it('rejette 409 un brouillon qui n est pas de type article', async () => {
     const { app } = buildTestApp();
