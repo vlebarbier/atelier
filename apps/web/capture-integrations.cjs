@@ -13,6 +13,10 @@ const { chromium } = require('/Users/victorlebarbier/.hermes/hermes-agent/node_m
 
   for (const mode of ['dark', 'light']) {
     await page.emulateMedia({ colorScheme: mode });
+    // Theme local persiste entre les captures : l'effacer pour que le mode
+    // emule par emulateMedia soit respecte (sinon light retombe sur dark).
+    await page.goto('http://localhost:4173/', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => localStorage.removeItem('atelier-theme'));
     await page.goto('http://localhost:4173/', { waitUntil: 'networkidle' });
     // Aller sur Integrations via la sidebar
     await page.getByRole('button', { name: /Intégrations|Integrations/ }).first().click();
