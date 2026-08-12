@@ -699,7 +699,6 @@ main {
   border-radius: var(--radius-input); padding: 6px; overflow: hidden;
 }
 .calendar-cell.empty { background: transparent; border-color: transparent; }
-.calendar-cell.today { border-color: var(--color-accent-base); }
 .calendar-daynum { font-size: 11px; font-weight: 600; color: var(--color-ink-tertiary); margin-bottom: 4px; }
 .calendar-items { display: flex; flex-direction: column; gap: 3px; }
 .calendar-item {
@@ -753,6 +752,106 @@ main {
   height: 100%; min-height: 84px; border-radius: var(--radius-input);
   border: 1px dashed var(--color-line-strong);
   opacity: 0.5;
+}
+
+/* Barre de navigation du calendrier : fleches mois, libelle, Aujourd'hui, toggle vue. */
+.calendar-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.calendar-toolbar .view-toggle { margin-left: auto; }
+.calendar-icobtn {
+  width: 28px; height: 28px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.calendar-month-label {
+  font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
+  color: var(--color-ink-primary); min-width: 170px; text-align: center;
+}
+
+/* Aujourd'hui : numero en pastille pleine accent, cellule avec liseré accent. */
+.calendar-cell.today {
+  border-color: var(--color-accent-base);
+  background: color-mix(in srgb, var(--color-accent-base) 4%, var(--color-bg-level-3));
+}
+.calendar-daynum.today-num, .calendar-week-daynum.today-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
+  background: var(--color-accent-base); color: var(--color-accent-on-accent);
+}
+
+/* Disposition : grille du calendrier + liste laterale "A programmer". */
+.calendar-layout {
+  display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px;
+  align-items: start;
+}
+.calendar-main { min-width: 0; }
+
+/* Liste laterale : brouillons valides sans date de programmation. */
+.calendar-side {
+  background: var(--color-bg-level-2);
+  border: 1px solid var(--color-line-default);
+  border-radius: var(--radius-panel);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.calendar-side-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--color-ink-secondary);
+}
+.calendar-side-count {
+  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 999px;
+  background: var(--color-status-ok-soft); color: var(--color-status-ok);
+}
+.calendar-side-sub {
+  font-size: 11.5px; line-height: 1.6; color: var(--color-ink-tertiary);
+}
+.calendar-side-list { display: flex; flex-direction: column; gap: 5px; }
+.calendar-side-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 9px; border-radius: 6px;
+  background: var(--color-bg-level-3);
+  border: 1px solid var(--color-line-default);
+  font-size: 12px; color: var(--color-ink-primary);
+  cursor: grab; white-space: nowrap; overflow: hidden;
+}
+.calendar-side-item:hover {
+  border-color: var(--color-line-hover);
+  filter: brightness(1.08);
+}
+.calendar-side-item .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-status-ok); flex-shrink: 0;
+}
+.calendar-side-titre { overflow: hidden; text-overflow: ellipsis; }
+.calendar-side-empty {
+  padding: 16px 10px; text-align: center;
+  font-size: 12px; line-height: 1.6; color: var(--color-ink-tertiary);
+  border: 1px dashed var(--color-line-default); border-radius: var(--radius-input);
+}
+
+/* Vue semaine : 7 colonnes, en-tete jour + numero, meme drag & drop. */
+.calendar-week {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+}
+.calendar-week .calendar-cell { min-height: 132px; }
+.calendar-week-head {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  margin-bottom: 6px;
+}
+.calendar-week-dow {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--color-ink-tertiary);
+}
+.calendar-week-daynum {
+  font-size: 12px; font-weight: 600; color: var(--color-ink-secondary);
+  min-width: 18px; height: 18px; display: inline-flex;
+  align-items: center; justify-content: center; border-radius: 999px;
+}
+.calendar-week .calendar-drop-hint { min-height: 96px; }
+
+@media (max-width: 1100px) {
+  .calendar-layout { grid-template-columns: 1fr; }
 }
 
 /* ── Page Charte graphique ──────────────────────────────────────── */
@@ -858,8 +957,8 @@ main {
 .radius-value { font-size: 10px; color: var(--color-ink-tertiary); }
 
 /* ── Page Activite IA ───────────────────────────────────────────── */
-.activite-filtres { max-width: 640px; margin: 0 auto; }
-.activite-feed { display: flex; flex-direction: column; gap: 2px; max-width: 640px; margin: 0 auto; }
+.activite-filtres { width: 100%; max-width: 640px; margin: 0 auto; }
+.activite-feed { display: flex; flex-direction: column; gap: 2px; width: 100%; max-width: 640px; margin: 0 auto; }
 .activite-item {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 10px 14px; border-bottom: 1px solid var(--color-line-default);
@@ -895,6 +994,50 @@ main {
 @media (prefers-reduced-motion: reduce) {
   .activite-skeleton { animation: none; }
 }
+
+/* Stats du jour : 3 cartes silencieuses en tete, alignees sur le fil (640px) */
+.activite-stats-section { width: 100%; max-width: 640px; margin: 0 auto; }
+.activite-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%;
+}
+.activite-stat {
+  display: flex; flex-direction: column; gap: 5px;
+  background: var(--color-bg-level-2);
+  border: 1px solid var(--color-line-default);
+  border-radius: var(--radius-card);
+  padding: 12px 14px;
+}
+.activite-stat-label {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--color-ink-tertiary);
+}
+.activite-stat-value {
+  font-size: 22px; font-weight: 600; letter-spacing: -0.01em;
+  color: var(--color-ink-primary); line-height: 1.15;
+}
+@media (max-width: 560px) {
+  .activite-stats { grid-template-columns: 1fr; }
+}
+
+/* Entrees du journal : cliquables quand elles pointent vers un brouillon */
+.activite-item { width: 100%; background: transparent; border: 0; font-family: inherit; }
+.activite-item.is-link { cursor: pointer; transition: background var(--motion-duration-fast) var(--motion-ease); }
+.activite-item.is-link:hover { background: var(--color-bg-level-2); }
+.activite-item.is-link:focus-visible { outline: 2px solid var(--color-accent-base); outline-offset: -2px; }
+.activite-chevron {
+  color: var(--color-ink-tertiary); flex-shrink: 0;
+  margin-left: 2px; align-self: center;
+  opacity: 0.35;
+  transition: opacity var(--motion-duration-fast) var(--motion-ease);
+}
+.activite-item.is-link:hover .activite-chevron,
+.activite-item.is-link:focus-visible .activite-chevron { opacity: 1; }
+.activite-cible {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--color-ink-tertiary);
+  margin-top: 2px;
+}
+.activite-cible svg { opacity: 0.75; flex-shrink: 0; }
 
 
 /* ── Checklist de validation ─────────────────────────────────────── */

@@ -14,6 +14,8 @@ import { ActivityPage } from './pages/ActivityPage';
 import { BibliothequePage } from './pages/BibliothequePage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
 import { BlogPage } from './pages/BlogPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { HelpPage } from './pages/HelpPage';
 import { ArticleEditor } from './components/ArticleEditor';
 import { TYPE_ARTICLE, TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
 import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
@@ -26,12 +28,17 @@ const PAGE_LABELS: Record<string, string> = {
   bibliotheque: 'Bibliothèque',
   charte: 'Charte graphique',
   activite: 'Activite IA',
-  integrations: 'Intégrations'
+  integrations: 'Intégrations',
+  parametres: 'Paramètres',
+  aide: 'Aide'
 };
 
 export default function App() {
   const [page, setPage] = useState('brouillons');
-  const [vue, setVue] = useState<Vue>('grille');
+  // Vue par defaut : preference Parametres (atelier.vue.defaut), sinon grille.
+  const [vue, setVue] = useState<Vue>(() =>
+    localStorage.getItem('atelier.vue.defaut') === 'liste' ? 'liste' : 'grille'
+  );
   const [filtre, setFiltre] = useState<Statut | 'tous'>('tous');
   const [brouillons, setBrouillons] = useState<Brouillon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,6 +127,16 @@ export default function App() {
     setSelectedId(id);
   }
 
+  /** Depuis le journal : navigue vers la page du brouillon (contenu, document ou article). */
+  function openDepuisJournal(id: string) {
+    const b = brouillons.find((x) => x.id === id);
+    const t = b?.type ?? '';
+    if (TYPES_DOCUMENTS.includes(t)) setPage('documents');
+    else if (t === TYPE_ARTICLE) setPage('blog');
+    else setPage('brouillons');
+    setSelectedId(id);
+  }
+
   function closeBrouillon() {
     setSelectedId(null);
     load();
@@ -160,7 +177,7 @@ export default function App() {
   /** Template : conversation pre-remplie avec le messageInitial (prefixe du sujet si demande). */
   async function creerDepuisTemplate(t: TemplateCreation, sujet?: string) {
     setCreationOpen(false);
-    const titre = sujet ? `${t.titreDefaut} — ${sujet}` : t.titreDefaut;
+    const titre = sujet ? `${t.titreDefaut} - ${sujet}` : t.titreDefaut;
     const texte = sujet ? `Sujet : ${sujet}\n\n${t.messageInitial}` : t.messageInitial;
     try {
       const created = await createBrouillon(titre, t.type, [{ role: 'user', texte }]);
@@ -284,7 +301,7 @@ export default function App() {
               filtre={filtre}
               onFiltreChange={setFiltre}
               emptyTitle="Pas encore de document de communication."
-              emptySub="Pitch deck, flyer, affiche, carte de visite, plaquette — creez le premier livrable avec votre agent."
+              emptySub="Pitch deck, flyer, affiche, carte de visite, plaquette : creez le premier livrable avec votre agent."
             />
           )}
 
@@ -304,8 +321,10 @@ export default function App() {
           {page === 'calendrier' && <CalendarPage brouillons={brouillons} onOpen={openBrouillon} onRefresh={load} />}
           {page === 'bibliotheque' && <BibliothequePage />}
           {page === 'charte' && <BrandPage />}
-          {page === 'activite' && <ActivityPage />}
+          {page === 'activite' && <ActivityPage onOpen={openDepuisJournal} />}
           {page === 'integrations' && <IntegrationsPage />}
+          {page === 'parametres' && <SettingsPage />}
+          {page === 'aide' && <HelpPage />}
         </main>
       </div>
 
@@ -317,6 +336,7 @@ export default function App() {
         onToggleVue={() => setVue((v) => (v === 'grille' ? 'liste' : 'grille'))}
         onGoBrouillons={() => navigate('brouillons')}
         onGoBlog={() => navigate('blog')}
+        onOpenCreation={() => setCreationOpen(true)}
         vue={vue}
       />
 
