@@ -44,14 +44,17 @@ export function CalendarPostPanel({ brouillon, onClose, onRefresh, onOpenDetail 
     setProgReseau(p?.reseau ?? 'instagram');
   }, [brouillon.id]);
 
-  // Echap ferme le panneau (pattern panneau lateral / modal).
+  // Echap ferme le menu statut s'il est ouvert, sinon le panneau (pattern
+  // panneau lateral / modal : on ferme la couche du dessus d'abord).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (statutOpen) setStatutOpen(false);
+      else onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [statutOpen, onClose]);
 
   const slides = brouillon.slides || [];
   const fichier = slides[slide];
