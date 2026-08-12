@@ -912,6 +912,44 @@ main {
 .checklist-progress { font-size: 11px; color: var(--color-ink-tertiary); padding: 2px 6px; }
 
 /* ── Bibliotheque (ressources) ───────────────────────────────────────── */
+.biblio-root { position: relative; }
+.biblio-filtres { margin-bottom: var(--spacing-4); }
+.biblio-search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--color-bg-level-2);
+  border: 1px solid var(--color-line-default);
+  border-radius: var(--radius-input);
+  padding: 0 10px;
+  min-width: 220px;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease);
+}
+.biblio-search:focus-within { border-color: var(--color-accent-base); }
+.biblio-search svg { color: var(--color-ink-tertiary); flex-shrink: 0; }
+.biblio-search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--color-ink-primary);
+  font-family: var(--font-family-ui); font-size: 12.5px;
+  padding: 8px 0;
+}
+.biblio-search input::placeholder { color: var(--color-ink-tertiary); }
+.biblio-search-clear {
+  border: none; background: transparent; padding: 2px;
+  color: var(--color-ink-tertiary); display: inline-flex;
+}
+.biblio-search-clear:hover { color: var(--color-ink-primary); background: transparent; transform: none; }
+.biblio-cats { flex-wrap: wrap; }
+/* Overlay de depot : toute la page devient une cible de drop */
+.biblio-drop-overlay {
+  position: fixed; inset: 0; z-index: 90;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: color-mix(in srgb, var(--color-bg-deepest) 88%, transparent);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  color: var(--color-ink-primary); font-size: 14px; font-weight: 500;
+  pointer-events: none;
+  border: 2px dashed var(--color-accent-base);
+  animation: fadeUp var(--motion-duration-fast) var(--motion-ease);
+}
+.biblio-drop-overlay small { font-size: 12px; font-weight: 400; color: var(--color-ink-tertiary); }
 .dropzone {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   border: 1.5px dashed var(--color-line-hover);
