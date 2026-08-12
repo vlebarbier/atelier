@@ -2,10 +2,10 @@ import { toPng } from 'html-to-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash, X, ArrowsLeftRight,
-  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf, ImageSquare
+  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf, ImageSquare, MapPin
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
-import type { BrouillonDetail, DiffData, MessageChat, ReseauEntry, Statut, VersionSource } from '../api';
+import type { BrouillonDetail, DiffData, MessageChat, ReseauEntry, Statut, VersionSource, Annotation } from '../api';
 import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseDiff, parseProgramme, reorderSlides, replaceSlides, restaurerVersion, slideUrl, updateBrouillon } from '../api';
 import { comparerSlides, nombreSlidesDiff, urlsAvantApres, type ZoneDiff } from '../diff';
 import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
@@ -34,7 +34,7 @@ const RESEAU_CONTRAINTES: Record<string, { maxChars: number; maxHashtags: number
   gmb: { maxChars: 1500, maxHashtags: 0, maxImages: 10, format: 'Carré 1080×1080 (min 250×250)' }
 };
 
-type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source';
+type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source' | 'annotations';
 
 /**
  * Tunnel de creation (SPEC-TUNNEL.md) : les 4 etapes visibles dans le header
@@ -110,6 +110,16 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [zonesDiff, setZonesDiff] = useState<ZoneDiff[]>([]);
   const [diffInfo, setDiffInfo] = useState<{ nouvelle: boolean; score: number } | null>(null);
   const [calculDiff, setCalculDiff] = useState(false);
+  // Annotations de revision ancrees au visuel (pattern proofing Krock/Ziflow) :
+  // marqueurs numerotes poses sur la slide aux coordonnees x/y (fractions 0..1).
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  // Mode annotation : le prochain clic sur la slide pose un marqueur.
+  const [annotationMode, setAnnotationMode] = useState(false);
+  // Point en cours de saisie (fractions 0..1) + texte saisi dans le popover.
+  const [annotationDraft, setAnnotationDraft] = useState<{ x: number; y: number } | null>(null);
+  const [annotationTexte, setAnnotationTexte] = useState('');
+  // Annotation selectionnee (depuis un marqueur ou la liste du panneau).
+  const [annotationSel, setAnnotationSel] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -125,13 +135,24 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
       }
       setSlide(0);
       setReseauActif('instagram');
-      setOnglet(TYPES_DOCUMENTS.includes(data.type) ? 'slides' : 'agent');
+      // Mode REVISER (UX-RESEARCH.md §4 mode 2) : des qu'il y a des slides a
+      // reviser, le panneau s'ouvre sur les annotations (le feedback est ancre
+      // au visuel), pas sur le chat. Le chat reste accessible en onglet.
+      setOnglet(TYPES_DOCUMENTS.includes(data.type) ? 'slides' : data.slides.length > 0 ? 'annotations' : 'agent');
       setAgentEnTravail(false);
       try {
         setConversation(JSON.parse(data.conversation || '[]'));
       } catch {
         setConversation([]);
       }
+      try {
+        setAnnotations(JSON.parse(data.annotations || '[]'));
+      } catch {
+        setAnnotations([]);
+      }
+      setAnnotationMode(false);
+      setAnnotationDraft(null);
+      setAnnotationSel(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
@@ -429,6 +450,8 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
       // Le diff visuel s'ouvre automatiquement : montrer ce que l'agent a change.
       if (res.diff) {
         setDiffPos(55);
+        setAnnotationMode(false);
+        setAnnotationDraft(null);
         setModeDiff(true);
       }
       await load();
@@ -591,6 +614,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     const target = ((next % total) + total) % total;
     setSlideDir(dir);
     setSlide(target);
+    setAnnotationDraft(null);
     // Deux rAF : laisse le navigateur peindre l'etat initial (decalage 8px,
     // opacity 0) avant de retirer la classe et declencher la transition.
     requestAnimationFrame(() => {
@@ -672,6 +696,63 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de suppression');
     }
+  }
+
+  /**
+   * Clic sur la slide en mode annotation : pose le marqueur au point clique.
+   * Les coordonnees sont stockees en fractions 0..1 du visuel (pattern proofing :
+   * le commentaire est ancre au pixel, il suit la slide quel que soit l'affichage).
+   */
+  function onStageClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!annotationMode || modeDiff || !brouillon) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    setAnnotationDraft({ x, y });
+    setAnnotationTexte('');
+  }
+
+  /** Enregistre l'annotation en cours de saisie et la persiste (JSON sur brouillon). */
+  async function validerAnnotation() {
+    if (!brouillon || !annotationDraft || !annotationTexte.trim()) return;
+    const ann: Annotation = {
+      id: `ann-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      slide,
+      x: annotationDraft.x,
+      y: annotationDraft.y,
+      texte: annotationTexte.trim(),
+      at: new Date().toISOString()
+    };
+    const next = [...annotations, ann];
+    setAnnotations(next);
+    setAnnotationSel(ann.id);
+    setAnnotationDraft(null);
+    setAnnotationTexte('');
+    try {
+      await updateBrouillon(id, { annotations: JSON.stringify(next) });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de sauvegarde de l annotation');
+    }
+  }
+
+  /** Supprime une annotation (bouton de la liste du panneau). */
+  async function supprimerAnnotation(annId: string) {
+    const next = annotations.filter((a) => a.id !== annId);
+    setAnnotations(next);
+    if (annotationSel === annId) setAnnotationSel(null);
+    try {
+      await updateBrouillon(id, { annotations: JSON.stringify(next) });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de suppression de l annotation');
+    }
+  }
+
+  /** Navigation depuis la liste : va a la slide de l'annotation et la selectionne. */
+  function allerAnnotation(a: Annotation) {
+    setSlide(a.slide);
+    setAnnotationSel(a.id);
+    setAnnotationDraft(null);
   }
 
   if (loading) return <div className="empty">Chargement...</div>;
@@ -919,7 +1000,10 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     onMove={setDiffPos}
                   />
                 ) : (
-                  <>
+                  <div
+                    className={`stage-annot${annotationMode ? ' is-annotating' : ''}`}
+                    onClick={!estVideoSlide ? onStageClick : undefined}
+                  >
                     {estVideoSlide ? (
                       <video
                         key={currentSlideFichier}
@@ -933,14 +1017,86 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                         className={slideDir === 'next' ? 'is-next' : slideDir === 'prev' ? 'is-prev' : ''}
                         src={slideUrl(brouillon.id, currentSlideFichier)}
                         alt=""
+                        draggable={false}
                       />
+                    )}
+                    {/* Marqueurs d'annotation de la slide courante (pattern proofing) :
+                        positionnes en fractions 0..1, ils suivent le visuel. */}
+                    {!estVideoSlide &&
+                      annotations
+                        .filter((a) => a.slide === slide)
+                        .map((a) => {
+                          const numero = annotations.indexOf(a) + 1;
+                          return (
+                            <button
+                              key={a.id}
+                              type="button"
+                              className={`annot-pin${annotationSel === a.id ? ' on' : ''}`}
+                              style={{ left: `${a.x * 100}%`, top: `${a.y * 100}%` }}
+                              title={a.texte}
+                              aria-label={`Annotation ${numero} : ${a.texte}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAnnotationSel(a.id);
+                              }}
+                            >
+                              <span className="annot-pin-num">{numero}</span>
+                            </button>
+                          );
+                        })}
+                    {annotationDraft && (
+                      <div
+                        className="annot-pop"
+                        style={{ left: `${annotationDraft.x * 100}%`, top: `${annotationDraft.y * 100}%` }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="annot-pop-head">
+                          <MapPin size={12} weight="fill" />
+                          <span>Annotation sur la slide {slide + 1}</span>
+                        </div>
+                        <textarea
+                          autoFocus
+                          value={annotationTexte}
+                          onChange={(e) => setAnnotationTexte(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                              e.preventDefault();
+                              validerAnnotation();
+                            }
+                            if (e.key === 'Escape') {
+                              e.stopPropagation();
+                              setAnnotationDraft(null);
+                            }
+                          }}
+                          placeholder="Votre retour sur ce point precis (ex. « texte trop petit », « logo flou »)..."
+                          rows={3}
+                          aria-label="Texte de l annotation"
+                        />
+                        <div className="annot-pop-actions">
+                          <button type="button" className="ghost" onClick={() => setAnnotationDraft(null)}>
+                            Annuler
+                          </button>
+                          <button
+                            type="button"
+                            className="primary"
+                            onClick={validerAnnotation}
+                            disabled={!annotationTexte.trim()}
+                          >
+                            <Check size={12} weight="bold" /> Ajouter
+                          </button>
+                        </div>
+                        <span className="annot-pop-hint">Entrée + ⌘ pour valider</span>
+                      </div>
                     )}
                     {brouillon.slides.length > 1 && (
                       <>
                         <button
                           type="button"
                           className="stage-arrow prev"
-                          onClick={() => changerSlide(slide - 1, 'prev')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            changerSlide(slide - 1, 'prev');
+                          }}
                           aria-label="Slide precedente"
                         >
                           <CaretLeft size={18} weight="bold" />
@@ -948,14 +1104,17 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                         <button
                           type="button"
                           className="stage-arrow next"
-                          onClick={() => changerSlide(slide + 1, 'next')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            changerSlide(slide + 1, 'next');
+                          }}
                           aria-label="Slide suivante"
                         >
                           <CaretRight size={18} weight="bold" />
                         </button>
                       </>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
               {apercuPublie && !estDocument && (
@@ -988,6 +1147,21 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 <span className="counter">
                   {slide + 1} / {brouillon.slideCount}
                 </span>
+                {!estVideoSlide && (
+                  <button
+                    type="button"
+                    className={`annot-toggle${annotationMode ? ' on' : ''}`}
+                    onClick={() => {
+                      setAnnotationMode((v) => !v);
+                      setAnnotationDraft(null);
+                    }}
+                    aria-pressed={annotationMode}
+                    title="Annoter la slide : cliquer sur le visuel pour poser un marqueur"
+                  >
+                    <MapPin size={13} weight={annotationMode ? 'fill' : 'regular'} />
+                    {annotationMode ? 'Annoter (clic sur la slide)' : 'Annoter'}
+                  </button>
+                )}
                 {!estDocument && (
                   <button
                     type="button"
@@ -1072,6 +1246,10 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           <div className="sp-section">
             <div className="sp-label">Édition du contenu</div>
             <div className="panel-tabs">
+              <button type="button" className={onglet === 'annotations' ? 'on' : ''} onClick={() => setOnglet('annotations')}>
+                <MapPin size={12} /> Annotations
+                {annotations.length > 0 && <span className="panel-tab-count">{annotations.length}</span>}
+              </button>
               <button type="button" className={onglet === 'agent' ? 'on' : ''} onClick={() => setOnglet('agent')}>
                 <Sparkle size={12} /> Agent
               </button>
@@ -1086,7 +1264,60 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               </button>
             </div>
 
-            {onglet === 'agent' ? (
+            {onglet === 'annotations' ? (
+              <div className="annot-panel">
+                <div className="annot-panel-note">
+                  <MapPin size={13} />
+                  <span>
+                    Cliquez sur <strong>Annoter</strong> dans le stage, puis sur le visuel : le retour est
+                    ancré au point exact (coordonnées), pas seulement dans le chat.
+                  </span>
+                </div>
+                {annotations.length === 0 ? (
+                  <div className="annot-empty">
+                    <p>Aucune annotation pour l'instant.</p>
+                    <p className="annot-empty-sub">
+                      Les retours de révision posés sur la slide apparaissent ici, numérotés, avec la
+                      slide et le texte. Cliquez sur un marqueur pour le sélectionner.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="annot-list">
+                    {annotations.map((a) => {
+                      const numero = annotations.indexOf(a) + 1;
+                      const actif = annotationSel === a.id;
+                      return (
+                        <div key={a.id} className={`annot-item${actif ? ' on' : ''}${a.slide === slide ? ' current-slide' : ''}`}>
+                          <button
+                            type="button"
+                            className="annot-item-main"
+                            onClick={() => allerAnnotation(a)}
+                            title="Aller a la slide de cette annotation"
+                          >
+                            <span className="annot-item-num">{numero}</span>
+                            <span className="annot-item-body">
+                              <span className="annot-item-meta">
+                                Slide {a.slide + 1} · {new Date(a.at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                              </span>
+                              <span className="annot-item-texte">{a.texte}</span>
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            className="ghost annot-item-del"
+                            onClick={() => supprimerAnnotation(a.id)}
+                            title="Supprimer cette annotation"
+                            aria-label={`Supprimer l annotation ${numero}`}
+                          >
+                            <Trash size={12} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : onglet === 'agent' ? (
               <div className="chat-panel">
                 <div className="chat-feed">
                   {conversation.length === 0 ? (

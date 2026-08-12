@@ -405,6 +405,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       charteId: row.charteId || 'principale',
       checklist: row.checklist || '[]',
       conversation: row.conversation || '[]',
+      annotations: row.annotations || '[]',
       programme: row.programme ? JSON.parse(row.programme) : null,
       article: row.article ? JSON.parse(row.article) : null,
       diff: row.diff ? JSON.parse(row.diff) : null,
@@ -443,6 +444,7 @@ export function createApp(repo: Repo, options: AppOptions) {
     const nextSourceHtml = patch.sourceHtml !== undefined ? patch.sourceHtml : row.sourceHtml;
     const nextChecklist = patch.checklist !== undefined ? patch.checklist : row.checklist;
     const nextConversation = patch.conversation !== undefined ? patch.conversation : row.conversation;
+    const nextAnnotations = patch.annotations !== undefined ? patch.annotations : row.annotations;
     const nextType = patch.type !== undefined ? patch.type : row.type;
     const nextProgramme = patch.programme !== undefined ? patch.programme : row.programme;
     const nextArticle = patch.article !== undefined ? patch.article : row.article;
@@ -466,6 +468,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       sourceHtml: nextSourceHtml,
       checklist: nextChecklist,
       conversation: nextConversation,
+      annotations: nextAnnotations,
       type: nextType,
       programme: nextProgramme,
       article: nextArticle,

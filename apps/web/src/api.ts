@@ -123,6 +123,7 @@ export interface BrouillonDetail extends Brouillon {
   charteId?: string;
   checklist?: string;
   conversation?: string;
+  annotations?: string;
   programme?: string | Programme | null;
   article?: string | ArticleMeta | null;
   diff?: string | DiffData | null;
@@ -143,6 +144,18 @@ export interface VersionSource {
   at: string;
   auteur: string;
   taille: number;
+}
+
+/** Annotation de revision attachee a une slide (pattern proofing Krock/Ziflow).
+ *  x/y sont des fractions 0..1 du visuel : les marqueurs se superposent a la
+ *  slide quel que soit son affichage. slide = index de la slide (0-based). */
+export interface Annotation {
+  id: string;
+  slide: number;
+  x: number;
+  y: number;
+  texte: string;
+  at: string;
 }
 
 export interface Charte {
@@ -243,7 +256,7 @@ export async function importCharte(css: string, nom?: string): Promise<ImportCha
 
 export async function updateBrouillon(
   id: string,
-  patch: Partial<Pick<BrouillonDetail, 'titre' | 'statut' | 'notes' | 'reseaux' | 'sourceHtml' | 'checklist' | 'type' | 'programme' | 'article'>>
+  patch: Partial<Pick<BrouillonDetail, 'titre' | 'statut' | 'notes' | 'reseaux' | 'sourceHtml' | 'checklist' | 'type' | 'programme' | 'article' | 'annotations'>>
 ): Promise<{ ok: boolean }> {
   const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}`), {
     method: 'POST',
