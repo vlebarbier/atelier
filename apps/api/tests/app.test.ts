@@ -452,3 +452,38 @@ describe('GET /api/health', () => {
     expect(typeof body.at).toBe('string');
   });
 });
+
+describe('GET /api/integrations/statut', () => {
+  it('repond l etat des raccords de publication (aucun configure dans le test)', async () => {
+    // Isolement de l env : getPostizConfig lit aussi ~/postiz/cli.env (machine
+    // de dev) et les env directes. On pointe POSTIZ_CLI_ENV vers un chemin
+    // inexistant et on neutralise le reste pour un test deterministe.
+    const saved: Record<string, string | undefined> = {};
+    for (const key of ['POSTIZ_API_URL', 'POSTIZ_API_KEY', 'SANITY_WRITE_TOKEN']) {
+      saved[key] = process.env[key];
+      delete process.env[key];
+    }
+    saved.POSTIZ_CLI_ENV = process.env.POSTIZ_CLI_ENV;
+    process.env.POSTIZ_CLI_ENV = '/nonexistent-postiz-cli-env';
+    try {
+      const { app } = buildTestApp();
+      const res = await app.request('/api/integrations/statut');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        postiz: { configure: boolean; apiUrl: string | null; joignable: boolean | null; canaux: number | null; erreur: string | null };
+        sanity: { configure: boolean; projectId: string | null };
+        buffer: { configure: boolean; aVenir: boolean };
+      };
+      expect(body.postiz.configure).toBe(false);
+      expect(body.postiz.apiUrl).toBe(null);
+      expect(body.postiz.joignable).toBe(null);
+      expect(body.sanity.configure).toBe(false);
+      expect(body.buffer.aVenir).toBe(true);
+    } finally {
+      for (const key of Object.keys(saved)) {
+        if (saved[key] === undefined) delete process.env[key];
+        else process.env[key] = saved[key] as string;
+      }
+    }
+  });
+});
