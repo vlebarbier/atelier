@@ -165,13 +165,53 @@ export function createApp(repo: Repo, options: AppOptions) {
     return c.json(result);
   });
 
+  // GET /api/conversations/en-attente → les conversations qui attendent une
+  // reponse de l'agent (worker asynchrone). Un brouillon est "en attente" ssi
+  // sa conversation n'est pas vide ET que le DERNIER message a role: 'user'
+  // (etat derive, pas de flag : une reponse agent bascule l'etat atomiquement).
+  // Source de verite unique : le worker (cron) et l'UI consomment la meme
+  // definition. Sortie stable (tri par id) pour que le monitor du worker soit
+  // deterministe ; `messages` = queue (≤ 8) pour donner le contexte au worker.
+  app.get('/api/conversations/en-attente', async (c) => {
+    const rows = await repo.listBrouillons();
+    const result: {
+      id: string;
+      titre: string;
+      statut: string;
+      type: string;
+      updated: string | null;
+      messages: { role: string; texte: string; at: string }[];
+    }[] = [];
+    for (const row of rows) {
+      let conversation: { role: string; texte: string; at: string }[] = [];
+      try {
+        conversation = JSON.parse(row.conversation || '[]');
+      } catch {
+        conversation = [];
+      }
+      if (!Array.isArray(conversation) || conversation.length === 0) continue;
+      const dernier = conversation[conversation.length - 1];
+      if (!dernier || dernier.role !== 'user') continue;
+      result.push({
+        id: row.id,
+        titre: row.titre,
+        statut: row.statut,
+        type: row.type || 'carrousel',
+        updated: row.updatedAt,
+        messages: conversation.slice(-8)
+      });
+    }
+    result.sort((a, b) => a.id.localeCompare(b.id));
+    return c.json(result);
+  });
+
   app.post('/api/brouillons', async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as {
       titre?: string;
       type?: string;
       conversation?: { role?: string; texte?: string }[];
     };
-    const id = `brouillon-${Date.now().toString(36)}`;
+    const id = `brouillon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const titre = (body.titre || 'Nouveau brouillon').trim();
     const type = body.type || 'carrousel';
 
@@ -891,7 +931,7 @@ export function createApp(repo: Repo, options: AppOptions) {
     if (!slug) return c.json({ error: 'Slug manquant : renseignez le slug de l\'article avant publication' }, 400);
     if (!corpsHtml.trim()) return c.json({ error: 'Corps vide : déposez la source HTML de l\'article avant publication' }, 400);
 
-    const { getSanityConfig, publierArticleCms } = await import('./integrations/sanity.js');
+    const { getSanityConfig, publishArticle } = await import('./integrations/sanity.js');
     if (!getSanityConfig()) {
       return c.json(
         { error: 'CMS non configuré : PUBLIC_SANITY_PROJECT_ID / PUBLIC_SANITY_DATASET / SANITY_WRITE_TOKEN requis (env Vercel).' },
@@ -901,7 +941,7 @@ export function createApp(repo: Repo, options: AppOptions) {
 
     let result: { id: string; url: string; slug: string };
     try {
-      result = await publierArticleCms({
+      const pub = await publishArticle(getSanityConfig()!, {
         slug,
         title: row.titre,
         excerpt: chapo,
@@ -912,6 +952,7 @@ export function createApp(repo: Repo, options: AppOptions) {
         publishedAt: typeof article.publishedAt === 'string' ? article.publishedAt : undefined,
         readingTime: typeof article.readingTime === 'number' ? article.readingTime : undefined
       });
+      result = { id: pub.cmsId, url: pub.url, slug: pub.slug };
     } catch (e) {
       return c.json({ error: `Publication CMS: ${e instanceof Error ? e.message : String(e)}` }, 502);
     }
