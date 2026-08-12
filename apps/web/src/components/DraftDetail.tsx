@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { toPng } from 'html-to-image';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash,
+  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash, X, ArrowsLeftRight,
   InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
-import type { BrouillonDetail, MessageChat, ReseauEntry, Statut } from '../api';
-import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseProgramme, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
+import type { BrouillonDetail, DiffData, MessageChat, ReseauEntry, Statut } from '../api';
+import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseDiff, parseProgramme, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
+import { comparerSlides, nombreSlidesDiff, urlsAvantApres, type ZoneDiff } from '../diff';
 import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
 import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate, type Creneau } from '../format';
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerHTML } from '../export';
@@ -101,6 +103,13 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   // Pseudo de la marque pour l'en-tete de l'apercu (charte si dispo, sinon placeholder).
   const [charteNom, setCharteNom] = useState<string | null>(null);
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Diff visuel avant/apres (chantier 3) : mode, position du slider, zones calculees.
+  const [modeDiff, setModeDiff] = useState(false);
+  const [diffPos, setDiffPos] = useState(55);
+  const [zonesVisibles, setZonesVisibles] = useState(true);
+  const [zonesDiff, setZonesDiff] = useState<ZoneDiff[]>([]);
+  const [diffInfo, setDiffInfo] = useState<{ nouvelle: boolean; score: number } | null>(null);
+  const [calculDiff, setCalculDiff] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -356,7 +365,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
 
       // Style et polices de la charte, injectés APRÈS le HTML source : en cascade,
       // les variables de la charte priment sur celles éventuellement en dur.
-      if (charte) injecterCharteRendu(holder, charte);
+      if (charte) await injecterCharteRendu(holder, charte);
       await attendreRendu(charte);
 
       const slideEls = holder.querySelectorAll<HTMLElement>('.slide');
@@ -382,6 +391,11 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
 
       const res = await replaceSlides(id, datas);
       setSourceMsg({ type: 'ok', text: `${res.slideCount} slides régénérées depuis la source.` });
+      // Le diff visuel s'ouvre automatiquement : montrer ce que l'agent a change.
+      if (res.diff) {
+        setDiffPos(55);
+        setModeDiff(true);
+      }
       await load();
     } catch (err) {
       setSourceMsg({ type: 'err', text: err instanceof Error ? err.message : 'Régénération impossible' });
@@ -391,7 +405,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   }
 
   /** F-29 : applique la charte au holder de capture (variables CSS + polices). */
-  function injecterCharteRendu(holder: HTMLElement, charte: CharteData) {
+  async function injecterCharteRendu(holder: HTMLElement, charte: CharteData) {
     const tokensCss = buildCharteCss(charte);
     const fallbackCss = buildCharteFallbackCss(charte);
     if (tokensCss || fallbackCss) {
@@ -401,10 +415,30 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     }
     const fontLink = buildCharteFontLink(charte);
     if (fontLink) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = fontLink;
-      holder.appendChild(link);
+      // Le CSS des polices est inliné (fetch → <style>) plutôt que chargé via un
+      // <link> : html-to-image lit les @font-face depuis les feuilles même-origine
+      // et les embarque en data URL dans le PNG ; un <link> cross-origin Google
+      // Fonts rend les cssRules illisibles (SecurityError) et les polices tombent
+      // en repli. En cas d'échec du fetch, le <link> reste le filet de secours.
+      try {
+        const res = await fetch(fontLink);
+        if (res.ok) {
+          const css = await res.text();
+          const style = document.createElement('style');
+          style.textContent = css;
+          holder.appendChild(style);
+        } else {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = fontLink;
+          holder.appendChild(link);
+        }
+      } catch {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = fontLink;
+        holder.appendChild(link);
+      }
     }
   }
 
@@ -422,51 +456,32 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     }
   }
 
-  function captureElement(el: HTMLElement): Promise<string | null> {
-    return new Promise((resolve) => {
-      try {
-        const rect = el.getBoundingClientRect();
-        const width = Math.max(1, Math.round(rect.width));
-        const height = Math.max(1, Math.round(rect.height));
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', String(width));
-        svg.setAttribute('height', String(height));
-        const foreign = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-        foreign.setAttribute('width', '100%');
-        foreign.setAttribute('height', '100%');
-        const clone = el.cloneNode(true) as HTMLElement;
-        clone.style.margin = '0';
-        foreign.appendChild(clone);
-        svg.appendChild(foreign);
-
-        const xml = new XMLSerializer().serializeToString(svg);
-        const url = URL.createObjectURL(new Blob([xml], { type: 'image/svg+xml;charset=utf-8' }));
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            canvas.width = width * 2;
-            canvas.height = height * 2;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return resolve(null);
-            ctx.scale(2, 2);
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/png'));
-          } catch {
-            resolve(null);
-          } finally {
-            URL.revokeObjectURL(url);
-          }
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          resolve(null);
-        };
-        img.src = url;
-      } catch {
-        resolve(null);
-      }
-    });
+  /**
+   * Capture un élément .slide en PNG via html-to-image (toPng).
+   *
+   * Pourquoi html-to-image et pas la méthode foreignObject→SVG→canvas maison :
+   * le canvas était systématiquement « tainted by cross-origin data » (blob URL)
+   * dans Chrome, et la capture échouait silencieusement (aucune slide régénérée).
+   * toPng clone le nœud, inline les styles calculés (les var() de la charte sont
+   * résolues), embarque polices et images en data URL et peint dans un canvas
+   * origin-clean. Résultat vérifié en réel : le PNG capturé porte les couleurs
+   * de la charte injectée (voir test-f29-mecanique.cjs, coin = bordeaux).
+   */
+  async function captureElement(el: HTMLElement): Promise<string | null> {
+    try {
+      const rect = el.getBoundingClientRect();
+      const width = Math.max(1, Math.round(rect.width));
+      const height = Math.max(1, Math.round(rect.height));
+      return await toPng(el, {
+        pixelRatio: 2,
+        cacheBust: true,
+        width,
+        height,
+        backgroundColor: '#ffffff'
+      });
+    } catch {
+      return null;
+    }
   }
 
   // Navigation clavier fleches gauche/droite, ignoree si le focus est dans un champ.
@@ -484,6 +499,51 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [brouillon, slide]);
+
+  // Diff visuel : recalcule les zones modifiees pour la slide courante quand le
+  // mode diff est actif (ou que la slide / le snapshot avant change).
+  const diffData = useMemo(() => parseDiff(brouillon?.diff), [brouillon?.diff]);
+  useEffect(() => {
+    let annule = false;
+    if (!modeDiff || !diffData || !brouillon) {
+      setZonesDiff([]);
+      setDiffInfo(null);
+      setCalculDiff(false);
+      return;
+    }
+    const fichier = brouillon.slides[slide];
+    if (!fichier || fichier.endsWith('.mp4') || fichier.endsWith('.webm')) {
+      setZonesDiff([]);
+      setDiffInfo(null);
+      setCalculDiff(false);
+      return;
+    }
+    const { avantUrl, apresUrl } = urlsAvantApres(brouillon.id, diffData, slide, brouillon.slides);
+    if (!avantUrl || !apresUrl) {
+      setZonesDiff([]);
+      setDiffInfo(null);
+      setCalculDiff(false);
+      return;
+    }
+    setCalculDiff(true);
+    comparerSlides(avantUrl, apresUrl)
+      .then((c) => {
+        if (annule) return;
+        setZonesDiff(c.zones);
+        setDiffInfo({ nouvelle: c.nouvelle, score: c.score });
+      })
+      .catch(() => {
+        if (annule) return;
+        setZonesDiff([]);
+        setDiffInfo(null);
+      })
+      .finally(() => {
+        if (!annule) setCalculDiff(false);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [modeDiff, diffData, slide, brouillon]);
 
   /**
    * Carrousel : change de slide avec une transition directionnelle 250ms
@@ -591,6 +651,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     RESEAU_CONTRAINTES[reseauActif] ?? { maxChars: 2200, maxHashtags: 30, maxImages: 10, format: 'Carré 1080×1080' };
   const nbHashtags = (currentReseau.hashtags || '').split(/\s+/).filter((h) => h.startsWith('#')).length;
   const currentSlideFichier = brouillon.slides[slide];
+  const estVideoSlide = Boolean(currentSlideFichier && (currentSlideFichier.endsWith('.mp4') || currentSlideFichier.endsWith('.webm')));
 
   return (
     <div id="detail" className="detail-shell">
@@ -760,40 +821,92 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
         <div className="detail-stage">
           {brouillon.slides.length > 0 && currentSlideFichier ? (
             <>
+              {modeDiff && diffData ? (
+                <div className="diff-bar">
+                  <span className="diff-title">
+                    <Eye size={13} /> Diff
+                  </span>
+                  {!estVideoSlide && (
+                    <button
+                      type="button"
+                      className={`ghost${zonesVisibles ? ' on' : ''}`}
+                      onClick={() => setZonesVisibles(!zonesVisibles)}
+                    >
+                      Zones
+                    </button>
+                  )}
+                  <span className="diff-info">
+                    {calculDiff
+                      ? 'Calcul du diff...'
+                      : estVideoSlide
+                        ? 'Diff indisponible pour une vidéo'
+                        : diffInfo?.nouvelle
+                          ? 'Nouvelle slide'
+                          : diffInfo && zonesDiff.length > 0
+                            ? `${zonesDiff.length} zone${zonesDiff.length > 1 ? 's' : ''} modifiée${zonesDiff.length > 1 ? 's' : ''}`
+                            : diffInfo
+                              ? 'Aucune différence détectée'
+                              : 'Aucune slide avant'}
+                  </span>
+                  <span className="diff-spacer" />
+                  <button type="button" className="ghost" onClick={() => setModeDiff(false)}>
+                    <X size={12} /> Fermer
+                  </button>
+                </div>
+              ) : diffData && !estVideoSlide ? (
+                <button type="button" className="diff-cta" onClick={() => setModeDiff(true)}>
+                  <Eye size={13} /> Voir ce que l'agent a changé ({nombreSlidesDiff(diffData, brouillon.slides)})
+                </button>
+              ) : null}
               <div className="stage-media">
-                {currentSlideFichier.endsWith('.mp4') || currentSlideFichier.endsWith('.webm') ? (
-                  <video
-                    key={currentSlideFichier}
-                    className={slideDir === 'next' ? 'is-next' : slideDir === 'prev' ? 'is-prev' : ''}
-                    src={slideUrl(brouillon.id, currentSlideFichier)}
-                    controls autoPlay muted loop
+                {modeDiff && diffData && !estVideoSlide ? (
+                  <DiffCompare
+                    brouillonId={brouillon.id}
+                    diffData={diffData}
+                    slideIndex={slide}
+                    slidesActuelles={brouillon.slides}
+                    zones={zonesDiff}
+                    diffPos={diffPos}
+                    zonesVisibles={zonesVisibles}
+                    onMove={setDiffPos}
                   />
                 ) : (
-                  <img
-                    id="slide-img"
-                    className={slideDir === 'next' ? 'is-next' : slideDir === 'prev' ? 'is-prev' : ''}
-                    src={slideUrl(brouillon.id, currentSlideFichier)}
-                    alt=""
-                  />
-                )}
-                {brouillon.slides.length > 1 && (
                   <>
-                    <button
-                      type="button"
-                      className="stage-arrow prev"
-                      onClick={() => changerSlide(slide - 1, 'prev')}
-                      aria-label="Slide precedente"
-                    >
-                      <CaretLeft size={18} weight="bold" />
-                    </button>
-                    <button
-                      type="button"
-                      className="stage-arrow next"
-                      onClick={() => changerSlide(slide + 1, 'next')}
-                      aria-label="Slide suivante"
-                    >
-                      <CaretRight size={18} weight="bold" />
-                    </button>
+                    {estVideoSlide ? (
+                      <video
+                        key={currentSlideFichier}
+                        className={slideDir === 'next' ? 'is-next' : slideDir === 'prev' ? 'is-prev' : ''}
+                        src={slideUrl(brouillon.id, currentSlideFichier)}
+                        controls autoPlay muted loop
+                      />
+                    ) : (
+                      <img
+                        id="slide-img"
+                        className={slideDir === 'next' ? 'is-next' : slideDir === 'prev' ? 'is-prev' : ''}
+                        src={slideUrl(brouillon.id, currentSlideFichier)}
+                        alt=""
+                      />
+                    )}
+                    {brouillon.slides.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          className="stage-arrow prev"
+                          onClick={() => changerSlide(slide - 1, 'prev')}
+                          aria-label="Slide precedente"
+                        >
+                          <CaretLeft size={18} weight="bold" />
+                        </button>
+                        <button
+                          type="button"
+                          className="stage-arrow next"
+                          onClick={() => changerSlide(slide + 1, 'next')}
+                          aria-label="Slide suivante"
+                        >
+                          <CaretRight size={18} weight="bold" />
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -1301,6 +1414,99 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Comparateur avant/apres : deux calques d'image superposes, un slider draggable
+ * revele l'apres a gauche du handle (clip-path), les zones modifiees sont
+ * encadrees en ambre (annotation, pas un statut : la DA monochrome reste intacte).
+ * Les coordonnees des zones sont en fractions 0..1 : elles se superposent a
+ * l'image quel que soit son affichage.
+ */
+function DiffCompare({
+  brouillonId,
+  diffData,
+  slideIndex,
+  slidesActuelles,
+  zones,
+  diffPos,
+  zonesVisibles,
+  onMove
+}: {
+  brouillonId: string;
+  diffData: DiffData;
+  slideIndex: number;
+  slidesActuelles: string[];
+  zones: ZoneDiff[];
+  diffPos: number;
+  zonesVisibles: boolean;
+  onMove: (pos: number) => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const { avantUrl, apresUrl } = urlsAvantApres(brouillonId, diffData, slideIndex, slidesActuelles);
+
+  const surPointer = (clientX: number) => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return;
+    const p = ((clientX - rect.left) / rect.width) * 100;
+    onMove(Math.min(100, Math.max(0, p)));
+  };
+
+  // Slide sans equivalent avant : on montre la nouvelle image avec un badge.
+  if (!apresUrl) return null;
+  if (!avantUrl) {
+    return (
+      <div className="diff-nouvelle">
+        <img src={apresUrl} alt="Nouvelle slide" draggable={false} />
+        <span className="diff-nouvelle-badge">
+          <Sparkle size={11} weight="bold" /> Nouvelle slide
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={ref}
+      className="diff-compare"
+      onPointerDown={(e) => {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        surPointer(e.clientX);
+      }}
+      onPointerMove={(e) => {
+        if (e.buttons === 1) surPointer(e.clientX);
+      }}
+    >
+      <img className="diff-img" src={avantUrl} alt="Avant" draggable={false} />
+      <img
+        className="diff-img diff-apres"
+        src={apresUrl}
+        alt="Après"
+        draggable={false}
+        style={{ clipPath: `inset(0 ${100 - diffPos}% 0 0)` }}
+      />
+      {zonesVisibles &&
+        zones.map((z, i) => (
+          <span
+            key={i}
+            className="diff-zone"
+            style={{
+              left: `${z.x * 100}%`,
+              top: `${z.y * 100}%`,
+              width: `${z.w * 100}%`,
+              height: `${z.h * 100}%`
+            }}
+          />
+        ))}
+      <span className="diff-badge diff-badge-apres">Après</span>
+      <span className="diff-badge diff-badge-avant">Avant</span>
+      <span className="diff-handle" style={{ left: `${diffPos}%` }}>
+        <span className="diff-handle-knob">
+          <ArrowsLeftRight size={12} weight="bold" />
+        </span>
+      </span>
     </div>
   );
 }

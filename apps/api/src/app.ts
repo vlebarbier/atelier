@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { updateBrouillonSchema } from './validation.js';
 import { storeSlide, storeRessource } from './storage/blob.js';
+import { snapshotSlidesAvant } from './diff.js';
 import { isPostgres } from './db/client.js';
 import type { Repo } from './db/repo.js';
 
@@ -346,6 +347,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       conversation: row.conversation || '[]',
       programme: row.programme ? JSON.parse(row.programme) : null,
       article: row.article ? JSON.parse(row.article) : null,
+      diff: row.diff ? JSON.parse(row.diff) : null,
       reseaux,
       updated: row.updatedAt,
       slideCount: fichiers.length,
@@ -499,6 +501,21 @@ export function createApp(repo: Repo, options: AppOptions) {
     }
 
     // Remplace toutes les slides : supprime l'existant, stocke les nouvelles.
+    // Avant l'ecrasement, on copie les slides actuelles sous avant/<ts>/ pour le
+    // diff visuel avant/apres (chantier 3) : l'UI affiche ce que l'agent a change.
+    const slidesActuelles = await repo.listSlides(id);
+    let diffData: {
+      at: string;
+      avant: { fichier: string; blobUrl: string | null; typeMedia: string }[];
+      nbAvant: number;
+      nbApres: number;
+    } | null = null;
+    if (slidesActuelles.length > 0) {
+      const snap = await snapshotSlidesAvant(slidesActuelles, id, options.dataDir);
+      if (snap.avant.length > 0) {
+        diffData = { at: snap.at, avant: snap.avant, nbAvant: snap.avant.length, nbApres: body.slides.length };
+      }
+    }
     await repo.deleteSlides(id);
     const stored: { fichier: string; blobUrl: string | null }[] = [];
     for (let i = 0; i < body.slides.length; i++) {
@@ -525,7 +542,7 @@ export function createApp(repo: Repo, options: AppOptions) {
     }
 
     const updatedAt = new Date().toISOString();
-    await repo.updateBrouillon(id, { updatedAt });
+    await repo.updateBrouillon(id, { updatedAt, ...(diffData ? { diff: JSON.stringify(diffData) } : {}) });
 
     await journaliser(repo, {
       type: 'regeneration',
@@ -536,7 +553,12 @@ export function createApp(repo: Repo, options: AppOptions) {
       details: { nb: stored.length }
     });
 
-    return c.json({ ok: true, slideCount: stored.length, slides: stored.map((s) => s.fichier) });
+    return c.json({
+      ok: true,
+      slideCount: stored.length,
+      slides: stored.map((s) => s.fichier),
+      ...(diffData ? { diff: diffData } : {})
+    });
   });
 
   // POST /api/brouillon/:id/order → reordonne les slides (body: { fichiers: string[] })
