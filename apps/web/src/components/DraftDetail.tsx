@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, FileCode, Trash,
+  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash,
   InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
@@ -95,6 +95,11 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [notes, setNotes] = useState('');
   const [checklist, setChecklist] = useState<{ id: string; label: string; checked: boolean }[]>([]);
   const [savedFlash, setSavedFlash] = useState(false);
+  // Mode « Apercu publie » (SPEC-TUNNEL.md US-05) : la slide courante + la
+  // legende assemblee du reseau actif, comme le post apparaitra publie.
+  const [apercuPublie, setApercuPublie] = useState(false);
+  // Pseudo de la marque pour l'en-tete de l'apercu (charte si dispo, sinon placeholder).
+  const [charteNom, setCharteNom] = useState<string | null>(null);
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
@@ -128,6 +133,22 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   useEffect(() => {
     load();
   }, [load]);
+
+  // Pseudo de la marque pour l'en-tete de l'apercu publie : le nom de la charte
+  // (ex. « Bordeluche ») si dispo, sinon placeholder generique (US-05).
+  useEffect(() => {
+    let vivant = true;
+    fetchCharte()
+      .then((c) => {
+        if (vivant && c.nom && c.nom.trim() && c.nom !== 'Charte principale') setCharteNom(c.nom.trim());
+      })
+      .catch(() => {
+        /* charte indisponible : pseudo generique */
+      });
+    return () => {
+      vivant = false;
+    };
+  }, []);
 
   // Polling de la conversation : l'agent repond quand il a execute la demande.
   useEffect(() => {
@@ -541,6 +562,9 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
 
   const currentReseau = brouillon.reseaux[reseauActif] || { caption: '', hashtags: '', statut: 'brouillon' };
   const estDocument = TYPES_DOCUMENTS.includes(brouillon.type);
+  // Pseudo affiche dans l'apercu publie : « @bordeluche » si la charte porte un
+  // nom de marque, sinon placeholder generique (US-05).
+  const pseudo = charteNom ? `@${slugifier(charteNom)}` : '@votremarque';
   const contraintes: { maxChars: number; maxHashtags: number; maxImages: number; format: string } =
     RESEAU_CONTRAINTES[reseauActif] ?? { maxChars: 2200, maxHashtags: 30, maxImages: 10, format: 'Carré 1080×1080' };
   const nbHashtags = (currentReseau.hashtags || '').split(/\s+/).filter((h) => h.startsWith('#')).length;
@@ -751,10 +775,48 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   </>
                 )}
               </div>
+              {apercuPublie && !estDocument && (
+                <div className="apercu-legende">
+                  <div className="apercu-legende-head">
+                    {(() => {
+                      const Icon = RESEAU_ICONES[reseauActif] || InstagramLogo;
+                      return <Icon size={14} weight="regular" />;
+                    })()}
+                    <span className="apercu-legende-reseau">{RESEAUX_LABELS[reseauActif] || reseauActif}</span>
+                    <span className="apercu-legende-pseudo">{pseudo}</span>
+                  </div>
+                  {(currentReseau.caption || '').trim() !== '' ? (
+                    <p className="apercu-legende-caption">{currentReseau.caption}</p>
+                  ) : null}
+                  {(currentReseau.hashtags || '').trim() !== '' ? (
+                    <p className="apercu-legende-hashtags">{currentReseau.hashtags}</p>
+                  ) : null}
+                  {(currentReseau.caption || '').trim() === '' && (currentReseau.hashtags || '').trim() === '' ? (
+                    <p className="apercu-legende-vide">
+                      Aucune légende pour {RESEAUX_LABELS[reseauActif] || reseauActif}. Onglet Réseaux pour l'écrire.
+                    </p>
+                  ) : null}
+                  <div className={`apercu-legende-count${(currentReseau.caption || '').length > contraintes.maxChars ? ' over' : ''}`}>
+                    {(currentReseau.caption || '').length} caractères / {contraintes.maxChars}
+                  </div>
+                </div>
+              )}
               <div className="stage-nav">
                 <span className="counter">
                   {slide + 1} / {brouillon.slideCount}
                 </span>
+                {!estDocument && (
+                  <button
+                    type="button"
+                    className={`apercu-toggle${apercuPublie ? ' on' : ''}`}
+                    onClick={() => setApercuPublie((v) => !v)}
+                    aria-pressed={apercuPublie}
+                    title="Voir le post assemblé (slide + légende) comme publié"
+                  >
+                    <Eye size={13} weight="regular" />
+                    Aperçu publié
+                  </button>
+                )}
               </div>
               <div className="thumbs">
                 {brouillon.slides.map((s, i) => (
