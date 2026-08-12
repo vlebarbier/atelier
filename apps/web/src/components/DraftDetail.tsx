@@ -34,6 +34,26 @@ const RESEAU_CONTRAINTES: Record<string, { maxChars: number; maxHashtags: number
 
 type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source';
 
+/**
+ * Tunnel de creation (SPEC-TUNNEL.md) : les 4 etapes visibles dans le header
+ * de la vue detail. L'etape courante derive du statut du brouillon.
+ */
+const ETAPES_TUNNEL: { id: string; label: string }[] = [
+  { id: 'demander', label: 'Demander' },
+  { id: 'reviser', label: 'Réviser' },
+  { id: 'valider', label: 'Valider' },
+  { id: 'programmer', label: 'Programmer' }
+];
+
+function etapeEtat(statut: string, index: number): string {
+  // Ordre des statuts : brouillon < a-valider < valide < publie.
+  const ordre: Record<string, number> = { brouillon: 0, 'a-valider': 1, valide: 2, publie: 3 };
+  const niveau = ordre[statut] ?? 0;
+  if (index < niveau) return 'done';
+  if (index === niveau) return 'current';
+  return 'todo';
+}
+
 interface DraftDetailProps {
   id: string;
   onClose: () => void;
@@ -536,6 +556,18 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           <span className="sep">/</span>
           <span className="title" title={brouillon.titre}>{brouillon.titre}</span>
         </div>
+        <div className="tunnel-steps" aria-label="Progression du workflow">
+          {ETAPES_TUNNEL.map((etape, i) => {
+            const etat = etapeEtat(brouillon.statut, i);
+            return (
+              <div key={etape.id} className={`tunnel-step ${etat}`} title={etape.label}>
+                <span className="tunnel-step-dot" />
+                <span className="tunnel-step-label">{etape.label}</span>
+                {i < ETAPES_TUNNEL.length - 1 && <span className="tunnel-step-line" />}
+              </div>
+            );
+          })}
+        </div>
         <div className="r">
           <div className="statut-control">
             <button
@@ -783,6 +815,13 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 </div>
               </div>
             )}
+            {checklist.length > 0 &&
+              checklist.every((c) => c.checked) &&
+              brouillon.statut === 'brouillon' && (
+                <button className="primary tunnel-next" type="button" onClick={() => setStatut('a-valider')}>
+                  <ArrowRight size={13} weight="bold" /> Passer à À valider
+                </button>
+              )}
           </div>
 
           <div className="sp-section">
