@@ -120,6 +120,16 @@ export default function App() {
     setSelectedId(id);
   }
 
+  /** Depuis le journal : navigue vers la page du brouillon (contenu, document ou article). */
+  function openDepuisJournal(id: string) {
+    const b = brouillons.find((x) => x.id === id);
+    const t = b?.type ?? '';
+    if (TYPES_DOCUMENTS.includes(t)) setPage('documents');
+    else if (t === TYPE_ARTICLE) setPage('blog');
+    else setPage('brouillons');
+    setSelectedId(id);
+  }
+
   function closeBrouillon() {
     setSelectedId(null);
     load();
@@ -304,7 +314,7 @@ export default function App() {
           {page === 'calendrier' && <CalendarPage brouillons={brouillons} onOpen={openBrouillon} onRefresh={load} />}
           {page === 'bibliotheque' && <BibliothequePage />}
           {page === 'charte' && <BrandPage />}
-          {page === 'activite' && <ActivityPage />}
+          {page === 'activite' && <ActivityPage onOpen={openDepuisJournal} />}
           {page === 'integrations' && <IntegrationsPage />}
         </main>
       </div>
