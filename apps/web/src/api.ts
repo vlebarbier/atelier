@@ -64,6 +64,39 @@ export function parseArticle(raw: unknown): ArticleMeta | null {
   return null;
 }
 
+/** Une slide figee AVANT la derniere regeneration (snapshot cote serveur). */
+export interface DiffAvant {
+  fichier: string;
+  blobUrl: string | null;
+  typeMedia: string;
+}
+
+/** Diff visuel de la derniere regeneration : les slides avant, pour l'avant/apres. */
+export interface DiffData {
+  at: string;
+  avant: DiffAvant[];
+  nbAvant: number;
+  nbApres: number;
+}
+
+/**
+ * Normalise le champ diff : l'API le renvoie deja parse (objet), mais certaines
+ * sources peuvent le donner en JSON string. Accepte les deux formes.
+ */
+export function parseDiff(raw: unknown): DiffData | null {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try {
+      const v = JSON.parse(raw);
+      return v && typeof v === 'object' ? (v as DiffData) : null;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw === 'object') return raw as DiffData;
+  return null;
+}
+
 export interface Brouillon {
   id: string;
   titre: string;
@@ -92,6 +125,7 @@ export interface BrouillonDetail extends Brouillon {
   conversation?: string;
   programme?: string | Programme | null;
   article?: string | ArticleMeta | null;
+  diff?: string | DiffData | null;
 }
 
 export interface MessageChat {
@@ -211,7 +245,7 @@ export async function updateBrouillon(
 export async function replaceSlides(
   id: string,
   slides: string[]
-): Promise<{ ok: boolean; slideCount: number }> {
+): Promise<{ ok: boolean; slideCount: number; slides?: string[]; diff?: DiffData | null }> {
   const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/slides`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
