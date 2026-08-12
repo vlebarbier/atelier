@@ -9,7 +9,7 @@ import type { BrouillonDetail, DiffData, MessageChat, ReseauEntry, Statut } from
 import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseDiff, parseProgramme, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
 import { comparerSlides, nombreSlidesDiff, urlsAvantApres, type ZoneDiff } from '../diff';
 import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
-import { RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate } from '../format';
+import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate, type Creneau } from '../format';
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerHTML } from '../export';
 
 const RESEAU_ICONES: Record<string, Icon> = {
@@ -204,6 +204,28 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de programmation');
     }
+  }
+
+  /** Ouvre la modale de programmation : reseau actif preselectionne, suggestion
+   *  par defaut (premier creneau du reseau) appliquee d'office. Le user garde
+   *  la main : les chips proposent les heures de pointe, les champs restent
+   *  editables. */
+  function ouvrirPlanif() {
+    setPlanifReseau(reseauActif);
+    const creneaux = CRENEAUX_PAR_RESEAU[reseauActif] ?? [];
+    const defaut = creneaux[0];
+    if (defaut) {
+      setPlanifDate(prochainJour(defaut.jour));
+      setPlanifHeure(defaut.heure);
+    }
+    setPlanifOpen(true);
+  }
+
+  /** Applique un creneau choisi : date = prochaine occurrence du jour, heure =
+   *  celle du creneau (spec creneaux pertinents, US-06). */
+  function appliquerCreneau(c: Creneau) {
+    setPlanifDate(prochainJour(c.jour));
+    setPlanifHeure(c.heure);
   }
 
   async function onAnnulerProgramme() {
@@ -1286,7 +1308,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               })()
             ) : (
               <>
-                <button className="primary planif-btn" type="button" onClick={() => setPlanifOpen(true)}>
+                <button className="primary planif-btn" type="button" onClick={ouvrirPlanif}>
                   <CalendarBlank size={14} weight="bold" /> Programmer dans le calendrier
                 </button>
                 <div className="planif-hint">Quand le contenu est prêt, planifiez sa publication.</div>
@@ -1328,20 +1350,57 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
             </div>
             <div className="modal-body">
               <div className="field">
+                <label htmlFor="p-reseau">Réseau</label>
+                <select
+                  id="p-reseau"
+                  value={planifReseau}
+                  onChange={(e) => {
+                    const r = e.target.value;
+                    setPlanifReseau(r);
+                    // La suggestion par defaut suit le reseau : premier creneau
+                    // de sa table d'heures de pointe (US-06).
+                    const defaut = (CRENEAUX_PAR_RESEAU[r] ?? [])[0];
+                    if (defaut) {
+                      setPlanifDate(prochainJour(defaut.jour));
+                      setPlanifHeure(defaut.heure);
+                    }
+                  }}
+                >
+                  {RESEAUX.map((r) => (
+                    <option key={r} value={r}>{RESEAUX_LABELS[r] || r}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="creneaux-section">
+                <label className="creneaux-label">Créneaux conseillés</label>
+                <div className="creneaux-row">
+                  {(CRENEAUX_PAR_RESEAU[planifReseau] ?? []).map((c, i) => {
+                    const jour = c.jour;
+                    const dateChip = prochainJour(jour);
+                    const actif = planifDate === dateChip && planifHeure === c.heure;
+                    return (
+                      <button
+                        key={`${jour}-${c.heure}-${i}`}
+                        type="button"
+                        className={`creneau-chip${actif ? ' on' : ''}`}
+                        title={`${JOURS_COURTS[jour] ?? ''} ${c.fenetre}`}
+                        aria-pressed={actif}
+                        onClick={() => appliquerCreneau(c)}
+                      >
+                        {JOURS_COURTS[jour] ?? ''} {c.heure}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="creneaux-hint">Heures de pointe pour {RESEAUX_LABELS[planifReseau] ?? planifReseau}. Cliquez pour pré-remplir, ou saisissez librement.</div>
+              </div>
+              <div className="field">
                 <label htmlFor="p-date">Date</label>
                 <input id="p-date" type="date" value={planifDate} onChange={(e) => setPlanifDate(e.target.value)} />
               </div>
               <div className="field">
                 <label htmlFor="p-heure">Heure</label>
                 <input id="p-heure" type="time" value={planifHeure} onChange={(e) => setPlanifHeure(e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="p-reseau">Réseau</label>
-                <select id="p-reseau" value={planifReseau} onChange={(e) => setPlanifReseau(e.target.value)}>
-                  {RESEAUX.map((r) => (
-                    <option key={r} value={r}>{RESEAUX_LABELS[r] || r}</option>
-                  ))}
-                </select>
               </div>
             </div>
             <div className="modal-foot">

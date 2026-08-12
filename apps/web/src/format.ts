@@ -185,6 +185,73 @@ export const STATUT_LABELS: Record<string, string> = {
 
 export const STATUTS_ORDRE: readonly string[] = ['brouillon', 'a-valider', 'valide', 'publie'];
 
+/** Jour de la semaine, convention JS : 0 = dimanche ... 6 = samedi. */
+export interface Creneau {
+  jour: number;
+  /** Heure de debut au format HH:MM. */
+  heure: string;
+  /** Fenetre d'audience (ex. '18-20h') pour l'infobulle du chip. */
+  fenetre: string;
+}
+
+export const JOURS_COURTS: readonly string[] = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+/**
+ * Creneaux conseilles (heures de pointe) par reseau, pour la modale Programmer.
+ * Sources de bonnes pratiques courantes de publication par plateforme :
+ * Instagram pic mercredi/jeudi 18-20h + samedi matin ; LinkedIn matins
+ * professionnels en semaine ; Facebook mi-journee en semaine + samedi ;
+ * X en debut de matinee ; TikTok soiree + vendredi midi ; Google Business
+ * Profile (gmb) en matinee, quand la recherche locale est la plus active.
+ * Suggestion par defaut = premier element du tableau ; le user garde la main
+ * (les champs date/heure restent editables dans la modale).
+ */
+export const CRENEAUX_PAR_RESEAU: Record<string, Creneau[]> = {
+  instagram: [
+    { jour: 3, heure: '18:00', fenetre: '18-20h' },
+    { jour: 4, heure: '18:00', fenetre: '18-20h' },
+    { jour: 6, heure: '10:00', fenetre: '10-12h' },
+    { jour: 6, heure: '18:00', fenetre: '18-20h' }
+  ],
+  linkedin: [
+    { jour: 2, heure: '09:00', fenetre: '9-11h' },
+    { jour: 3, heure: '09:00', fenetre: '9-11h' },
+    { jour: 4, heure: '09:00', fenetre: '9-11h' }
+  ],
+  facebook: [
+    { jour: 3, heure: '13:00', fenetre: '13-15h' },
+    { jour: 4, heure: '13:00', fenetre: '13-15h' },
+    { jour: 6, heure: '10:00', fenetre: '10-12h' }
+  ],
+  x: [
+    { jour: 2, heure: '09:00', fenetre: '9-11h' },
+    { jour: 3, heure: '09:00', fenetre: '9-11h' },
+    { jour: 4, heure: '09:00', fenetre: '9-11h' },
+    { jour: 5, heure: '09:00', fenetre: '9-11h' }
+  ],
+  tiktok: [
+    { jour: 2, heure: '19:00', fenetre: '19-21h' },
+    { jour: 4, heure: '19:00', fenetre: '19-21h' },
+    { jour: 5, heure: '12:00', fenetre: '12-14h' }
+  ],
+  gmb: [
+    { jour: 2, heure: '10:00', fenetre: '10-12h' },
+    { jour: 3, heure: '10:00', fenetre: '10-12h' },
+    { jour: 4, heure: '10:00', fenetre: '10-12h' }
+  ]
+};
+
+/** Prochaine occurrence d'un jour de la semaine (0 = dim ... 6 = sam) depuis
+ *  aujourd'hui, au format YYYY-MM-DD local (attendu par <input type="date">). */
+export function prochainJour(jour: number, ref: Date = new Date()): string {
+  const d = new Date(ref);
+  const delta = (jour - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + delta);
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const j = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${j}`;
+}
+
 /** Temps relatif en francais, style "il y a 3 h". Sans dependance externe. */
 export function relTime(iso: string | null): string {
   if (!iso) return "a l'instant";
