@@ -137,6 +137,16 @@ export default function App() {
     setSelectedId(id);
   }
 
+  /** Depuis le calendrier : le panneau lateral montre le post, ce bouton ouvre
+   *  la vue detail complete (page Contenus/Documents) avec le brouillon ouvert. */
+  function openDepuisCalendrier(id: string) {
+    const b = brouillons.find((x) => x.id === id);
+    const t = b?.type ?? '';
+    if (TYPES_DOCUMENTS.includes(t)) setPage('documents');
+    else setPage('brouillons');
+    setSelectedId(id);
+  }
+
   function closeBrouillon() {
     setSelectedId(null);
     load();
@@ -318,7 +328,9 @@ export default function App() {
             />
           )}
 
-          {page === 'calendrier' && <CalendarPage brouillons={brouillons} onOpen={openBrouillon} onRefresh={load} />}
+          {page === 'calendrier' && (
+            <CalendarPage brouillons={brouillons} onOpen={openDepuisCalendrier} onRefresh={load} />
+          )}
           {page === 'bibliotheque' && <BibliothequePage />}
           {page === 'charte' && <BrandPage />}
           {page === 'activite' && <ActivityPage onOpen={openDepuisJournal} />}

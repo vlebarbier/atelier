@@ -3,11 +3,12 @@ import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import type { Brouillon } from '../api';
 import { updateBrouillon, parseProgramme } from '../api';
 import { Page, PageHeader } from '../components/ui';
+import { CalendarPostPanel } from '../components/CalendarPostPanel';
 import { TYPES_DOCUMENTS, TYPE_ARTICLE } from '../format';
 
 interface CalendarPageProps {
   brouillons: Brouillon[];
-  /** Callback optionnel pour ouvrir un brouillon au clic. */
+  /** Ouvre un brouillon dans la vue detail complete (page Contenus/Documents). */
   onOpen?: (id: string) => void;
   /** Callback pour rafraichir la liste apres une mutation (drag & drop). */
   onRefresh?: () => void;
@@ -70,6 +71,9 @@ export function CalendarPage({ brouillons, onOpen, onRefresh }: CalendarPageProp
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Brouillon ouvert dans le panneau lateral : le calendrier reste visible,
+  // le panneau remplace la liste "A programmer" tant qu'un post est ouvert.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Seuls les contenus programmables comptent : pas de documents ni d'articles
   // de blog dans le calendrier (ils ont leurs propres pages).
@@ -163,6 +167,10 @@ export function CalendarPage({ brouillons, onOpen, onRefresh }: CalendarPageProp
 
   const itemsFor = (key: string | null): Brouillon[] => (key ? byDate.get(key) || [] : []);
 
+  // Brouillon ouvert dans le panneau : recalculé à chaque render depuis la
+  // liste (il bouge de jour quand on change sa date, on suit l'objet frais).
+  const selected = selectedId ? (programmables.find((b) => b.id === selectedId) ?? null) : null;
+
   // ---- Vue mois ----
   const firstOfMonth = new Date(year, month, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -220,12 +228,12 @@ export function CalendarPage({ brouillons, onOpen, onRefresh }: CalendarPageProp
   const renderItem = (b: Brouillon) => (
     <div
       key={b.id}
-      className={`calendar-item badge--${b.statut}${dragId === b.id ? ' dragging' : ''}${onOpen ? ' clickable' : ''}`}
+      className={`calendar-item badge--${b.statut}${dragId === b.id ? ' dragging' : ''}${selectedId === b.id ? ' selected' : ' clickable'}`}
       title={b.titre}
       draggable
       onDragStart={dragStart(b)}
       onDragEnd={dragEnd}
-      onClick={() => onOpen?.(b.id)}
+      onClick={() => setSelectedId(b.id)}
     >
       {b.titre}
     </div>
@@ -268,7 +276,7 @@ export function CalendarPage({ brouillons, onOpen, onRefresh }: CalendarPageProp
         </div>
       </div>
 
-      <div className="calendar-layout">
+      <div className={`calendar-layout${selected ? ' has-panel' : ''}`}>
         <div className="calendar-main">
           {vue === 'mois' ? (
             <>
@@ -322,37 +330,46 @@ export function CalendarPage({ brouillons, onOpen, onRefresh }: CalendarPageProp
           )}
         </div>
 
-        <aside className="calendar-side">
-          <div className="calendar-side-title">
-            A programmer
-            {aProgrammer.length > 0 && <span className="calendar-side-count">{aProgrammer.length}</span>}
-          </div>
-          <div className="calendar-side-sub">
-            Brouillons valides sans date de programmation. Glissez-les sur un jour pour les programmer.
-          </div>
-          {aProgrammer.length === 0 ? (
-            <div className="calendar-side-empty">
-              Rien en attente. Les brouillons valides apparaissent ici jusqu'a leur programmation.
+        {selected ? (
+          <CalendarPostPanel
+            brouillon={selected}
+            onClose={() => setSelectedId(null)}
+            onRefresh={onRefresh}
+            onOpenDetail={(id) => onOpen?.(id)}
+          />
+        ) : (
+          <aside className="calendar-side">
+            <div className="calendar-side-title">
+              A programmer
+              {aProgrammer.length > 0 && <span className="calendar-side-count">{aProgrammer.length}</span>}
             </div>
-          ) : (
-            <div className="calendar-side-list">
-              {aProgrammer.map((b) => (
-                <div
-                  key={b.id}
-                  className="calendar-side-item"
-                  title={b.titre}
-                  draggable
-                  onDragStart={dragStart(b)}
-                  onDragEnd={dragEnd}
-                  onClick={() => onOpen?.(b.id)}
-                >
-                  <span className="dot" />
-                  <span className="calendar-side-titre">{b.titre}</span>
-                </div>
-              ))}
+            <div className="calendar-side-sub">
+              Brouillons valides sans date de programmation. Glissez-les sur un jour pour les programmer.
             </div>
-          )}
-        </aside>
+            {aProgrammer.length === 0 ? (
+              <div className="calendar-side-empty">
+                Rien en attente. Les brouillons valides apparaissent ici jusqu'a leur programmation.
+              </div>
+            ) : (
+              <div className="calendar-side-list">
+                {aProgrammer.map((b) => (
+                  <div
+                    key={b.id}
+                    className={`calendar-side-item${selectedId === b.id ? ' selected' : ''}`}
+                    title={b.titre}
+                    draggable
+                    onDragStart={dragStart(b)}
+                    onDragEnd={dragEnd}
+                    onClick={() => setSelectedId(b.id)}
+                  >
+                    <span className="dot" />
+                    <span className="calendar-side-titre">{b.titre}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </aside>
+        )}
       </div>
       {saving && <div className="calendar-toast">Reprogrammation en cours...</div>}
     </Page>
