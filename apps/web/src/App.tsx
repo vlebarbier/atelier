@@ -14,6 +14,8 @@ import { ActivityPage } from './pages/ActivityPage';
 import { BibliothequePage } from './pages/BibliothequePage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
 import { BlogPage } from './pages/BlogPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { HelpPage } from './pages/HelpPage';
 import { ArticleEditor } from './components/ArticleEditor';
 import { TYPE_ARTICLE, TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
 import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
@@ -26,12 +28,17 @@ const PAGE_LABELS: Record<string, string> = {
   bibliotheque: 'Bibliothèque',
   charte: 'Charte graphique',
   activite: 'Activite IA',
-  integrations: 'Intégrations'
+  integrations: 'Intégrations',
+  parametres: 'Paramètres',
+  aide: 'Aide'
 };
 
 export default function App() {
   const [page, setPage] = useState('brouillons');
-  const [vue, setVue] = useState<Vue>('grille');
+  // Vue par defaut : preference Parametres (atelier.vue.defaut), sinon grille.
+  const [vue, setVue] = useState<Vue>(() =>
+    localStorage.getItem('atelier.vue.defaut') === 'liste' ? 'liste' : 'grille'
+  );
   const [filtre, setFiltre] = useState<Statut | 'tous'>('tous');
   const [brouillons, setBrouillons] = useState<Brouillon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -306,6 +313,8 @@ export default function App() {
           {page === 'charte' && <BrandPage />}
           {page === 'activite' && <ActivityPage />}
           {page === 'integrations' && <IntegrationsPage />}
+          {page === 'parametres' && <SettingsPage />}
+          {page === 'aide' && <HelpPage />}
         </main>
       </div>
 

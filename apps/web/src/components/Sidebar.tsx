@@ -123,7 +123,7 @@ export function Sidebar({ activePage, onNavigate, aValider = 0, collapsed, onTog
           <Gear size={16} weight="regular" className="nav-ico" />
           {deployee && <span className="nav-label">Paramètres</span>}
         </button>
-        <button title={!deployee ? 'Aide' : undefined} aria-label="Aide">
+        <button className={activePage === 'aide' ? 'active' : ''} onClick={() => onNavigate('aide')} title={!deployee ? 'Aide' : undefined} aria-label="Aide">
           <Question size={16} weight="regular" className="nav-ico" />
           {deployee && <span className="nav-label">Aide</span>}
         </button>
