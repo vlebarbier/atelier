@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Check, Palette, TextT, ImageSquare, Plus, Trash, FileCode, UploadSimple, Quotes } from '@phosphor-icons/react';
+import { Check, Palette, TextT, ImageSquare, Plus, Trash, FileCode, UploadSimple, Quotes, Eye } from '@phosphor-icons/react';
 import tokens from '@atelier/tokens';
 import { fetchCharte, saveCharte, importCharte, type Charte } from '../api';
-import { DEFAULT_CHARTE, parseCharte, type CharteData } from '../charte';
+import { buildCharteFontLink, DEFAULT_CHARTE, parseCharte, type CharteData } from '../charte';
 import { Page, PageHeader } from '../components/ui';
 
 interface TokenSwatch {
@@ -29,6 +29,44 @@ function collectColors(): TokenSwatch[] {
   return swatches;
 }
 
+/** Role d'une couleur dans l'apercu : fond, texte ou accent. */
+type RoleApercu = 'fond' | 'texte' | 'accent';
+
+const ROLE_LABELS: Record<RoleApercu, string> = { fond: 'Fond', texte: 'Texte', accent: 'Accent' };
+
+/** Luminance relative (0..1) d'une couleur CSS, pour trier fond/texte/accent. */
+function luminance(valeur: string): number {
+  const t = valeur.trim().toLowerCase();
+  const hex = t.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  if (hex) {
+    let h = hex[1] ?? '';
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    const r = parseInt(h.slice(0, 2), 16) / 255;
+    const g = parseInt(h.slice(2, 4), 16) / 255;
+    const b = parseInt(h.slice(4, 6), 16) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  const rgb = t.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
+  if (rgb) {
+    const r = (parseFloat(rgb[1] ?? '0') || 0) / 255;
+    const g = (parseFloat(rgb[2] ?? '0') || 0) / 255;
+    const b = (parseFloat(rgb[3] ?? '0') || 0) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  return 0.5;
+}
+
+/** Assignation automatique des roles : le plus sombre en fond, le plus clair en texte, le premier restant en accent. */
+function rolesAuto(couleurs: Record<string, string>): Record<RoleApercu, string | null> {
+  const entries = Object.entries(couleurs);
+  if (entries.length === 0) return { fond: null, texte: null, accent: null };
+  const tri = [...entries].sort((a, b) => luminance(a[1]) - luminance(b[1]));
+  const fond = tri[0]?.[0] ?? null;
+  const texte = tri[tri.length - 1]?.[0] ?? null;
+  const accent = entries.find(([nom]) => nom !== fond && nom !== texte)?.[0] ?? fond;
+  return { fond, texte, accent };
+}
+
 /** La page Charte : editeur de la charte graphique du client (injectee dans le rendu et les agents). */
 export function BrandPage() {
   const [charte, setCharte] = useState<CharteData>(DEFAULT_CHARTE);
@@ -39,6 +77,61 @@ export function BrandPage() {
   const [importing, setImporting] = useState(false);
   const [importStats, setImportStats] = useState<{ couleurs: number; polices: number; rayons: number; logos: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  /** Roles fond/texte/accent choisis par l'utilisateur (persistés en localStorage). */
+  const [roles, setRoles] = useState<Record<RoleApercu, string | null>>(() => {
+    try {
+      const raw = localStorage.getItem('atelier.charte.roles');
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Record<RoleApercu, string | null>>;
+        return { fond: parsed.fond ?? null, texte: parsed.texte ?? null, accent: parsed.accent ?? null };
+      }
+    } catch {
+      /* localStorage indisponible : roles auto */
+    }
+    return { fond: null, texte: null, accent: null };
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('atelier.charte.roles', JSON.stringify(roles));
+    } catch {
+      /* non bloquant */
+    }
+  }, [roles]);
+
+  /** Charge les polices de la charte (Google Fonts) pour que l'apercu rende la vraie typo. */
+  useEffect(() => {
+    const link = buildCharteFontLink(charte);
+    if (!link) return;
+    if (document.querySelector(`link[data-charte-fonts="${link}"]`)) return;
+    const el = document.createElement('link');
+    el.rel = 'stylesheet';
+    el.href = link;
+    el.dataset.charteFonts = link;
+    document.head.appendChild(el);
+    return () => {
+      el.remove();
+    };
+  }, [charte.polices.titre, charte.polices.texte]);
+
+  /** Roles effectifs : le choix utilisateur s'il existe encore, sinon l'auto. */
+  function rolesEffectifs(): Record<RoleApercu, string | null> {
+    const auto = rolesAuto(charte.couleurs);
+    return {
+      fond: roles.fond && charte.couleurs[roles.fond] ? roles.fond : auto.fond,
+      texte: roles.texte && charte.couleurs[roles.texte] ? roles.texte : auto.texte,
+      accent: roles.accent && charte.couleurs[roles.accent] ? roles.accent : auto.accent
+    };
+  }
+
+  const roleValeur = rolesEffectifs();
+  const couleurFond = roleValeur.fond ? charte.couleurs[roleValeur.fond] : null;
+  const couleurTexte = roleValeur.texte ? charte.couleurs[roleValeur.texte] : null;
+  const couleurAccent = roleValeur.accent ? charte.couleurs[roleValeur.accent] : null;
+  /** Couleur du texte sur l'accent : noir si l'accent est clair, blanc sinon. */
+  const surAccent = couleurAccent ? (luminance(couleurAccent) > 0.55 ? '#0A0A0A' : '#FFFFFF') : '#050505';
+  const premierLogo = charte.logos.find((l) => /^https?:\/\//.test(l)) ?? null;
+  const premierRayon = Object.values(charte.rayons)[0] ?? null;
 
   useEffect(() => {
     fetchCharte()
@@ -123,6 +216,76 @@ export function BrandPage() {
           </div>
         }
       />
+
+      <section className="brand-section brand-preview">
+        <h3>
+          <Eye size={13} /> Apercu en contexte
+        </h3>
+        <p className="brand-editor-sub">
+          Vos couleurs et vos polices rendues comme sur une slide. Assignez chaque role (fond, texte,
+          accent) et modifiez un token : l'apercu se met a jour immediatement.
+        </p>
+
+        <div className="preview-layout">
+          <div className="preview-stage">
+            <div
+              className="preview-slide"
+              style={{
+                background: couleurFond ?? '#050505',
+                borderRadius: premierRayon ?? '12px',
+                fontFamily: charte.polices.texte || undefined
+              }}
+            >
+              {premierLogo && <img src={premierLogo} alt="" className="preview-logo" />}
+              <div className="preview-slide-kicker" style={{ color: couleurTexte ?? '#FFFFFF' }}>
+                VOTRE MARQUE
+              </div>
+              <div className="preview-slide-titre" style={{ color: couleurTexte ?? '#FFFFFF', fontFamily: charte.polices.titre || undefined }}>
+                Un titre qui donne envie
+              </div>
+              <div className="preview-slide-texte" style={{ color: couleurTexte ?? '#FFFFFF' }}>
+                Quelques lignes de texte pour juger le rendu de la typo et des couleurs en situation reelle.
+              </div>
+              <div className="preview-slide-cta" style={{ background: couleurAccent ?? '#FFFFFF', color: surAccent }}>
+                Decouvrir
+              </div>
+            </div>
+          </div>
+
+          <div className="preview-roles">
+            {(['fond', 'texte', 'accent'] as RoleApercu[]).map((role) => (
+              <label className="preview-role" key={role}>
+                <span className="preview-role-label">{ROLE_LABELS[role]}</span>
+                <span className="preview-role-ctrl">
+                  <span
+                    className="preview-role-dot"
+                    style={{
+                      background:
+                        role === 'fond' ? (couleurFond ?? '#050505') : role === 'texte' ? (couleurTexte ?? '#FFFFFF') : (couleurAccent ?? '#FFFFFF')
+                    }}
+                  />
+                  <select
+                    value={roleValeur[role] ?? ''}
+                    onChange={(e) => setRoles((r) => ({ ...r, [role]: e.target.value || null }))}
+                    aria-label={`Role ${ROLE_LABELS[role]}`}
+                  >
+                    <option value="">Automatique</option>
+                    {Object.entries(charte.couleurs).map(([nom, valeur]) => (
+                      <option key={nom} value={nom}>
+                        {nom} ({valeur})
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              </label>
+            ))}
+            <p className="preview-roles-hint">
+              Sans choix manuel, le plus sombre devient le fond, le plus clair le texte, et le premier
+              token restant l'accent.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <section className="brand-section brand-import">
         <h3>
