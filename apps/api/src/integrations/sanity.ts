@@ -1,19 +1,17 @@
 /**
- * Intégration CMS Sanity (Bordeluche), publication des articles de blog.
+ * Intégration Sanity CMS (blog Bordeluche, projet 5idghvob) : publication d'articles.
  *
- * Réconciliation avec le pipeline Notion→Sanity existant :
- *   - Les scripts historiques (~/Bordeluche/scripts/migrate-to-sanity.mjs, push-bor*.mjs)
- *     créent des documents `_type: 'post'` avec `_id: 'article-<slug>'` (createOrReplace).
- *   - Ce module utilise le MÊME identifiant : publier deux fois le même slug écrase
- *     proprement le document existant (idempotent), quel que soit l'outil qui l'a créé.
- *   - Le site (astro) rend `rawHtml` en priorité : on y dépose le corps HTML du brouillon
- *     (le « réceptacle » Atelier), champ `sourceHtml`.
+ * Rapproche le pipeline Notion→Sanity existant (scripts push-bor*.mjs dans
+ * ~/Bordeluche/scripts) : même client HTTP, mêmes champs (rawHtml, coverImage,
+ * slug, seoTitle...), même flux de publication (create → createOrReplace si
+ * draft + delete). L'API est appelée en fetch pur, sans dépendance @sanity/client
+ * (pattern du module postiz.ts).
  *
- * La config est lue depuis les env (mêmes noms que le pipeline Bordeluche) :
- *   PUBLIC_SANITY_PROJECT_ID, PUBLIC_SANITY_DATASET, SANITY_WRITE_TOKEN.
- * Aucun appel n'est fait si la config est absente (mode local sans CMS).
+ * Config lue depuis les env, dans l'ordre :
+ *   - SANITY_PROJECT_ID (défaut '5idghvob')
+ *   - SANITY_DATASET   (défaut 'production')
+ *   - SANITY_WRITE_TOKEN (obligatoire pour publier : token Editor)
  */
-import { createClient, type SanityClient } from '@sanity/client';
 
 export interface SanityConfig {
   projectId: string;
@@ -21,116 +19,169 @@ export interface SanityConfig {
   token: string;
 }
 
-export interface ArticleCms {
-  /** Slug URL de l'article (identifiant de réconciliation : _id = 'article-' + slug). */
-  slug: string;
+export interface SanityArticleInput {
   title: string;
-  /** Résumé / chapo (champ `excerpt` du schéma Sanity). */
-  excerpt: string;
-  /** Corps de l'article en HTML brut (champ `rawHtml`, rendu prioritaire côté site). */
-  rawHtml: string;
+  slug?: string;
   seoTitle?: string;
   seoDescription?: string;
   category?: string;
   publishedAt?: string;
   readingTime?: number;
-  /** URL de l'image de couverture (uploadée dans les assets Sanity). */
-  coverImageUrl?: string;
-  coverImageAlt?: string;
+  excerpt?: string;
+  /** Corps de l'article en HTML (champ legacy rawHtml du schéma post). */
+  rawHtml: string;
+  coverImage?: { dataUrl: string; alt?: string };
+  /** Id du document Sanity déjà créé (réédition → createOrReplace). */
+  cmsId?: string | null;
+}
+
+export interface SanityPublishResult {
+  cmsId: string;
+  slug: string;
+  url: string;
+}
+
+/** Construit l'URL publique de l'article sur le site (Astro, /blog/<slug>/). */
+export function articleUrl(slug: string): string {
+  return `https://www.bordeluche.com/blog/${slug}/`;
 }
 
 export function getSanityConfig(): SanityConfig | null {
-  const projectId = process.env.PUBLIC_SANITY_PROJECT_ID?.trim();
-  const dataset = process.env.PUBLIC_SANITY_DATASET?.trim();
-  const token = process.env.SANITY_WRITE_TOKEN?.trim();
-  if (!projectId || !dataset || !token) return null;
-  return { projectId, dataset, token };
+  const token = process.env.SANITY_WRITE_TOKEN;
+  if (!token) return null;
+  return {
+    projectId: process.env.SANITY_PROJECT_ID || '5idghvob',
+    dataset: process.env.SANITY_DATASET || 'production',
+    token
+  };
 }
 
-function makeClient(config: SanityConfig): SanityClient {
-  return createClient({
-    projectId: config.projectId,
-    dataset: config.dataset,
-    apiVersion: '2024-01-01',
-    token: config.token,
-    useCdn: false
-  });
+/** Slugify simple : minuscules, sans accents, tirets entre mots. */
+export function slugify(raw: string): string {
+  return raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 96);
 }
 
-/** Télécharge une image distante (http/https) en Buffer. Sert pour la couverture. */
-async function fetchImageBuffer(url: string): Promise<Buffer> {
-  const mod = await import('node:https').catch(() => null);
-  const http = (await import('node:http')).default;
-  const lib = url.startsWith('https:') ? (mod ? mod.default : null) : http;
-  if (!lib) throw new Error('https introuvable');
-  return new Promise((resolve, reject) => {
-    const req = lib.get(url, (res: { statusCode?: number; headers: { location?: string }; on: (e: string, cb: (chunk: Buffer) => void) => void }) => {
-      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        fetchImageBuffer(res.headers.location).then(resolve).catch(reject);
-        return;
-      }
-      if (res.statusCode && res.statusCode >= 400) {
-        reject(new Error(`HTTP ${res.statusCode} en téléchargeant ${url}`));
-        return;
-      }
-      const chunks: Buffer[] = [];
-      res.on('data', (c: Buffer) => chunks.push(c));
-      res.on('end', () => resolve(Buffer.concat(chunks)));
-      res.on('error', reject);
-    });
-    req.on('error', reject);
-  });
+/** Upload une image (dataURL) vers les assets Sanity → renvoie l'_id de l'asset. */
+async function uploadCoverImage(config: SanityConfig, dataUrl: string): Promise<string> {
+  const m = dataUrl.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/);
+  if (!m) throw new Error('Image de couverture invalide : dataURL image attendu');
+  const contentType = m[1] ?? 'image/png';
+  const buffer = Buffer.from(m[2] ?? '', 'base64');
+  if (buffer.length === 0) throw new Error('Image de couverture vide');
+
+  const res = await fetch(
+    `https://${config.projectId}.api.sanity.io/v2021-06-07/assets/images/${config.dataset}`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        'Content-Type': contentType
+      },
+      body: buffer
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Upload coverImage Sanity ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const json = (await res.json()) as { _id?: string };
+  if (!json._id) throw new Error('Upload coverImage Sanity : reponse sans _id');
+  return json._id;
 }
 
-export interface PublicationCms {
-  id: string;
-  url: string;
-  slug: string;
+/** Envoie une mutation au datastore Sanity. */
+async function mutate(config: SanityConfig, mutations: Record<string, unknown>[]): Promise<{ results?: { id: string }[] }> {
+  const res = await fetch(
+    `https://${config.projectId}.api.sanity.io/v2021-06-07/data/mutate/${config.dataset}`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ mutations })
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Mutation Sanity ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return res.json() as Promise<{ results?: { id: string }[] }>;
 }
 
 /**
- * Publie (ou remplace) un article dans Sanity. `_id: 'article-<slug>'` pour
- * réconcilier avec le pipeline Notion→Sanity existant (createOrReplace).
- * Le document est créé directement en published (pas de draft Sanity) :
- * la validation se fait dans Atelier avant d'appeler cette fonction.
+ * Publie (ou met à jour) un article dans Sanity.
+ *
+ * Flux identique au pipeline existant (push-bor*.mjs) :
+ *   1. upload de la coverImage si fournie → asset _id
+ *   2. doc post : title, slug, seoTitle/seoDescription, category, publishedAt,
+ *      readingTime, excerpt, rawHtml (le corps HTML), coverImage (asset + alt)
+ *   3. si cmsId → createOrReplace (réédition) ; sinon create → si l'id créé
+ *      commence par 'drafts.', createOrReplace avec l'id sans préfixe + delete
+ *
+ * Renvoie { cmsId, slug, url } pour persister la liaison Atelier ↔ Sanity.
  */
-export async function publierArticleCms(article: ArticleCms): Promise<PublicationCms> {
-  const config = getSanityConfig();
-  if (!config) {
-    throw new Error('CMS non configuré : PUBLIC_SANITY_PROJECT_ID / PUBLIC_SANITY_DATASET / SANITY_WRITE_TOKEN requis');
-  }
-  const client = makeClient(config);
-  const docId = `article-${article.slug}`;
+export async function publishArticle(config: SanityConfig, input: SanityArticleInput): Promise<SanityPublishResult> {
+  const slug = input.slug || slugify(input.title);
+  const title = input.title.trim();
+  if (!title) throw new Error('Titre de l\'article requis');
+  if (!slug) throw new Error('Slug invalide (genere depuis le titre)');
 
-  let coverImage: { _type: string; asset: { _type: string; _ref: string }; alt: string } | undefined;
-  if (article.coverImageUrl) {
-    const buffer = await fetchImageBuffer(article.coverImageUrl);
-    const asset = await client.assets.upload('image', buffer, {
-      filename: `${article.slug}-cover.jpg`,
-      contentType: 'image/jpeg'
-    });
+  // 1. Cover image
+  let coverImage: Record<string, unknown> | undefined;
+  if (input.coverImage?.dataUrl) {
+    const assetId = await uploadCoverImage(config, input.coverImage.dataUrl);
     coverImage = {
       _type: 'image',
-      asset: { _type: 'reference', _ref: asset._id },
-      alt: article.coverImageAlt || article.title
+      asset: { _type: 'reference', _ref: assetId },
+      alt: input.coverImage.alt || input.title
     };
   }
 
-  const doc = {
-    _type: 'post' as const,
-    _id: docId,
-    title: article.title,
-    slug: { _type: 'slug' as const, current: article.slug },
-    excerpt: article.excerpt,
-    rawHtml: article.rawHtml,
-    ...(article.seoTitle ? { seoTitle: article.seoTitle } : {}),
-    ...(article.seoDescription ? { seoDescription: article.seoDescription } : {}),
-    ...(article.category ? { category: article.category } : {}),
-    ...(article.publishedAt ? { publishedAt: article.publishedAt } : {}),
-    ...(article.readingTime ? { readingTime: article.readingTime } : {}),
-    ...(coverImage ? { coverImage } : {})
+  // 2. Document post
+  const doc: Record<string, unknown> = {
+    _type: 'post',
+    title,
+    slug: { _type: 'slug', current: slug },
+    rawHtml: input.rawHtml,
+    ctaType: 'rdv'
   };
+  if (input.seoTitle) doc.seoTitle = input.seoTitle;
+  if (input.seoDescription) doc.seoDescription = input.seoDescription;
+  if (input.category) doc.category = input.category;
+  if (input.publishedAt) doc.publishedAt = input.publishedAt;
+  if (typeof input.readingTime === 'number' && Number.isFinite(input.readingTime)) {
+    doc.readingTime = input.readingTime;
+  }
+  if (input.excerpt) doc.excerpt = input.excerpt;
+  if (coverImage) doc.coverImage = coverImage;
 
-  await client.createOrReplace(doc);
-  return { id: docId, url: `https://bordeluche.com/blog/${article.slug}`, slug: article.slug };
+  // 3. Publication (createOrReplace si réédition, sinon create → promotion)
+  let cmsId: string;
+  if (input.cmsId) {
+    await mutate(config, [{ createOrReplace: { _id: input.cmsId, ...doc } }]);
+    cmsId = input.cmsId;
+  } else {
+    const created = await mutate(config, [{ create: doc }]);
+    const createdId = created.results?.[0]?.id;
+    if (!createdId) throw new Error('Sanity : creation sans id en retour');
+    if (createdId.startsWith('drafts.')) {
+      const publishedId = createdId.replace('drafts.', '');
+      await mutate(config, [
+        { createOrReplace: { _id: publishedId, ...doc } },
+        { delete: { _id: createdId } }
+      ]);
+      cmsId = publishedId;
+    } else {
+      cmsId = createdId;
+    }
+  }
+
+  return { cmsId, slug, url: articleUrl(slug) };
 }
