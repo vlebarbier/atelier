@@ -354,6 +354,28 @@ export async function fetchHealth(): Promise<{ ok: boolean; mode: string; at: st
   return handle<{ ok: boolean; mode: string; at: string }>(res);
 }
 
+// ── Statut des canaux de publication ─────────────────────────────────
+
+export interface PostizStatut {
+  configure: boolean;
+  apiUrl: string | null;
+  joignable: boolean | null;
+  canaux: number | null;
+  erreur: string | null;
+}
+
+export interface IntegrationsStatut {
+  postiz: PostizStatut;
+  sanity: { configure: boolean; projectId: string | null };
+  buffer: { configure: boolean; aVenir: boolean };
+}
+
+/** GET /api/integrations/statut → etat reel des raccords (Postiz, Sanity, Buffer). */
+export async function fetchIntegrationsStatut(): Promise<IntegrationsStatut> {
+  const res = await fetch(apiUrl('/api/integrations/statut'));
+  return handle<IntegrationsStatut>(res);
+}
+
 export interface JournalEntry {
   id: number;
   type: string;

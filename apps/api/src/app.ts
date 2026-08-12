@@ -50,6 +50,24 @@ async function journaliser(
 }
 
 /**
+ * Execute p avec un delai maximal, rejette si le delai expire. Best-effort :
+ * les raccords externes (Postiz local) ne doivent jamais bloquer une route.
+ */
+async function avecTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let t: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      p,
+      new Promise<never>((_, rej) => {
+        t = setTimeout(() => rej(new Error(`delai depasse (${ms} ms)`)), ms);
+      })
+    ]);
+  } finally {
+    if (t) clearTimeout(t);
+  }
+}
+
+/**
  * Auteur de l'action : le client MCP envoie le header x-atelier-auteur: agent,
  * l'UI web n'envoie rien → 'user' par defaut.
  */
@@ -139,6 +157,47 @@ export function createApp(repo: Repo, options: AppOptions) {
       ok: true,
       mode: isPostgres() ? 'postgres' : 'sqlite',
       at: new Date().toISOString()
+    });
+  });
+
+  // GET /api/integrations/statut → etat reel des raccords de publication pour
+  // la page Integrations : Postiz (configure + joignable + canaux connectes),
+  // Sanity CMS, Buffer (a venir). Best-effort : Postiz est un raccord local
+  // (self-hosted), son ping peut echouer depuis le cloud sans config fausse.
+  app.get('/api/integrations/statut', async (c) => {
+    const { getPostizConfig, postizListIntegrations } = await import('./integrations/postiz.js');
+    const { getSanityConfig } = await import('./integrations/sanity.js');
+
+    const postizConfig = getPostizConfig();
+    const postiz: {
+      configure: boolean;
+      apiUrl: string | null;
+      joignable: boolean | null;
+      canaux: number | null;
+      erreur: string | null;
+    } = {
+      configure: postizConfig !== null,
+      apiUrl: postizConfig?.apiUrl ?? null,
+      joignable: null,
+      canaux: null,
+      erreur: null
+    };
+    if (postizConfig) {
+      try {
+        const canaux = await avecTimeout(postizListIntegrations(postizConfig), 4000);
+        postiz.joignable = true;
+        postiz.canaux = canaux.length;
+      } catch (err) {
+        postiz.joignable = false;
+        postiz.erreur = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    const sanityConfig = getSanityConfig();
+    return c.json({
+      postiz,
+      sanity: { configure: sanityConfig !== null, projectId: sanityConfig?.projectId ?? null },
+      buffer: { configure: false, aVenir: true }
     });
   });
 

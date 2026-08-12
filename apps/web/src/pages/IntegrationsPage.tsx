@@ -9,35 +9,47 @@ import {
   LinkSimple,
   ArrowSquareOut,
   WarningCircle,
-  CircleNotch
+  CircleNotch,
+  Sparkle
 } from '@phosphor-icons/react';
-import { fetchJournal, fetchHealth, type JournalEntry } from '../api';
+import {
+  fetchJournal,
+  fetchHealth,
+  fetchIntegrationsStatut,
+  type JournalEntry,
+  type IntegrationsStatut
+} from '../api';
 import { relTime } from '../format';
 import { Page, PageHeader, PageSection, EmptyState } from '../components/ui';
+import { TYPE_META } from './ActivityPage';
 
 /**
  * Page Integrations : le user connecte son ou ses agents (Hermes, Claude Code,
- * Codex) a Atelier via MCP. Affiche la config a copier, l'URL de l'API, un test
- * de connexion (GET /api/health), l'etat de connexion (derive du journal : y
- * a-t-il des actions agent recentes < 1h ?) et les canaux de publication a
- * venir (Postiz, connexions natives).
+ * Codex) a Atelier via MCP. Au chargement, la page ping l'API (GET /api/health)
+ * et affiche un badge connecte/deconnecte en temps reel (polling 15s), liste
+ * les agents qui ont agi recemment (depuis le journal) et donne le statut reel
+ * des canaux de publication (Postiz configure ou non, Sanity, Buffer a venir).
  */
 
 /** Fenetre de recence pour considerer un agent "connecte" (derniere action). */
 const FENETRE_CONNEXION_MS = 60 * 60 * 1000; // 1h
 
+/** Nb d'actions agent affichees dans la liste "agents actifs". */
+const NB_ACTIONS_LISTE = 8;
+
 type CopieId = 'hermes' | 'claude' | 'codex' | 'url' | null;
 
-type TestEtat =
-  | { status: 'idle' }
+type ApiEtat =
   | { status: 'loading' }
-  | { status: 'ok'; mode: string; ms: number }
+  | { status: 'ok'; mode: string; ms: number; at: number }
   | { status: 'err'; message: string };
 
 export function IntegrationsPage() {
   const [copie, setCopie] = useState<CopieId>(null);
   const [journal, setJournal] = useState<JournalEntry[]>([]);
-  const [test, setTest] = useState<TestEtat>({ status: 'idle' });
+  const [apiEtat, setApiEtat] = useState<ApiEtat>({ status: 'loading' });
+  const [canaux, setCanaux] = useState<IntegrationsStatut | null>(null);
+  const [canauxErr, setCanauxErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -47,12 +59,38 @@ export function IntegrationsPage() {
     }
   }, []);
 
+  const ping = useCallback(async () => {
+    const t0 = performance.now();
+    try {
+      const h = await fetchHealth();
+      setApiEtat({ status: 'ok', mode: h.mode, ms: Math.round(performance.now() - t0), at: Date.now() });
+    } catch (err) {
+      setApiEtat({ status: 'err', message: err instanceof Error ? err.message : 'API injoignable' });
+    }
+  }, []);
+
+  const loadCanaux = useCallback(async () => {
+    try {
+      setCanaux(await fetchIntegrationsStatut());
+      setCanauxErr(null);
+    } catch (err) {
+      setCanauxErr(err instanceof Error ? err.message : 'Statut indisponible');
+    }
+  }, []);
+
   useEffect(() => {
     load();
-    // Polling silencieux : les agents travaillent pendant qu'on regarde la page.
-    const t = setInterval(load, 30000);
+    ping();
+    loadCanaux();
+    // Polling silencieux : l'etat connecte/deconnecte et l'activite des agents
+    // doivent rester a jour pendant qu'on regarde la page.
+    const t = setInterval(() => {
+      load();
+      ping();
+      loadCanaux();
+    }, 15000);
     return () => clearInterval(t);
-  }, [load]);
+  }, [load, ping, loadCanaux]);
 
   // Un agent est "connecte" si le journal contient une action agent de moins d'1h.
   const actionsAgent = journal.filter((j) => j.auteur === 'agent');
@@ -62,6 +100,7 @@ export function IntegrationsPage() {
     : false;
   const connecte = dernierAgent !== undefined && recence;
   const derniereActivite = dernierAgent ? relTime(dernierAgent.at) : null;
+  const actionsRecentes = actionsAgent.slice(0, NB_ACTIONS_LISTE);
 
   const API_URL = import.meta.env.VITE_API_URL || 'https://atelier-api-three.vercel.app';
 
@@ -100,21 +139,12 @@ env = { ATELIER_API_URL = "${API_URL}" }`;
     setTimeout(() => setCopie((c) => (c === id ? null : c)), 1800);
   }
 
-  async function tester() {
-    setTest({ status: 'loading' });
-    const t0 = performance.now();
-    try {
-      const h = await fetchHealth();
-      setTest({ status: 'ok', mode: h.mode, ms: Math.round(performance.now() - t0) });
-    } catch (err) {
-      setTest({
-        status: 'err',
-        message: err instanceof Error ? err.message : 'API injoignable'
-      });
-    }
-  }
-
-  const MODE_LABEL = test.status === 'ok' ? (test.mode === 'postgres' ? 'cloud (Postgres)' : 'local (SQLite)') : '';
+  const apiLibelle =
+    apiEtat.status === 'ok'
+      ? apiEtat.mode === 'postgres'
+        ? 'Cloud (Postgres)'
+        : 'Local (SQLite)'
+      : '';
 
   return (
     <Page>
@@ -124,19 +154,83 @@ env = { ATELIER_API_URL = "${API_URL}" }`;
       />
 
       <PageSection label="État de la connexion">
-        <div className={`integ-state${connecte ? ' on' : ''}`}>
-          {connecte ? <PlugsConnected size={16} /> : <Plug size={16} />}
-          <div className="integ-state-text">
-            <strong>{connecte ? 'Agent connecté' : 'Aucun agent actif récemment'}</strong>
-            <span>
-              {connecte
-                ? `Dernière action agent ${derniereActivite} — ${actionsAgent.length} action(s) au journal.`
-                : dernierAgent
-                  ? `Dernière action agent ${derniereActivite} (plus d'une heure). L'agent repasse "connecté" des qu'il agit.`
-                  : 'Déposez la configuration ci-dessous dans votre agent, puis effectuez une action (lire un brouillon, répondre dans le chat).'}
-            </span>
+        <div className="integ-etats">
+          <div className={`integ-state${apiEtat.status === 'ok' ? ' on' : apiEtat.status === 'err' ? ' err' : ''}`}>
+            {apiEtat.status === 'loading' ? (
+              <CircleNotch size={16} className="spin" />
+            ) : apiEtat.status === 'ok' ? (
+              <PlugsConnected size={16} />
+            ) : (
+              <Plug size={16} />
+            )}
+            <div className="integ-state-text">
+              <strong>
+                {apiEtat.status === 'ok' ? 'API connectée' : apiEtat.status === 'loading' ? 'Test en cours' : 'API déconnectée'}
+              </strong>
+              <span>
+                {apiEtat.status === 'ok'
+                  ? `${apiLibelle} · ${apiEtat.ms} ms · vérifié ${relTime(new Date(apiEtat.at).toISOString())}`
+                  : apiEtat.status === 'loading'
+                    ? 'Ping de l API au chargement...'
+                    : `Ping échoué : ${apiEtat.message}. Vérifiez que l instance est démarrée.`}
+              </span>
+            </div>
+            <button
+              className="ghost integ-relancer"
+              type="button"
+              onClick={ping}
+              disabled={apiEtat.status === 'loading'}
+            >
+              {apiEtat.status === 'loading' ? <CircleNotch size={13} className="spin" /> : <ArrowSquareOut size={13} />}
+              Relancer
+            </button>
+          </div>
+
+          <div className={`integ-state${connecte ? ' on' : ''}`}>
+            {connecte ? <PlugsConnected size={16} /> : <Plug size={16} />}
+            <div className="integ-state-text">
+              <strong>{connecte ? 'Agent actif (MCP)' : 'Aucun agent actif récemment'}</strong>
+              <span>
+                {connecte
+                  ? `Dernière action agent ${derniereActivite}, ${actionsAgent.length} action(s) au journal.`
+                  : dernierAgent
+                    ? `Dernière action agent ${derniereActivite} (plus d'une heure). Il repasse "connecté" des qu'il agit.`
+                    : 'Déposez la configuration ci-dessous dans votre agent, puis effectuez une action (lire un brouillon, répondre dans le chat).'}
+              </span>
+            </div>
           </div>
         </div>
+      </PageSection>
+
+      <PageSection label="Agents actifs récemment">
+        {actionsRecentes.length === 0 ? (
+          <EmptyState
+            icon={Sparkle}
+            title="Aucune action agent récente"
+            sub="Des qu'un agent agit (lecture, depot, reponse), son activite apparait ici et dans l'onglet Activite IA."
+          />
+        ) : (
+          <div className="integ-agents">
+            {actionsRecentes.map((e) => {
+              const meta = TYPE_META[e.type] || { icon: Sparkle, label: 'Action' };
+              const IconComp = meta.icon;
+              return (
+                <div key={e.id} className="activite-item">
+                  <span className="activite-ico">
+                    <IconComp size={14} />
+                  </span>
+                  <span className="activite-txt">
+                    <span className="activite-auteur is-agent">
+                      <Sparkle size={11} weight="fill" /> Agent
+                    </span>
+                    <span className="activite-msg">{e.message}</span>
+                  </span>
+                  <span className="when">{relTime(e.at)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </PageSection>
 
       <PageSection label="URL de l'API">
@@ -152,34 +246,6 @@ env = { ATELIER_API_URL = "${API_URL}" }`;
             <ArrowSquareOut size={12} /> Toutes les routes (brouillons, charte, bibliotheque, journal) vivent sous
             cette base. Les agents qui ne passent pas par MCP peuvent l'appeler directement.
           </p>
-        </div>
-      </PageSection>
-
-      <PageSection label="Tester la connexion">
-        <div className="integ-block">
-          <div className="integ-block-head">
-            <span className="integ-agent"><PlugsConnected size={14} /> Vérifier que l'API répond</span>
-            <button className="ghost" type="button" onClick={tester} disabled={test.status === 'loading'}>
-              {test.status === 'loading' ? <CircleNotch size={13} className="spin" /> : <ArrowSquareOut size={13} />}
-              {test.status === 'loading' ? 'Test en cours…' : 'Tester la connexion'}
-            </button>
-          </div>
-          {test.status === 'idle' && (
-            <p className="integ-note">
-              <LinkSimple size={12} /> Interroge GET /api/health et affiche le mode de stockage et la latence.
-            </p>
-          )}
-          {test.status === 'ok' && (
-            <p className="integ-note integ-test-ok">
-              <Check size={12} /> API joignable — {MODE_LABEL} — {test.ms} ms.
-            </p>
-          )}
-          {test.status === 'err' && (
-            <p className="integ-note integ-test-err">
-              <WarningCircle size={12} /> API injoignable : {test.message}. Vérifiez l'URL et que l'instance est
-              démarrée.
-            </p>
-          )}
         </div>
       </PageSection>
 
@@ -223,22 +289,49 @@ env = { ATELIER_API_URL = "${API_URL}" }`;
         </div>
       </PageSection>
 
-      <PageSection label="Canaux de publication (a venir)">
+      <PageSection label="Canaux de publication">
         <div className="integ-canaux">
           <div className="integ-canal">
-            <LinkSimple size={14} />
-            <span>Postiz — publication vers les reseaux (draft uniquement, workflow inalienable)</span>
+            <span className={`integ-dot ${canauxErr || !canaux ? 'off' : canaux.postiz.configure ? (canaux.postiz.joignable ? 'ok' : 'warn') : 'off'}`} />
+            <div className="integ-canal-txt">
+              <strong>Postiz</strong>
+              <span>
+                {canauxErr
+                  ? `Statut indisponible : ${canauxErr}`
+                  : !canaux
+                    ? 'Vérification...'
+                    : canaux.postiz.configure
+                      ? canaux.postiz.joignable
+                        ? `Configuré · ${canaux.postiz.canaux ?? 0} canal(aux) connecté(s) · ${canaux.postiz.apiUrl}`
+                        : `Configuré mais injoignable : ${canaux.postiz.erreur ?? 'erreur inconnue'}. Postiz self-hosted doit tourner sur votre machine.`
+                      : 'Non configuré : renseignez POSTIZ_API_URL et POSTIZ_API_KEY (raccord local self-hosted, brouillons uniquement).'}
+              </span>
+            </div>
           </div>
           <div className="integ-canal">
-            <LinkSimple size={14} />
-            <span>Connexions natives (Instagram, LinkedIn, GMB, blog CMS) — strategie publiee dans STRATEGIE-PUBLICATION.md</span>
+            <span className={`integ-dot ${canauxErr || !canaux ? 'off' : canaux.sanity.configure ? 'ok' : 'off'}`} />
+            <div className="integ-canal-txt">
+              <strong>Sanity (blog CMS)</strong>
+              <span>
+                {canauxErr
+                  ? `Statut indisponible : ${canauxErr}`
+                  : !canaux
+                    ? 'Vérification...'
+                    : canaux.sanity.configure
+                      ? 'Configuré : publication des articles vers le blog.'
+                      : 'Non configuré : ajoutez SANITY_WRITE_TOKEN pour publier les articles.'}
+              </span>
+            </div>
+          </div>
+          <div className="integ-canal">
+            <span className="integ-dot off" />
+            <div className="integ-canal-txt">
+              <strong>Buffer</strong>
+              <span>À venir : programmation multi-reseaux depuis le calendrier.</span>
+            </div>
           </div>
         </div>
       </PageSection>
-
-      {journal.length === 0 && (
-        <EmptyState title="Le journal est vide" sub="Des qu'un agent agit (lecture, depot, reponse), son activite apparait ici et dans l'onglet Activite IA." />
-      )}
     </Page>
   );
 }

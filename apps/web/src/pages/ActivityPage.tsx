@@ -34,7 +34,7 @@ interface TypeMeta {
   label: string;
 }
 
-const TYPE_META: Record<string, TypeMeta> = {
+export const TYPE_META: Record<string, TypeMeta> = {
   creation: { icon: Plus, label: 'Creation' },
   depot_source: { icon: Code, label: 'Source' },
   regeneration: { icon: ArrowClockwise, label: 'Regeneration' },

@@ -1481,6 +1481,7 @@ main {
 .creation-template-desc { font-size: 11px; color: var(--color-ink-tertiary); line-height: 1.45; }
 
 /* ── Page Integrations ───────────────────────────────────────────────── */
+.integ-etats { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
 .integ-state {
   display: flex; align-items: flex-start; gap: 10px;
   border: 1px solid var(--color-line-default); border-radius: 10px;
@@ -1488,9 +1489,11 @@ main {
 }
 .integ-state svg { color: var(--color-ink-tertiary); flex-shrink: 0; margin-top: 2px; }
 .integ-state.on svg { color: var(--color-status-ok); }
-.integ-state-text { display: flex; flex-direction: column; gap: 3px; }
+.integ-state.err svg { color: var(--color-status-err); }
+.integ-state-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
 .integ-state-text strong { font-size: 13px; color: var(--color-ink-primary); }
 .integ-state-text span { font-size: 12px; color: var(--color-ink-secondary); line-height: 1.55; }
+.integ-relancer { margin-left: auto; align-self: center; flex-shrink: 0; }
 .integ-block {
   border: 1px solid var(--color-line-default); border-radius: 10px;
   background: var(--color-bg-level-2); overflow: hidden;
@@ -1513,19 +1516,31 @@ main {
   border-top: 1px solid var(--color-line-default);
 }
 .integ-note svg { flex-shrink: 0; margin-top: 2px; }
+.integ-agents {
+  border: 1px solid var(--color-line-default); border-radius: 10px;
+  background: var(--color-bg-level-2); overflow: hidden;
+}
+.integ-agents .activite-item:last-child { border-bottom: none; }
+.integ-agents .when { color: var(--color-ink-secondary); }
 .integ-canaux { display: flex; flex-direction: column; gap: 8px; }
 .integ-canal {
-  display: flex; align-items: center; gap: 9px;
+  display: flex; align-items: flex-start; gap: 10px;
   font-size: 12.5px; color: var(--color-ink-secondary);
-  border: 1px dashed var(--color-line-hover); border-radius: 8px; padding: 10px 12px;
+  border: 1px solid var(--color-line-default); border-radius: 8px; padding: 10px 12px;
+  background: var(--color-bg-level-2);
 }
-.integ-canal svg { color: var(--color-ink-tertiary); flex-shrink: 0; }
+.integ-canal-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.integ-canal-txt strong { font-size: 12.5px; font-weight: 600; color: var(--color-ink-primary); }
+.integ-canal-txt span { font-size: 11.5px; line-height: 1.5; color: var(--color-ink-secondary); }
+.integ-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+  background: color-mix(in srgb, var(--color-ink-primary) 38%, transparent);
+}
+.integ-dot.ok { background: var(--color-status-ok); }
+.integ-dot.warn { background: var(--color-status-warn); }
+.integ-dot.err { background: var(--color-status-err); }
 .integ-block-head button:disabled { opacity: 0.6; cursor: default; }
 .integ-block-head .spin { animation: atelier-spin 0.8s linear infinite; }
-.integ-test-ok { color: var(--color-status-ok); }
-.integ-test-ok svg { color: var(--color-status-ok); }
-.integ-test-err { color: var(--color-status-err); }
-.integ-test-err svg { color: var(--color-status-err); }
 
 /* ── Barre d'actions globale : icon-btn, notif, replier ──────────────── */
 .icon-btn {
