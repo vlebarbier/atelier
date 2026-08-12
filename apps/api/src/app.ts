@@ -165,6 +165,48 @@ export function createApp(repo: Repo, options: AppOptions) {
     return c.json(result);
   });
 
+  // GET /api/conversations/en-attente → les brouillons dont la conversation
+  // attend une reponse de l'agent (dernier message role 'user' sans reponse
+  // apres). C'est la source de verite du worker asynchrone (watchdog cron) :
+  // la detection est un ETAT DERIVE (pas de flag 'traite'), crash-safe par
+  // construction - si l'agent echoue sans repondre, le message reste en
+  // attente et le worker retente. Regle unique, consommee par le worker ET
+  // par l'UI (indicateur « En attente de l'agent »).
+  app.get('/api/conversations/en-attente', async (c) => {
+    const rows = await repo.listBrouillons();
+    const result: {
+      id: string;
+      titre: string;
+      statut: string;
+      type: string;
+      updated: string;
+      messages: { role: string; texte: string; at: string }[];
+    }[] = [];
+    for (const row of rows) {
+      let conversation: { role: string; texte: string; at: string }[] = [];
+      try {
+        conversation = JSON.parse(row.conversation || '[]');
+      } catch {
+        conversation = [];
+      }
+      if (conversation.length === 0) continue;
+      const dernier = conversation[conversation.length - 1];
+      if (!dernier || dernier.role !== 'user') continue;
+      result.push({
+        id: row.id,
+        titre: row.titre,
+        statut: row.statut,
+        type: row.type || 'carrousel',
+        updated: row.updatedAt ?? '',
+        // La queue de la conversation (contexte du worker sans fetch supplementaire).
+        messages: conversation.slice(-8)
+      });
+    }
+    // Tri stable (par id) pour une sortie de monitor deterministe.
+    result.sort((a, b) => a.id.localeCompare(b.id));
+    return c.json(result);
+  });
+
   app.post('/api/brouillons', async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as {
       titre?: string;

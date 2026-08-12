@@ -380,3 +380,65 @@ describe('GET /api/health', () => {
     expect(typeof body.at).toBe('string');
   });
 });
+
+describe('GET /api/conversations/en-attente (worker asynchrone)', () => {
+  it('repond [] quand aucune conversation', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/conversations/en-attente');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as unknown[];
+    expect(body).toHaveLength(0);
+  });
+
+  it('liste le brouillon dont le dernier message est user, avec la queue de conversation', async () => {
+    const { app } = buildTestApp();
+    await app.request('/api/brouillon/carrousel-bordeluche-v7/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: 'Change le texte de la slide 3' })
+    });
+    const res = await app.request('/api/conversations/en-attente');
+    const body = (await res.json()) as { id: string; messages: { role: string; texte: string }[] }[];
+    expect(body).toHaveLength(1);
+    expect(body[0].id).toBe('carrousel-bordeluche-v7');
+    expect(body[0].messages.at(-1)?.role).toBe('user');
+    expect(body[0].messages.at(-1)?.texte).toBe('Change le texte de la slide 3');
+  });
+
+  it('sort de la liste des que l agent repond (etat derive, pas de flag)', async () => {
+    const { app } = buildTestApp();
+    await app.request('/api/brouillon/carrousel-bordeluche-v7/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: 'Fais un truc' })
+    });
+    await app.request('/api/brouillon/carrousel-bordeluche-v7/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: 'C est fait', role: 'agent' })
+    });
+    const res = await app.request('/api/conversations/en-attente');
+    const body = (await res.json()) as unknown[];
+    expect(body).toHaveLength(0);
+  });
+
+  it('ignore les brouillons sans conversation et trie par id', async () => {
+    const { app } = buildTestApp();
+    // Le brouillon seede n'a pas de conversation : il doit etre ignore.
+    const created = await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'B' })
+    });
+    const idB = ((await created.json()) as { id: string }).id;
+    await app.request(`/api/brouillon/${idB}/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: 'message sur B' })
+    });
+    const res = await app.request('/api/conversations/en-attente');
+    const body = (await res.json()) as { id: string }[];
+    expect(body).toHaveLength(1);
+    expect(body[0].id).toBe(idB);
+  });
+});
