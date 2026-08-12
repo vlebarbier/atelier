@@ -24,6 +24,8 @@ export const brouillons = pgTable('brouillons', {
   versions: text('versions'),
   /** Annotations de revision attachees au visuel (JSON, voir schema.ts). */
   annotations: text('annotations').notNull().default('[]'),
+  /** Decision de validation maker/checker (JSON, voir schema.ts). */
+  decision: text('decision'),
   updatedAt: text('updated_at')
 });
 

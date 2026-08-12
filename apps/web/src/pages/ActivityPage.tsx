@@ -49,7 +49,8 @@ export const TYPE_META: Record<string, TypeMeta> = {
   charte_maj: { icon: PaintBrush, label: 'Charte' },
   suppression: { icon: Trash, label: 'Suppression' },
   reorganisation: { icon: ListChecks, label: 'Slides' },
-  programmation: { icon: CalendarCheck, label: 'Programmation' }
+  programmation: { icon: CalendarCheck, label: 'Programmation' },
+  decision: { icon: CheckCircle, label: 'Validation' }
 };
 
 const AUTEUR_LABELS: Record<string, string> = {

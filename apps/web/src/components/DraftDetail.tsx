@@ -2,11 +2,11 @@ import { toPng } from 'html-to-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash, X, ArrowsLeftRight, DotsThreeVertical,
-  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf, ImageSquare, MapPin
+  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf, ImageSquare, MapPin, PencilSimple, Warning
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
-import type { BrouillonDetail, DiffData, MessageChat, ReseauEntry, Statut, VersionSource, Annotation } from '../api';
-import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseDiff, parseProgramme, reorderSlides, replaceSlides, restaurerVersion, slideUrl, updateBrouillon } from '../api';
+import type { BrouillonDetail, DecisionData, DiffData, MessageChat, ReseauEntry, Statut, VersionSource, Annotation } from '../api';
+import { deciderBrouillon, deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseDecision, parseDiff, parseProgramme, reorderSlides, replaceSlides, restaurerVersion, slideUrl, updateBrouillon } from '../api';
 import { comparerSlides, nombreSlidesDiff, urlsAvantApres, type ZoneDiff } from '../diff';
 import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
 import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate, relTime, type Creneau } from '../format';
@@ -163,6 +163,25 @@ function calculerSuggestion(b: BrouillonDetail, fermees: Set<string>): Suggestio
   return null;
 }
 
+/** Date + heure lisibles pour la trace de decision (« 12 août à 14:30 »). */
+function formatDecisionAt(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const d = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  const h = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `${d} à ${h}`;
+}
+
+function etapeEtat(statut: string, index: number): string {
+  // Ordre des statuts : brouillon < a-valider < valide < publie.
+  const ordre: Record<string, number> = { brouillon: 0, 'a-valider': 1, valide: 2, publie: 3 };
+  const niveau = ordre[statut] ?? 0;
+  if (index < niveau) return 'done';
+  if (index === niveau) return 'current';
+  return 'todo';
+}
+
 interface DraftDetailProps {
   id: string;
   onClose: () => void;
@@ -183,6 +202,10 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [statutOpen, setStatutOpen] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  // Decision maker/checker (UX A3) : en statut 'a-valider', deux actions claires.
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [decisionBusy, setDecisionBusy] = useState(false);
   const [planifOpen, setPlanifOpen] = useState(false);
   const [planifDate, setPlanifDate] = useState('');
   const [planifHeure, setPlanifHeure] = useState('09:00');
@@ -789,6 +812,38 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     await updateBrouillon(id, { statut });
   }
 
+  /** UX A3 (maker/checker) : 'Approuver' → valide, tracee (qui, quand). */
+  async function onApprouver() {
+    if (!brouillon || decisionBusy) return;
+    setDecisionBusy(true);
+    try {
+      const res = await deciderBrouillon(id, { decision: 'approuver' });
+      setBrouillon({ ...brouillon, statut: res.statut as Statut, decision: res.decision });
+      setNoteOpen(false);
+      setNoteDraft('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur pendant la validation');
+    } finally {
+      setDecisionBusy(false);
+    }
+  }
+
+  /** UX A3 (maker/checker) : 'Demander des modifs' → brouillon, note obligatoire. */
+  async function onDemanderModifs() {
+    if (!brouillon || decisionBusy || !noteDraft.trim()) return;
+    setDecisionBusy(true);
+    try {
+      const res = await deciderBrouillon(id, { decision: 'demander-modifs', note: noteDraft.trim() });
+      setBrouillon({ ...brouillon, statut: res.statut as Statut, decision: res.decision });
+      setNoteOpen(false);
+      setNoteDraft('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur pendant la demande de modifications');
+    } finally {
+      setDecisionBusy(false);
+    }
+  }
+
   async function saveReseau(reseau: string, patch: Partial<ReseauEntry>) {
     if (!brouillon) return;
     const current = brouillon.reseaux[reseau] || { caption: '', hashtags: '', statut: 'brouillon' as Statut };
@@ -917,6 +972,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const estDocument = TYPES_DOCUMENTS.includes(brouillon.type);
   // Documents (pitch deck, flyer...) : pas d'etape Programmer (SPEC-TUNNEL §3.4).
   const etapesTunnel = estDocument ? ETAPES_TUNNEL.slice(0, 3) : ETAPES_TUNNEL;
+  const decision = parseDecision(brouillon.decision);
   // Pseudo affiche dans l'apercu publie : « @bordeluche » si la charte porte un
   // nom de marque, sinon placeholder generique (US-05).
   const pseudo = charteNom ? `@${slugifier(charteNom)}` : '@votremarque';
@@ -955,38 +1011,91 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
         </div>
         <div className="r">
           <div className="statut-control">
-            <button
-              type="button"
-              className={`statut-btn on--${brouillon.statut}`}
-              onClick={() => setStatutOpen((o) => !o)}
-              aria-haspopup="listbox"
-              aria-expanded={statutOpen}
-            >
-              <span className={`dot dot--${brouillon.statut}`} />
-              <span className="statut-label">{STATUT_LABELS[brouillon.statut] ?? brouillon.statut}</span>
-              <CaretDown size={12} className="statut-caret" />
-            </button>
-            {statutOpen && (
-              <div className="statut-menu" role="listbox">
-                <div className="statut-menu-label">Changer le statut</div>
-                {STATUTS_ORDRE.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    role="option"
-                    aria-selected={brouillon.statut === s}
-                    className={brouillon.statut === s ? 'on' : ''}
-                    onClick={() => {
-                      setStatut(s as Statut);
-                      setStatutOpen(false);
-                    }}
-                  >
-                    <span className={`dot dot--${s}`} />
-                    {STATUT_LABELS[s]}
-                    {brouillon.statut === s && <Check size={12} className="statut-check" />}
-                  </button>
-                ))}
+            {brouillon.statut === 'a-valider' ? (
+              <div className="decide-group">
+                <button
+                  type="button"
+                  className="ghost decide-rework"
+                  onClick={() => {
+                    setNoteDraft('');
+                    setNoteOpen((o) => !o);
+                  }}
+                  disabled={decisionBusy}
+                  aria-haspopup="dialog"
+                  aria-expanded={noteOpen}
+                >
+                  <PencilSimple size={13} /> Demander des modifs
+                </button>
+                <button
+                  type="button"
+                  className="primary decide-ok"
+                  onClick={onApprouver}
+                  disabled={decisionBusy}
+                >
+                  <Check size={13} weight="bold" /> Approuver
+                </button>
+                {noteOpen && (
+                  <div className="decide-note" role="dialog" aria-label="Demander des modifications">
+                    <div className="decide-note-label">Note pour l'agent (obligatoire)</div>
+                    <textarea
+                      autoFocus
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      placeholder="Expliquez ce qui doit changer..."
+                      rows={3}
+                    />
+                    <div className="decide-note-actions">
+                      <button type="button" className="ghost" onClick={() => setNoteOpen(false)} disabled={decisionBusy}>
+                        Annuler
+                      </button>
+                      <button
+                        type="button"
+                        className="primary"
+                        onClick={onDemanderModifs}
+                        disabled={!noteDraft.trim() || decisionBusy}
+                      >
+                        {decisionBusy ? 'Envoi...' : 'Confirmer la demande'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={`statut-btn on--${brouillon.statut}`}
+                  onClick={() => setStatutOpen((o) => !o)}
+                  aria-haspopup="listbox"
+                  aria-expanded={statutOpen}
+                >
+                  <span className={`dot dot--${brouillon.statut}`} />
+                  <span className="statut-label">{STATUT_LABELS[brouillon.statut] ?? brouillon.statut}</span>
+                  <CaretDown size={12} className="statut-caret" />
+                </button>
+                {statutOpen && (
+                  <div className="statut-menu" role="listbox">
+                    <div className="statut-menu-label">Changer le statut</div>
+                    {STATUTS_ORDRE.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        role="option"
+                        aria-selected={brouillon.statut === s}
+                        className={brouillon.statut === s ? 'on' : ''}
+                        onClick={() => {
+                          setStatut(s as Statut);
+                          setStatutOpen(false);
+                        }}
+                      >
+                        <span className={`dot dot--${s}`} />
+                        {STATUT_LABELS[s]}
+                        {brouillon.statut === s && <Check size={12} className="statut-check" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
           <div className="overflow-control">
@@ -1388,6 +1497,21 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               >
                 <X size={12} />
               </button>
+            </div>
+          )}
+          {decision && (
+            <div className={`decision-trace ${decision.decision}`}>
+              {decision.decision === 'approuver' ? <CheckCircle size={14} weight="bold" /> : <Warning size={14} weight="bold" />}
+              <div className="decision-trace-txt">
+                <span className="decision-trace-t">
+                  {decision.decision === 'approuver' ? 'Approuvé' : 'Modifications demandées'}
+                </span>
+                <span className="decision-trace-s">
+                  {decision.decision === 'approuver'
+                    ? `${decision.par === 'user' ? 'par vous' : `par ${decision.par}`} · ${formatDecisionAt(decision.at)}`
+                    : `${decision.note || 'Sans précision'} · ${formatDecisionAt(decision.at)}`}
+                </span>
+              </div>
             </div>
           )}
           {mode && MODE_UI[mode].checklist && (

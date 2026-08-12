@@ -42,6 +42,7 @@ export async function ensurePgTables(pool: Pool): Promise<void> {
   await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS diff TEXT;`);
   await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS versions TEXT;`);
   await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS annotations TEXT NOT NULL DEFAULT '[]';`);
+  await pool.query(`ALTER TABLE brouillons ADD COLUMN IF NOT EXISTS decision TEXT;`);
   await pool.query(`ALTER TABLE slides ADD COLUMN IF NOT EXISTS type_media TEXT NOT NULL DEFAULT 'image';`);
   await pool.query(`CREATE TABLE IF NOT EXISTS ressources (
     id TEXT PRIMARY KEY,

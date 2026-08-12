@@ -117,6 +117,16 @@ export interface ReseauEntry {
   statut: Statut;
 }
 
+export interface DecisionData {
+  /** 'approuver' → valide ; 'demander-modifs' → brouillon (note obligatoire). */
+  decision: 'approuver' | 'demander-modifs';
+  note?: string | null;
+  /** Qui a decide : 'user' (UI) ou 'agent' (MCP). */
+  par: string;
+  /** Quand : ISO. */
+  at: string;
+}
+
 export interface BrouillonDetail extends Omit<Brouillon, 'reseaux'> {
   notes: string;
   type: string;
@@ -130,6 +140,7 @@ export interface BrouillonDetail extends Omit<Brouillon, 'reseaux'> {
   article?: string | ArticleMeta | null;
   diff?: string | DiffData | null;
   versions?: VersionSource[];
+  decision?: string | DecisionData | null;
 }
 
 export interface MessageChat {
@@ -277,6 +288,30 @@ export async function updateBrouillon(
     body: JSON.stringify(patch)
   });
   return handle<{ ok: boolean }>(res);
+}
+
+/** Decision maker/checker (UX A3) : approuver ou demander des modifs (note obligatoire). */
+export async function deciderBrouillon(
+  id: string,
+  input: { decision: 'approuver' | 'demander-modifs'; note?: string }
+): Promise<{ ok: boolean; statut: string; decision: DecisionData }> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/decision`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input)
+  });
+  return handle<{ ok: boolean; statut: string; decision: DecisionData }>(res);
+}
+
+/** Parse la decision enregistree (l API renvoie l objet ; tolere la string JSON legacy). */
+export function parseDecision(raw: string | DecisionData | null | undefined): DecisionData | null {
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw as DecisionData;
+  try {
+    return JSON.parse(raw) as DecisionData;
+  } catch {
+    return null;
+  }
 }
 
 export async function replaceSlides(
