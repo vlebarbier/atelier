@@ -224,6 +224,25 @@ export function telechargerHTML(html: string, nomFichier: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Telecharge un fichier distant (slide, ressource) tel quel, sans re-rendu. */
+export async function telechargerFichier(url: string, nomFichier: string): Promise<void> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
+    reader.readAsDataURL(blob);
+  });
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = nomFichier;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 /**
  * Ouvre l'apercu impression (pour enregistrer en PDF) dans un nouvel onglet.
  * A appeler SYNCHRONEMENT dans le handler du clic pour garder le geste

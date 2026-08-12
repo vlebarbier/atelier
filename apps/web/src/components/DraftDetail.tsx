@@ -2,7 +2,7 @@ import { toPng } from 'html-to-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash, X, ArrowsLeftRight,
-  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf
+  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf, ImageSquare
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import type { BrouillonDetail, DiffData, MessageChat, ReseauEntry, Statut, VersionSource } from '../api';
@@ -10,7 +10,7 @@ import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fet
 import { comparerSlides, nombreSlidesDiff, urlsAvantApres, type ZoneDiff } from '../diff';
 import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
 import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate, relTime, type Creneau } from '../format';
-import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerHTML } from '../export';
+import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerFichier, telechargerHTML } from '../export';
 
 const RESEAU_ICONES: Record<string, Icon> = {
   instagram: InstagramLogo,
@@ -255,8 +255,8 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     }
   }
 
-  /** Export du livrable (F-44) : HTML autonome ou apercu impression (PDF). */
-  async function onExporter(mode: 'html' | 'pdf') {
+  /** Export du livrable (F-44) : PNG (slide courante), HTML autonome ou apercu impression (PDF). */
+  async function onExporter(mode: 'png' | 'html' | 'pdf') {
     if (!brouillon || exporting) return;
     setExportOpen(false);
     // L'apercu s'ouvre SYNCHRONEMENT au clic pour garder le geste utilisateur
@@ -268,11 +268,22 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     }
     setExporting(true);
     try {
-      const html = await exporterHTMLAutonome(brouillon, { apercuImpression: mode === 'pdf' });
-      if (mode === 'html') {
-        telechargerHTML(html, `${slugifier(brouillon.titre || brouillon.id)}.html`);
-      } else if (win) {
-        ecrireDansApercu(win, html);
+      if (mode === 'png') {
+        // PNG = la slide courante, telle qu'affichee (rendu navigateur).
+        const fichier = currentSlideFichier;
+        if (!fichier) {
+          setError('Aucune slide a exporter.');
+          return;
+        }
+        const nom = `${slugifier(brouillon.titre || brouillon.id)}-slide-${slide + 1}.png`;
+        await telechargerFichier(slideUrl(brouillon.id, fichier), nom);
+      } else {
+        const html = await exporterHTMLAutonome(brouillon, { apercuImpression: mode === 'pdf' });
+        if (mode === 'html') {
+          telechargerHTML(html, `${slugifier(brouillon.titre || brouillon.id)}.html`);
+        } else if (win) {
+          ecrireDansApercu(win, html);
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Export impossible');
@@ -800,7 +811,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               aria-haspopup="menu"
               aria-expanded={exportOpen}
               disabled={exporting}
-              title="Exporter le livrable (HTML autonome ou PDF)"
+              title="Exporter le livrable (PNG, HTML autonome ou PDF)"
             >
               <DownloadSimple size={13} />
               <span>{exporting ? 'Export...' : 'Exporter'}</span>
@@ -809,11 +820,17 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
             {exportOpen && (
               <div className="statut-menu export-menu" role="menu">
                 <div className="statut-menu-label">Exporter le livrable</div>
-                <button type="button" role="menuitem" onClick={() => onExporter('html')} disabled={exporting}>
-                  <DownloadSimple size={14} />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => onExporter('png')}
+                  disabled={exporting || estVideoSlide || brouillon.slides.length === 0}
+                  title={estVideoSlide ? 'Export PNG indisponible sur une slide video' : 'Exporter la slide courante en PNG'}
+                >
+                  <ImageSquare size={14} />
                   <span className="mi">
-                    <span className="mi-t">HTML autonome</span>
-                    <span className="mi-s">Slides + légendes, tout-en-un</span>
+                    <span className="mi-t">PNG</span>
+                    <span className="mi-s">{estVideoSlide ? 'Slide video : non disponible' : 'Slide courante en image'}</span>
                   </span>
                 </button>
                 <button type="button" role="menuitem" onClick={() => onExporter('pdf')} disabled={exporting}>
@@ -821,6 +838,13 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   <span className="mi">
                     <span className="mi-t">PDF</span>
                     <span className="mi-s">Aperçu impression, une slide par page</span>
+                  </span>
+                </button>
+                <button type="button" role="menuitem" onClick={() => onExporter('html')} disabled={exporting}>
+                  <DownloadSimple size={14} />
+                  <span className="mi">
+                    <span className="mi-t">HTML autonome</span>
+                    <span className="mi-s">Slides + légendes, tout-en-un</span>
                   </span>
                 </button>
               </div>
