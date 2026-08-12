@@ -24,6 +24,7 @@ export interface BrouillonRow {
   programme: string | null;
   article: string | null;
   diff: string | null;
+  annotations: string;
   updatedAt: string | null;
 }
 
@@ -48,6 +49,7 @@ export interface BrouillonPatch {
   programme?: string | null;
   article?: string | null;
   diff?: string | null;
+  annotations?: string;
   updatedAt?: string;
 }
 
@@ -65,6 +67,7 @@ export interface NewBrouillon {
   programme?: string | null;
   article?: string | null;
   diff?: string | null;
+  annotations?: string;
   updatedAt: string | null;
 }
 

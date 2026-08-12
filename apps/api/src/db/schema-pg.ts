@@ -20,6 +20,8 @@ export const brouillons = pgTable('brouillons', {
   article: text('article'),
   /** Diff visuel avant/apres de la derniere regeneration (voir schema.ts). */
   diff: text('diff'),
+  /** Annotations de revision attachees au visuel (JSON, voir schema.ts). */
+  annotations: text('annotations').notNull().default('[]'),
   updatedAt: text('updated_at')
 });
 

@@ -58,6 +58,9 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
   if (!brouillonsCols.some((c) => c.name === 'article')) {
     sqlite.exec(`ALTER TABLE brouillons ADD COLUMN article TEXT;`);
   }
+  if (!brouillonsCols.some((c) => c.name === 'annotations')) {
+    sqlite.exec(`ALTER TABLE brouillons ADD COLUMN annotations TEXT NOT NULL DEFAULT '[]';`);
+  }
   if (!brouillonsCols.some((c) => c.name === 'diff')) {
     sqlite.exec(`ALTER TABLE brouillons ADD COLUMN diff TEXT;`);
   }

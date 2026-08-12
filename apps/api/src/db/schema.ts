@@ -32,6 +32,10 @@ export const brouillons = sqliteTable('brouillons', {
   /** Diff visuel avant/apres de la derniere regeneration (JSON : {at, avant:[{fichier,blobUrl,typeMedia}], nbAvant, nbApres}).
    *  Capture les slides AVANT leur remplacement (chantier 3 : montrer ce que l'agent a change). */
   diff: text('diff'),
+  /** Annotations de revision attachees au visuel (JSON : [{id, slide, x, y, texte, at}]).
+   *  x/y en fractions 0..1 : les marqueurs se superposent a la slide quel que soit son
+   *  affichage (pattern proofing Krock/Ziflow : le feedback est ancre au pixel, pas au chat). */
+  annotations: text('annotations').notNull().default('[]'),
   updatedAt: text('updated_at')
 });
 
