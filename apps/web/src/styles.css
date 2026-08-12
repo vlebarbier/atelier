@@ -493,11 +493,51 @@ main {
 .stage-arrow.prev { left: -46px; }
 .stage-arrow.next { right: -46px; }
 .stage-nav {
-  display: inline-flex; align-items: center;
+  display: inline-flex; align-items: center; gap: 12px;
   margin-top: 16px;
   color: var(--color-ink-secondary);
 }
 .stage-nav .counter { font-size: 11px; letter-spacing: 0.06em; font-weight: 600; }
+
+/* ── Apercu publie (US-05) : toggle discret + legende assemblee ────── */
+.apercu-toggle {
+  border: 1px solid var(--color-line-default); background: transparent;
+  color: var(--color-ink-tertiary); padding: 4px 10px; font-size: 11px;
+  border-radius: var(--radius-input); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease),
+    color var(--motion-duration-fast) var(--motion-ease),
+    background var(--motion-duration-fast) var(--motion-ease);
+}
+.apercu-toggle:hover { color: var(--color-ink-primary); }
+.apercu-toggle.on { border-color: var(--color-accent-base); color: var(--color-accent-base); }
+
+.apercu-legende {
+  width: min(480px, 62vh); margin-top: 14px;
+  background: var(--color-bg-level-2);
+  border: 1px solid var(--color-line-default); border-radius: 12px;
+  padding: 14px; text-align: left;
+  animation: fadeUp var(--motion-duration-medium) var(--motion-ease) backwards;
+}
+.apercu-legende-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--color-ink-secondary); margin-bottom: 8px;
+}
+.apercu-legende-head svg { flex-shrink: 0; }
+.apercu-legende-pseudo { margin-left: auto; color: var(--color-ink-tertiary); }
+.apercu-legende-caption {
+  font-size: 13px; line-height: 1.5; color: var(--color-ink-primary);
+  white-space: pre-wrap; word-break: break-word; margin: 0;
+}
+.apercu-legende-hashtags {
+  font-size: 12.5px; color: var(--color-ink-tertiary); margin: 8px 0 0;
+  white-space: pre-wrap; word-break: break-word;
+}
+.apercu-legende-vide { font-size: 12px; color: var(--color-ink-tertiary); margin: 0; }
+.apercu-legende-count {
+  font-size: 10.5px; color: var(--color-ink-tertiary); margin-top: 10px; text-align: right;
+}
+.apercu-legende-count.over { color: var(--color-status-err); font-weight: 600; }
 
 .detail-stage .thumbs { display: flex; gap: 7px; margin-top: 14px; }
 .detail-stage .thumbs img {
