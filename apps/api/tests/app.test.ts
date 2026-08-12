@@ -487,3 +487,129 @@ describe('GET /api/integrations/statut', () => {
     }
   });
 });
+
+describe('Versioning de la source HTML (chantier 5)', () => {
+  /** Cree un brouillon vierge via l'API et retourne son id. */
+  async function creerBrouillon(app: ReturnType<typeof buildTestApp>['app']): Promise<string> {
+    const res = await app.request('/api/brouillons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre: 'Versioning test' })
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { id: string };
+    return body.id;
+  }
+
+  /** Depose une source et retourne le detail (avec versions). */
+  async function deposerSource(app: ReturnType<typeof buildTestApp>['app'], id: string, html: string) {
+    const res = await app.request(`/api/brouillon/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceHtml: html })
+    });
+    expect(res.status).toBe(200);
+    const detail = await app.request(`/api/brouillon/${id}`);
+    return (await detail.json()) as {
+      sourceHtml: string | null;
+      versions: { numero: number; fichier: string; at: string; auteur: string; taille: number }[];
+    };
+  }
+
+  it('chaque depot de source cree une version (v1, v2...)', async () => {
+    const { app } = buildTestApp();
+    const id = await creerBrouillon(app);
+
+    const v1 = await deposerSource(app, id, '<html><body><div class="slide">v1</div></body></html>');
+    expect(v1.sourceHtml).toContain('v1');
+    expect(v1.versions).toHaveLength(1);
+    expect(v1.versions[0]!.numero).toBe(1);
+    expect(v1.versions[0]!.auteur).toBe('user');
+    expect(v1.versions[0]!.fichier).toBe('versions/v1.html');
+    expect(v1.versions[0]!.taille).toBeGreaterThan(0);
+
+    const v2 = await deposerSource(app, id, '<html><body><div class="slide">v2</div></body></html>');
+    expect(v2.versions).toHaveLength(2);
+    expect(v2.versions[1]!.numero).toBe(2);
+    expect(v2.versions[1]!.fichier).toBe('versions/v2.html');
+  });
+
+  it('un depot identique ne cree pas de version supplementaire', async () => {
+    const { app } = buildTestApp();
+    const id = await creerBrouillon(app);
+    const html = '<html><body><div class="slide">stable</div></body></html>';
+    await deposerSource(app, id, html);
+    const apres = await deposerSource(app, id, html);
+    expect(apres.versions).toHaveLength(1);
+  });
+
+  it('la source est versionnee avec l auteur agent quand le header x-atelier-auteur est pose', async () => {
+    const { app } = buildTestApp();
+    const id = await creerBrouillon(app);
+    const res = await app.request(`/api/brouillon/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-atelier-auteur': 'agent' },
+      body: JSON.stringify({ sourceHtml: '<html><body><div class="slide">agent</div></body></html>' })
+    });
+    expect(res.status).toBe(200);
+    const detail = await app.request(`/api/brouillon/${id}`);
+    const body = (await detail.json()) as { versions: { auteur: string }[] };
+    expect(body.versions[0]!.auteur).toBe('agent');
+  });
+
+  it('une source vide (effacement) ne cree pas de version', async () => {
+    const { app } = buildTestApp();
+    const id = await creerBrouillon(app);
+    await deposerSource(app, id, '<html><body><div class="slide">x</div></body></html>');
+    await app.request(`/api/brouillon/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceHtml: '' })
+    });
+    const detail = await app.request(`/api/brouillon/${id}`);
+    const body = (await detail.json()) as { sourceHtml: string | null; versions: unknown[] };
+    expect(body.sourceHtml).toBeNull();
+    expect(body.versions).toHaveLength(1);
+  });
+
+  it('restaurer une version remet son contenu dans sourceHtml et cree une version courante', async () => {
+    const { app } = buildTestApp();
+    const id = await creerBrouillon(app);
+    await deposerSource(app, id, '<html><body><div class="slide">premier</div></body></html>');
+    await deposerSource(app, id, '<html><body><div class="slide">deuxieme</div></body></html>');
+
+    const res = await app.request(`/api/brouillon/${id}/versions/1/restaurer`, { method: 'POST' });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; sourceHtml: string; versions: { numero: number }[] };
+    expect(body.ok).toBe(true);
+    expect(body.sourceHtml).toContain('premier');
+    expect(body.versions).toHaveLength(3);
+    expect(body.versions[2]!.numero).toBe(3);
+
+    const detail = await app.request(`/api/brouillon/${id}`);
+    const check = (await detail.json()) as { sourceHtml: string; versions: unknown[] };
+    expect(check.sourceHtml).toContain('premier');
+    expect(check.versions).toHaveLength(3);
+  });
+
+  it('restaurer une version inconnue renvoie 404', async () => {
+    const { app } = buildTestApp();
+    const id = await creerBrouillon(app);
+    await deposerSource(app, id, '<html><body><div class="slide">x</div></body></html>');
+    const res = await app.request(`/api/brouillon/${id}/versions/99/restaurer`, { method: 'POST' });
+    expect(res.status).toBe(404);
+  });
+
+  it('restaurer sur un brouillon inconnu renvoie 404', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillon/inconnu/versions/1/restaurer', { method: 'POST' });
+    expect(res.status).toBe(404);
+  });
+
+  it('restaurer avec un numero invalide renvoie 400', async () => {
+    const { app } = buildTestApp();
+    const id = await creerBrouillon(app);
+    const res = await app.request(`/api/brouillon/${id}/versions/abc/restaurer`, { method: 'POST' });
+    expect(res.status).toBe(400);
+  });
+});

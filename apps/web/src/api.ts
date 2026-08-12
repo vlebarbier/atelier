@@ -126,12 +126,23 @@ export interface BrouillonDetail extends Brouillon {
   programme?: string | Programme | null;
   article?: string | ArticleMeta | null;
   diff?: string | DiffData | null;
+  versions?: VersionSource[];
 }
 
 export interface MessageChat {
   role: 'user' | 'agent';
   texte: string;
   at: string;
+}
+
+/** Une version snapshot de la source HTML (chantier 5 : versioning + restauration). */
+export interface VersionSource {
+  numero: number;
+  fichier: string;
+  blobUrl: string | null;
+  at: string;
+  auteur: string;
+  taille: number;
 }
 
 export interface Charte {
@@ -252,6 +263,23 @@ export async function replaceSlides(
     body: JSON.stringify({ slides })
   });
   return handle<{ ok: boolean; slideCount: number }>(res);
+}
+
+/**
+ * Restaure la source HTML depuis une version snapshot (chantier 5).
+ * La restauration = set_source + regenerer : l'API remet le contenu de la version
+ * dans sourceHtml (et la version restauree devient la version courante), le client
+ * regenere ensuite les slides avec le bouton « Regenerer les slides ».
+ */
+export async function restaurerVersion(
+  id: string,
+  numero: number
+): Promise<{ ok: boolean; sourceHtml: string; versions: VersionSource[] }> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/versions/${numero}/restaurer`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return handle<{ ok: boolean; sourceHtml: string; versions: VersionSource[] }>(res);
 }
 
 /** Reordonne les slides d'un brouillon (body: fichiers dans le nouvel ordre). */
