@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import { updateBrouillonSchema } from './validation.js';
 import { storeSlide, storeRessource } from './storage/blob.js';
 import { snapshotSlidesAvant } from './diff.js';
+import { snapshotSource, lireVersion, parseVersions } from './versions.js';
 import { isPostgres } from './db/client.js';
 import type { Repo } from './db/repo.js';
 
@@ -407,6 +408,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       programme: row.programme ? JSON.parse(row.programme) : null,
       article: row.article ? JSON.parse(row.article) : null,
       diff: row.diff ? JSON.parse(row.diff) : null,
+      versions: parseVersions(row.versions),
       reseaux,
       updated: row.updatedAt,
       slideCount: fichiers.length,
@@ -432,6 +434,7 @@ export function createApp(repo: Repo, options: AppOptions) {
     }
 
     const patch = parsed.data;
+    const auteur = auteurDe(c);
     const currentReseaux: Record<string, unknown> = JSON.parse(row.reseaux || '{}');
     const nextReseaux = patch.reseaux ? { ...currentReseaux, ...patch.reseaux } : currentReseaux;
     const updatedAt = new Date().toISOString();
@@ -444,6 +447,18 @@ export function createApp(repo: Repo, options: AppOptions) {
     const nextProgramme = patch.programme !== undefined ? patch.programme : row.programme;
     const nextArticle = patch.article !== undefined ? patch.article : row.article;
 
+    // Chantier 5 (versioning) : chaque depot d'une source non vide ajoute une version
+    // (versions/v{n}.html en Blob ou disque, liste JSON en base). Une source vide
+    // (effacement) ne cree pas de version : le receptacle n'a plus de document.
+    let nextVersions = parseVersions(row.versions);
+    if (
+      patch.sourceHtml !== undefined &&
+      patch.sourceHtml !== row.sourceHtml &&
+      patch.sourceHtml.trim() !== ''
+    ) {
+      nextVersions = await snapshotSource(id, patch.sourceHtml, auteur, options.dataDir, nextVersions);
+    }
+
     await repo.updateBrouillon(id, {
       statut: nextStatut,
       notes: nextNotes,
@@ -454,10 +469,10 @@ export function createApp(repo: Repo, options: AppOptions) {
       type: nextType,
       programme: nextProgramme,
       article: nextArticle,
-      updatedAt
+      updatedAt,
+      ...(nextVersions.length > 0 ? { versions: JSON.stringify(nextVersions) } : {})
     });
 
-    const auteur = auteurDe(c);
     // Journal : une entree par action reelle (statut change, source deposee, programme).
     if (patch.statut !== undefined && patch.statut !== row.statut) {
       await journaliser(repo, {
@@ -547,6 +562,53 @@ export function createApp(repo: Repo, options: AppOptions) {
       });
     }
     return c.json({ ok: true, conversation: garde });
+  });
+
+  // POST /api/brouillon/:id/versions/:numero/restaurer → restaure la source HTML
+  // depuis une version snapshot (chantier 5). La restauration = set_source + regenerer :
+  // le contenu de la version remplace sourceHtml, le client regenere ensuite les slides.
+  app.post('/api/brouillon/:id/versions/:numero/restaurer', async (c) => {
+    const id = c.req.param('id');
+    const numeroRaw = c.req.param('numero');
+    const numero = Number(numeroRaw);
+    if (!Number.isInteger(numero) || numero < 1) {
+      return c.json({ error: 'numero de version invalide' }, 400);
+    }
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+
+    const versions = parseVersions(row.versions);
+    const version = versions.find((v) => v.numero === numero);
+    if (!version) return c.json({ error: `Version v${numero} introuvable` }, 404);
+
+    let contenu: string;
+    try {
+      contenu = await lireVersion(id, version, options.dataDir);
+    } catch (err) {
+      return c.json({ error: `Lecture de la version v${numero} impossible: ${err instanceof Error ? err.message : 'erreur'}` }, 502);
+    }
+
+    const auteur = auteurDe(c);
+    const updatedAt = new Date().toISOString();
+
+    // Restauration = un depot : le contenu restaure devient la version courante
+    // (pattern "restore = commit"), l'historique des versions reste intact.
+    const versionsApres = await snapshotSource(id, contenu, auteur, options.dataDir, versions);
+    await repo.updateBrouillon(id, {
+      sourceHtml: contenu,
+      versions: JSON.stringify(versionsApres),
+      updatedAt
+    });
+    await journaliser(repo, {
+      type: 'restauration_source',
+      auteur,
+      brouillonId: id,
+      brouillonTitre: row.titre,
+      message: `a restaure la source depuis la version v${numero}`,
+      details: { numero }
+    });
+
+    return c.json({ ok: true, sourceHtml: contenu, versions: versionsApres });
   });
 
   app.post('/api/brouillon/:id/slides', async (c) => {

@@ -32,6 +32,9 @@ export const brouillons = sqliteTable('brouillons', {
   /** Diff visuel avant/apres de la derniere regeneration (JSON : {at, avant:[{fichier,blobUrl,typeMedia}], nbAvant, nbApres}).
    *  Capture les slides AVANT leur remplacement (chantier 3 : montrer ce que l'agent a change). */
   diff: text('diff'),
+  /** Versions de la source HTML (JSON : [{numero, fichier, blobUrl, at, auteur, taille}]).
+   *  Chaque depot de source ajoute une version (chantier 5 : la securite qui debloque tout). */
+  versions: text('versions'),
   updatedAt: text('updated_at')
 });
 

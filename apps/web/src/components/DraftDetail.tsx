@@ -5,11 +5,11 @@ import {
   InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
-import type { BrouillonDetail, DiffData, MessageChat, ReseauEntry, Statut } from '../api';
-import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseDiff, parseProgramme, reorderSlides, replaceSlides, slideUrl, updateBrouillon } from '../api';
+import type { BrouillonDetail, DiffData, MessageChat, ReseauEntry, Statut, VersionSource } from '../api';
+import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseDiff, parseProgramme, reorderSlides, replaceSlides, restaurerVersion, slideUrl, updateBrouillon } from '../api';
 import { comparerSlides, nombreSlidesDiff, urlsAvantApres, type ZoneDiff } from '../diff';
 import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
-import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate, type Creneau } from '../format';
+import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate, relTime, type Creneau } from '../format';
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerHTML } from '../export';
 
 const RESEAU_ICONES: Record<string, Icon> = {
@@ -287,10 +287,34 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     setSourceMsg(null);
     try {
       await updateBrouillon(id, { sourceHtml: sourceDraft });
-      setBrouillon({ ...brouillon, sourceHtml: sourceDraft });
+      const maj = await fetchBrouillon(id);
+      setBrouillon(maj);
       setSourceMsg({ type: 'ok', text: 'Source déposée. Cliquez sur « Régénérer les slides » pour mettre à jour les visuels.' });
     } catch (err) {
       setSourceMsg({ type: 'err', text: err instanceof Error ? err.message : 'Dépôt impossible' });
+    } finally {
+      setSourceBusy(false);
+    }
+  }
+
+  /** Restaure la source HTML depuis une version snapshot (chantier 5), avec
+   *  confirmation (jamais de restauration destructive sans confirmation).
+   *  La restauration = set_source + regenerer : l'API remet le contenu de la
+   *  version dans sourceHtml, on recharge puis on relance le rendu. */
+  async function onRestaurerVersion(numero: number) {
+    if (!brouillon) return;
+    if (!window.confirm(`Restaurer la source depuis la version v${numero} ? Les slides seront régénérées depuis ce contenu.`)) return;
+    setSourceBusy(true);
+    setSourceMsg(null);
+    try {
+      await restaurerVersion(id, numero);
+      const maj = await fetchBrouillon(id);
+      setBrouillon(maj);
+      setSourceDraft('');
+      setSourceMsg({ type: 'ok', text: `Source restaurée depuis v${numero}. Régénération des slides...` });
+      await onRegenerer();
+    } catch (err) {
+      setSourceMsg({ type: 'err', text: err instanceof Error ? err.message : 'Restauration impossible' });
     } finally {
       setSourceBusy(false);
     }
@@ -1136,6 +1160,37 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 {brouillon.sourceHtml && !sourceDraft && (
                   <div className="source-meta">
                     <CheckCircle size={13} /> Document HTML de l'agent, {brouillon.sourceHtml.length} caractères
+                  </div>
+                )}
+                {(brouillon.versions ?? []).length > 0 && (
+                  <div className="versions-block">
+                    <div className="versions-head">
+                      <span className="versions-title">Versions de la source</span>
+                      <span className="versions-count">{(brouillon.versions ?? []).length} snapshot{(brouillon.versions ?? []).length > 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="versions-list">
+                      {[...(brouillon.versions ?? [])].reverse().map((v) => (
+                        <div key={v.numero} className="version-row">
+                          <span className="version-num">v{v.numero}</span>
+                          <span className="version-meta">
+                            <span className="version-date">{relTime(v.at)}</span>
+                            <span className={`version-auteur ${v.auteur === 'agent' ? 'agent' : ''}`}>
+                              {v.auteur === 'agent' ? 'agent' : 'vous'}
+                            </span>
+                          </span>
+                          <span className="version-taille">{v.taille < 1024 ? `${v.taille} o` : `${(v.taille / 1024).toFixed(1)} Ko`}</span>
+                          <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => onRestaurerVersion(v.numero)}
+                            disabled={sourceBusy || rendering}
+                            title={`Restaurer la source depuis v${v.numero}`}
+                          >
+                            Restaurer
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

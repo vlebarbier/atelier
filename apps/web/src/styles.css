@@ -634,6 +634,31 @@ main {
 .source-msg.err { color: var(--color-status-err); background: color-mix(in srgb, var(--color-status-err) 10%, transparent); }
 .render-status { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-ink-secondary); }
 .source-meta { font-size: 11.5px; color: var(--color-ink-tertiary); display: inline-flex; align-items: center; gap: 6px; }
+.versions-block { margin-top: 12px; border-top: 1px solid var(--color-line-default); padding-top: 10px; }
+.versions-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.versions-title { font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-ink-tertiary); }
+.versions-count { font-size: 10.5px; color: var(--color-ink-tertiary); }
+.versions-list { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+.version-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 6px;
+  font-size: 11.5px;
+  background: var(--color-bg-level-2);
+  border: 1px solid var(--color-line-default);
+}
+.version-row:hover { background: var(--color-bg-level-3); }
+.version-num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--color-ink-primary); font-weight: 600; flex-shrink: 0; }
+.version-meta { display: inline-flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.version-date { color: var(--color-ink-secondary); white-space: nowrap; }
+.version-auteur {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--color-ink-tertiary); padding: 1px 6px; border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink-primary) 8%, transparent);
+  white-space: nowrap;
+}
+.version-auteur.agent { color: var(--color-status-ok); background: color-mix(in srgb, var(--color-status-ok) 10%, transparent); }
+.version-taille { font-size: 10.5px; color: var(--color-ink-tertiary); white-space: nowrap; }
+.version-row button { font-size: 11px; padding: 3px 9px; flex-shrink: 0; }
 .reseau-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: var(--spacing-4); padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-line-default); }
 .reseau-tabs button { border: none; background: transparent; padding: 5px 11px; font-size: 11.5px; color: var(--color-ink-tertiary); }
 .reseau-tabs button:hover { background: var(--color-bg-level-2); color: var(--color-ink-primary); transform: none; }
