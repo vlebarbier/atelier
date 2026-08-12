@@ -1469,3 +1469,27 @@ main {
   --color-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
   --color-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
 }
+
+/* ── Tunnel de creation : stepper du workflow (SPEC-TUNNEL.md US-03) ── */
+.tunnel-steps {
+  display: flex; align-items: center; gap: 8px;
+  margin-left: auto; margin-right: 12px;
+  padding: 0 14px; height: 26px;
+  border: 1px solid var(--color-line-default); border-radius: 999px;
+  background: var(--color-bg-level-2);
+}
+.tunnel-step { display: inline-flex; align-items: center; gap: 5px; }
+.tunnel-step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-ink-tertiary); opacity: 0.5; }
+.tunnel-step-label { font-size: 10.5px; color: var(--color-ink-tertiary); white-space: nowrap; }
+.tunnel-step-line { width: 12px; height: 1px; background: var(--color-line-hover); margin: 0 2px; }
+.tunnel-step.done .tunnel-step-dot { background: var(--color-status-ok); opacity: 1; }
+.tunnel-step.done .tunnel-step-label { color: var(--color-ink-secondary); }
+.tunnel-step.done .tunnel-step-line { background: var(--color-status-ok); opacity: 0.5; }
+.tunnel-step.current .tunnel-step-dot {
+  background: var(--color-accent-base); opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-base) 18%, transparent);
+}
+.tunnel-step.current .tunnel-step-label { color: var(--color-ink-primary); font-weight: 600; }
+
+/* Invitation "Passer a A valider" (US-04) : la checklist complete declenche le geste suivant */
+.tunnel-next { margin-top: 10px; width: 100%; justify-content: center; }
