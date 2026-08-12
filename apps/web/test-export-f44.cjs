@@ -26,13 +26,13 @@ const { chromium } = require('/Users/victorlebarbier/.hermes/hermes-agent/node_m
   await exportBtn.click();
   await page.waitForTimeout(400);
 
-  // Le menu doit proposer HTML autonome + PDF
+  // Le menu doit proposer PNG + PDF + HTML autonome (ordre UX C1)
   const menuItems = await page.locator('.export-menu [role="menuitem"]').allInnerTexts();
   console.log('MENU ITEMS:', JSON.stringify(menuItems));
 
-  // Test 1 : export HTML autonome -> telechargement .html
+  // Test 1 : export HTML autonome -> telechargement .html (3e entree : PNG / PDF / HTML)
   const dlPromise = page.waitForEvent('download', { timeout: 20000 });
-  await page.locator('.export-menu [role="menuitem"]').first().click();
+  await page.locator('.export-menu [role="menuitem"]').nth(2).click();
   const dl = await dlPromise;
   const dlPath = '/tmp/f44-export-test.html';
   await dl.saveAs(dlPath);
@@ -47,7 +47,7 @@ const { chromium } = require('/Users/victorlebarbier/.hermes/hermes-agent/node_m
   console.log('HAS TITLE:', html.includes('<title>'));
   console.log('HAS /b/ URL (doit etre false ou minime):', html.includes('/b/'));
 
-  // Test 2 : apercu PDF -> nouvelle page avec barre d impression
+  // Test 2 : apercu PDF -> nouvelle page avec barre d impression (2e entree : PNG / PDF / HTML)
   await exportBtn.click();
   await page.waitForTimeout(300);
   const popupPromise = page.waitForEvent('popup', { timeout: 20000 });
