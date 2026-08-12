@@ -17,6 +17,8 @@ interface CommandPaletteProps {
   onOpenBrouillon: (id: string) => void;
   onToggleVue: () => void;
   onGoBrouillons: () => void;
+  /** Navigation vers la page Blog (les articles ont leur editeur dedie). */
+  onGoBlog: () => void;
   vue: Vue;
 }
 
@@ -27,6 +29,7 @@ export function CommandPalette({
   onOpenBrouillon,
   onToggleVue,
   onGoBrouillons,
+  onGoBlog,
   vue
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
@@ -77,12 +80,17 @@ export function CommandPalette({
       }
     });
     for (const b of brouillons) {
+      const estArticle = b.type === 'article';
       cmds.push({
-        grp: 'Contenus',
+        grp: estArticle ? 'Articles' : 'Contenus',
         label: `Ouvrir : ${b.titre}`,
         run: () => {
           onClose();
-          onGoBrouillons();
+          if (estArticle) {
+            onGoBlog();
+          } else {
+            onGoBrouillons();
+          }
           onOpenBrouillon(b.id);
         }
       });
@@ -91,7 +99,7 @@ export function CommandPalette({
     if (!query) return cmds.slice(0, 8);
     const q = query.toLowerCase();
     return cmds.filter((c) => c.label.toLowerCase().includes(q)).slice(0, 8);
-  }, [query, brouillons, onClose, onGoBrouillons, onOpenBrouillon, onToggleVue, vue]);
+  }, [query, brouillons, onClose, onGoBrouillons, onGoBlog, onOpenBrouillon, onToggleVue, vue]);
 
   useEffect(() => {
     if (selected >= commands.length) setSelected(0);
