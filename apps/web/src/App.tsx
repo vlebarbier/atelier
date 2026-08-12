@@ -317,6 +317,7 @@ export default function App() {
         onToggleVue={() => setVue((v) => (v === 'grille' ? 'liste' : 'grille'))}
         onGoBrouillons={() => navigate('brouillons')}
         onGoBlog={() => navigate('blog')}
+        onOpenCreation={() => setCreationOpen(true)}
         vue={vue}
       />
 
