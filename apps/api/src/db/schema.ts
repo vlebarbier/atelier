@@ -29,6 +29,9 @@ export const brouillons = sqliteTable('brouillons', {
    *  publishedAt, readingTime, cmsId, cmsUrl} ou null). Utilise uniquement pour type 'article'.
    *  Le corps de l'article vit dans sourceHtml (le receptacle HTML). */
   article: text('article'),
+  /** Diff visuel avant/apres de la derniere regeneration (JSON : {at, avant:[{fichier,blobUrl,typeMedia}], nbAvant, nbApres}).
+   *  Capture les slides AVANT leur remplacement (chantier 3 : montrer ce que l'agent a change). */
+  diff: text('diff'),
   updatedAt: text('updated_at')
 });
 

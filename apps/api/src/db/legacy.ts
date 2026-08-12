@@ -58,6 +58,9 @@ export function ensureLegacyTables(sqlite: Sqlite): void {
   if (!brouillonsCols.some((c) => c.name === 'article')) {
     sqlite.exec(`ALTER TABLE brouillons ADD COLUMN article TEXT;`);
   }
+  if (!brouillonsCols.some((c) => c.name === 'diff')) {
+    sqlite.exec(`ALTER TABLE brouillons ADD COLUMN diff TEXT;`);
+  }
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS ressources (
       id TEXT PRIMARY KEY,

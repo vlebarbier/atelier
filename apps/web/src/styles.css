@@ -1763,3 +1763,107 @@ main {
   .article-preview { border-left: none; border-top: 1px solid var(--color-line-default); }
 }
 
+
+/* ══ Diff visuel avant/apres (chantier 3, le facteur de confiance) ══════ */
+
+/* CTA « Voir ce que l'agent a changé », visible quand un diff existe */
+.diff-cta {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin-bottom: 14px; padding: 6px 14px;
+  border-radius: 999px; border: 1px solid var(--color-line-hover);
+  background: var(--color-bg-level-2); color: var(--color-ink-primary);
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: background var(--motion-duration-fast) var(--motion-ease);
+}
+.diff-cta:hover { background: var(--color-bg-level-3); border-color: var(--color-line-strong); }
+.diff-cta svg { color: var(--color-status-warn); }
+
+/* Barre de controle du mode diff (au-dessus du stage) */
+.diff-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; padding: 6px 10px;
+  width: 100%; max-width: 520px;
+  border-radius: 10px; border: 1px solid var(--color-line-default);
+  background: var(--color-bg-level-2); font-size: 12px;
+}
+.diff-bar .diff-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--color-ink-primary); }
+.diff-bar .diff-title svg { color: var(--color-status-warn); }
+.diff-bar .ghost { padding: 4px 10px; font-size: 12px; }
+.diff-bar button.on {
+  background: color-mix(in srgb, var(--color-ink-primary) 9%, transparent);
+  color: var(--color-ink-primary); border-color: transparent; font-weight: 600;
+}
+.diff-bar .diff-info { flex: 1; text-align: center; color: var(--color-ink-secondary); font-size: 11px; }
+.diff-bar .diff-spacer { flex: 1; }
+
+/* Le comparateur : avant en fond, apres revele par le slider (clip-path) */
+.diff-compare {
+  position: relative; width: 100%;
+  border-radius: 12px; overflow: hidden;
+  touch-action: none; cursor: ew-resize;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 12px 40px rgba(0, 0, 0, 0.45);
+  background: var(--color-bg-level-2);
+  user-select: none;
+}
+.diff-compare .diff-img {
+  display: block; width: 100%; height: auto;
+  pointer-events: none;
+}
+.diff-compare .diff-apres { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Zones modifiees : encadre ambre (annotation de changement, pas un statut) */
+.diff-zone {
+  position: absolute; z-index: 5;
+  border: 1.5px dashed var(--color-status-warn);
+  background: color-mix(in srgb, var(--color-status-warn) 12%, transparent);
+  border-radius: 4px; box-sizing: border-box;
+  pointer-events: none;
+}
+
+/* Slider de comparaison */
+.diff-handle {
+  position: absolute; top: 0; bottom: 0; z-index: 7;
+  width: 0; border-left: 1.5px solid rgba(255, 255, 255, 0.9);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.diff-handle-knob {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(6px);
+  border: 1px solid var(--color-line-hover);
+  color: var(--color-ink-primary);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Badges Avant / Apres fixes en haut du comparateur */
+.diff-badge {
+  position: absolute; top: 10px; z-index: 6;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+  background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(6px);
+  border: 1px solid var(--color-line-default);
+  color: var(--color-ink-secondary);
+  pointer-events: none;
+}
+.diff-badge-apres { left: 10px; }
+.diff-badge-avant { right: 10px; }
+
+/* Slide sans equivalent avant (nouvellement creee) */
+.diff-nouvelle { position: relative; width: 100%; }
+.diff-nouvelle img {
+  display: block; width: 100%; height: auto;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 12px 40px rgba(0, 0, 0, 0.45);
+  background: var(--color-bg-level-2);
+}
+.diff-nouvelle-badge {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+  background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(6px);
+  border: 1px solid var(--color-line-hover);
+  color: var(--color-ink-primary);
+}
