@@ -44,6 +44,15 @@ export function CalendarPostPanel({ brouillon, onClose, onRefresh, onOpenDetail 
     setProgReseau(p?.reseau ?? 'instagram');
   }, [brouillon.id]);
 
+  // Echap ferme le panneau (pattern panneau lateral / modal).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const slides = brouillon.slides || [];
   const fichier = slides[slide];
   const estVideo = Boolean(fichier && (fichier.endsWith('.mp4') || fichier.endsWith('.webm')));
