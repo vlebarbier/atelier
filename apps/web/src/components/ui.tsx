@@ -55,15 +55,18 @@ interface EmptyStateProps {
   icon?: Icon;
   title: string;
   sub?: string;
+  /** Contenu supplementaire sous le sous-titre (ex: bouton d'action). */
+  children?: ReactNode;
 }
 
 /** Etat vide standard : icone + titre + sous-titre. */
-export function EmptyState({ icon: IconComp, title, sub }: EmptyStateProps) {
+export function EmptyState({ icon: IconComp, title, sub, children }: EmptyStateProps) {
   return (
     <div className="empty page-empty">
       {IconComp && <IconComp size={26} />}
       <p>{title}</p>
       {sub && <p className="empty-sub">{sub}</p>}
+      {children}
     </div>
   );
 }
