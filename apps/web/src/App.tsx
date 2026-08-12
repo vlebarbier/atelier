@@ -167,7 +167,7 @@ export default function App() {
   /** Template : conversation pre-remplie avec le messageInitial (prefixe du sujet si demande). */
   async function creerDepuisTemplate(t: TemplateCreation, sujet?: string) {
     setCreationOpen(false);
-    const titre = sujet ? `${t.titreDefaut} — ${sujet}` : t.titreDefaut;
+    const titre = sujet ? `${t.titreDefaut} - ${sujet}` : t.titreDefaut;
     const texte = sujet ? `Sujet : ${sujet}\n\n${t.messageInitial}` : t.messageInitial;
     try {
       const created = await createBrouillon(titre, t.type, [{ role: 'user', texte }]);
@@ -291,7 +291,7 @@ export default function App() {
               filtre={filtre}
               onFiltreChange={setFiltre}
               emptyTitle="Pas encore de document de communication."
-              emptySub="Pitch deck, flyer, affiche, carte de visite, plaquette — creez le premier livrable avec votre agent."
+              emptySub="Pitch deck, flyer, affiche, carte de visite, plaquette : creez le premier livrable avec votre agent."
             />
           )}
 
