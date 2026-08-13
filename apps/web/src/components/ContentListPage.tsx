@@ -66,13 +66,20 @@ export function ContentListPage({
       (filtreType === 'tous' || b.type === filtreType)
   );
 
+  // Le compteur du header reflete ce qui est visible : le total quand aucun
+  // filtre n'est actif, filtered.length des qu'un filtre (statut ou type) l'est.
+  // Sans filtre, filtered == brouillons, mais la condition est explicite pour
+  // que le sens du nombre affiche reste stable si un filtre externe apparait.
+  const filtreActif = filtre !== 'tous' || filtreType !== 'tous';
+  const compteHeader = filtreActif ? filtered.length : brouillons.length;
+
   const typesEffectifs = typesFiltrables ?? (typesNouveau as readonly string[] | undefined);
 
   return (
     <Page>
       <PageHeader
         title={titre}
-        count={brouillons.length}
+        count={compteHeader}
         sub={sub}
         actions={
           <div className="page-actions">
