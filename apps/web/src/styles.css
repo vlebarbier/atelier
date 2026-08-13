@@ -434,30 +434,24 @@ main {
 }
 .src-toggle:hover { color: var(--color-ink-primary); }
 .src-toggle.on { border-color: var(--color-accent-base); color: var(--color-accent-base); }
-.detail-bar .delete {
-  border: none; background: transparent; color: var(--color-ink-tertiary);
-  padding: 5px 8px; font-size: 11.5px; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 5px; border-radius: 6px;
-}
-.detail-bar .delete:hover { color: var(--color-status-err); background: var(--color-status-err-soft); }
 
-/* ── Export du livrable (F-44) ──────────────────────────────────────── */
-.export-control { position: relative; }
-.export-btn {
+/* ── Menu « Plus d'actions » du detail (type, export, suppression) ──── */
+.overflow-control { position: relative; }
+.more-btn {
   border: 1px solid var(--color-line-default); background: transparent;
-  color: var(--color-ink-secondary); padding: 6px 11px; font-size: 11.5px;
+  color: var(--color-ink-secondary); width: 30px; height: 30px;
   border-radius: var(--radius-input); cursor: pointer;
-  display: inline-flex; align-items: center; gap: 7px; font-weight: 500;
+  display: inline-flex; align-items: center; justify-content: center;
 }
-.export-btn:hover { border-color: var(--color-line-hover); color: var(--color-ink-primary); }
-.export-btn:disabled { opacity: 0.55; cursor: default; }
-.export-btn .statut-caret { opacity: 0.6; }
-.export-menu { min-width: 240px; }
-.export-menu button { gap: 10px; }
-.export-menu button:disabled { opacity: 0.55; cursor: default; }
-.export-menu .mi { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.export-menu .mi-t { font-size: 12.5px; color: inherit; font-weight: 500; }
-.export-menu .mi-s { font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.35; }
+.more-btn:hover { border-color: var(--color-line-hover); color: var(--color-ink-primary); }
+.more-menu { min-width: 240px; }
+.more-menu button { gap: 10px; }
+.more-menu button:disabled { opacity: 0.55; cursor: default; }
+.more-menu .mi { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.more-menu .mi-t { font-size: 12.5px; color: inherit; font-weight: 500; }
+.more-menu .mi-s { font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.35; }
+.more-menu .more-delete { color: var(--color-status-err); }
+.more-menu .more-delete:hover { color: var(--color-status-err); background: var(--color-status-err-soft); }
 
 .detail-body {
   display: flex; flex: 1; min-height: 0; gap: 0;
@@ -690,16 +684,6 @@ main {
   display: flex; align-items: center; justify-content: space-between;
 }
 .sp-label .chip { font-size: 10px; letter-spacing: 0.04em; border: 1px solid var(--color-line-default); border-radius: 4px; padding: 2px 6px; color: var(--color-ink-secondary); text-transform: none; }
-.sp-label .saved { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--color-status-ok); text-transform: none; letter-spacing: 0; opacity: 0; transition: opacity var(--motion-duration-fast) var(--motion-ease); }
-.sp-label .saved.show { opacity: 1; }
-.sp-textarea {
-  width: 100%; background: var(--color-bg-level-2); border: 1px solid var(--color-line-default);
-  border-radius: 8px; padding: 10px 12px; color: var(--color-ink-primary);
-  font-family: var(--font-family-ui); font-size: 12px; line-height: 1.6;
-  resize: vertical; min-height: 72px;
-}
-.sp-textarea::placeholder { color: var(--color-ink-tertiary); }
-.sp-textarea:focus { border-color: var(--color-accent-base); outline: none; }
 
 .reseau-statut {
   display: inline-flex; gap: 2px; padding: 2px;
@@ -1592,16 +1576,6 @@ main {
 .postiz-msg.ok { background: color-mix(in srgb, var(--color-status-ok) 10%, transparent); color: var(--color-status-ok); }
 .postiz-msg.err { background: color-mix(in srgb, var(--color-status-err) 10%, transparent); color: var(--color-status-err); }
 .postiz-hint { font-size: 10.5px; color: var(--color-ink-tertiary); text-align: center; }
-
-/* ── Selecteur de type de contenu ───────────────────────────────────── */
-.type-select { position: relative; }
-.type-btn {
-  border: 1px solid var(--color-line-default); background: transparent;
-  color: var(--color-ink-secondary); padding: 6px 11px; font-size: 11.5px;
-  border-radius: var(--radius-input); cursor: pointer;
-  display: inline-flex; align-items: center; gap: 7px; font-weight: 500;
-}
-.type-btn:hover { border-color: var(--color-line-hover); color: var(--color-ink-primary); }
 
 /* ── Modal ──────────────────────────────────────────────────────────── */
 .modal-overlay {
