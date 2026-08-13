@@ -1,7 +1,7 @@
 import { toPng } from 'html-to-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash, X, ArrowsLeftRight,
+  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash, X, ArrowsLeftRight, DotsThreeVertical,
   InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf, ImageSquare, MapPin
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
@@ -64,8 +64,6 @@ interface DraftDetailProps {
   panneauReplie?: boolean;
 }
 
-const REVISION_DEBOUNCE_MS = 400;
-
 export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: DraftDetailProps) {
   const [brouillon, setBrouillon] = useState<BrouillonDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,8 +74,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [reseauActif, setReseauActif] = useState<string>('instagram');
   const [onglet, setOnglet] = useState<OngletPanneau>('agent');
   const [statutOpen, setStatutOpen] = useState(false);
-  const [typeOpen, setTypeOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
+  const [overflowOpen, setOverflowOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [planifOpen, setPlanifOpen] = useState(false);
   const [planifDate, setPlanifDate] = useState('');
@@ -94,15 +91,12 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourceMsg, setSourceMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [rendering, setRendering] = useState(false);
-  const [notes, setNotes] = useState('');
   const [checklist, setChecklist] = useState<{ id: string; label: string; checked: boolean }[]>([]);
-  const [savedFlash, setSavedFlash] = useState(false);
   // Mode « Apercu publie » (SPEC-TUNNEL.md US-05) : la slide courante + la
   // legende assemblee du reseau actif, comme le post apparaitra publie.
   const [apercuPublie, setApercuPublie] = useState(false);
   // Pseudo de la marque pour l'en-tete de l'apercu (charte si dispo, sinon placeholder).
   const [charteNom, setCharteNom] = useState<string | null>(null);
-  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Diff visuel avant/apres (chantier 3) : mode, position du slider, zones calculees.
   const [modeDiff, setModeDiff] = useState(false);
   const [diffPos, setDiffPos] = useState(55);
@@ -127,7 +121,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     try {
       const data = await fetchBrouillon(id);
       setBrouillon(data);
-      setNotes(data.notes || '');
       try {
         setChecklist(JSON.parse(data.checklist || '[]'));
       } catch {
@@ -220,8 +213,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
         programme: JSON.stringify({ date: planifDate, heure: planifHeure, reseau: planifReseau })
       });
       setPlanifOpen(false);
-      setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de programmation');
     }
@@ -279,7 +270,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   /** Export du livrable (F-44) : PNG (slide courante), HTML autonome ou apercu impression (PDF). */
   async function onExporter(mode: 'png' | 'html' | 'pdf') {
     if (!brouillon || exporting) return;
-    setExportOpen(false);
+    setOverflowOpen(false);
     // L'apercu s'ouvre SYNCHRONEMENT au clic pour garder le geste utilisateur
     // (sinon le bloqueur de popups le tue), puis recoit le HTML une fois pret.
     const win = mode === 'pdf' ? ouvrirApercuPDF() : null;
@@ -645,22 +636,12 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     await updateBrouillon(id, { statut });
   }
 
-  function onNotesChange(value: string) {
-    setNotes(value);
-    if (notesTimer.current) clearTimeout(notesTimer.current);
-    notesTimer.current = setTimeout(async () => {
-      await updateBrouillon(id, { notes: value });
-    }, REVISION_DEBOUNCE_MS);
-  }
-
   async function saveReseau(reseau: string, patch: Partial<ReseauEntry>) {
     if (!brouillon) return;
     const current = brouillon.reseaux[reseau] || { caption: '', hashtags: '', statut: 'brouillon' as Statut };
     const next: ReseauEntry = { ...current, ...patch };
     setBrouillon({ ...brouillon, reseaux: { ...brouillon.reseaux, [reseau]: next } });
     await updateBrouillon(id, { reseaux: { [reseau]: next } });
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 2000);
   }
 
   const CHECKLIST_DEFAUT: { id: string; label: string }[] = [
@@ -674,8 +655,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     const next = checklist.map((c) => (c.id === id ? { ...c, checked: !c.checked } : c));
     setChecklist(next);
     updateBrouillon(id, { checklist: JSON.stringify(next) });
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 2000);
   }
 
   function ensureChecklist() {
@@ -844,33 +823,31 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               </div>
             )}
           </div>
-          <div className="type-select">
+          <div className="overflow-control">
             <button
               type="button"
-              className="type-btn"
-              onClick={() => setTypeOpen((o) => !o)}
-              aria-haspopup="listbox"
-              aria-expanded={typeOpen}
-              title="Type de contenu"
+              className="more-btn"
+              onClick={() => setOverflowOpen((o) => !o)}
+              aria-haspopup="menu"
+              aria-expanded={overflowOpen}
+              title="Plus d'actions"
             >
-              {brouillon.type === 'video' ? <VideoCamera size={13} /> : <Stack size={13} />}
-              <span className="type-label">{TYPE_LABELS[brouillon.type] ?? 'Carrousel'}</span>
-              <CaretDown size={12} className="statut-caret" />
+              <DotsThreeVertical size={16} weight="bold" />
             </button>
-            {typeOpen && (
-              <div className="statut-menu" role="listbox">
+            {overflowOpen && (
+              <div className="statut-menu more-menu" role="menu">
                 <div className="statut-menu-label">Type de contenu</div>
                 {TYPES_CONTENUS.map((t) => (
                   <button
                     key={t}
                     type="button"
-                    role="option"
+                    role="menuitem"
                     aria-selected={brouillon.type === t}
                     className={brouillon.type === t ? 'on' : ''}
                     onClick={() => {
                       setBrouillon({ ...brouillon, type: t });
                       updateBrouillon(id, { type: t });
-                      setTypeOpen(false);
+                      setOverflowOpen(false);
                     }}
                   >
                     {t === 'video' ? <VideoCamera size={13} /> : <Stack size={13} />}
@@ -884,13 +861,13 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   <button
                     key={t}
                     type="button"
-                    role="option"
+                    role="menuitem"
                     aria-selected={brouillon.type === t}
                     className={brouillon.type === t ? 'on' : ''}
                     onClick={() => {
                       setBrouillon({ ...brouillon, type: t });
                       updateBrouillon(id, { type: t });
-                      setTypeOpen(false);
+                      setOverflowOpen(false);
                     }}
                   >
                     <FileText size={13} />
@@ -898,25 +875,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     {brouillon.type === t && <Check size={12} className="statut-check" />}
                   </button>
                 ))}
-              </div>
-            )}
-          </div>
-          <div className="export-control">
-            <button
-              type="button"
-              className="export-btn"
-              onClick={() => setExportOpen((o) => !o)}
-              aria-haspopup="menu"
-              aria-expanded={exportOpen}
-              disabled={exporting}
-              title="Exporter le livrable (PNG, HTML autonome ou PDF)"
-            >
-              <DownloadSimple size={13} />
-              <span>{exporting ? 'Export...' : 'Exporter'}</span>
-              <CaretDown size={12} className="statut-caret" />
-            </button>
-            {exportOpen && (
-              <div className="statut-menu export-menu" role="menu">
+                <div className="statut-menu-sep" />
                 <div className="statut-menu-label">Exporter le livrable</div>
                 <button
                   type="button"
@@ -945,21 +904,23 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     <span className="mi-s">Slides + légendes, tout-en-un</span>
                   </span>
                 </button>
+                <div className="statut-menu-sep" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="more-delete"
+                  onClick={() => {
+                    setOverflowOpen(false);
+                    if (window.confirm('Supprimer ce brouillon ? Cette action est definitive.')) {
+                      onDelete();
+                    }
+                  }}
+                >
+                  <Trash size={14} /> Supprimer
+                </button>
               </div>
             )}
           </div>
-          <button
-            type="button"
-            className={`delete`}
-            onClick={() => {
-              if (window.confirm('Supprimer ce brouillon ? Cette action est definitive.')) {
-                onDelete();
-              }
-            }}
-            title="Supprimer le brouillon"
-          >
-            <Trash size={13} /> Supprimer
-          </button>
         </div>
       </header>
 
@@ -1210,21 +1171,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
         </div>
 
         <aside className={`side-panel${panneauReplie ? ' is-replie' : ''}`}>
-          <div className="sp-section">
-            <div className="sp-label">
-              <span>Notes de révision</span>
-              <span className={`saved${savedFlash ? ' show' : ''}`}>
-                <Check size={11} weight="bold" /> Enregistré
-              </span>
-            </div>
-            <textarea
-              className="sp-textarea"
-              placeholder="Notes de révision"
-              value={notes}
-              onChange={(e) => onNotesChange(e.target.value)}
-            />
-          </div>
-
           <div className="sp-section">
             <div className="sp-label">
               <span>Checklist de validation</span>
@@ -1612,36 +1558,38 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
             )}
           </div>
 
-          <div className="sp-section planif-section">
-            {estDocument ? (
-              <div className="planif-nodoc">
-                <CheckCircle size={13} /> Livrable de communication : pas de programmation réseau
-              </div>
-            ) : brouillon.programme ? (
-              (() => {
-                const prog = parseProgramme(brouillon.programme);
-                return prog ? (
-                  <>
-                    <div className="planif-fait">
-                      <CheckCircle size={13} />
-                      Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
-                      {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
-                    </div>
-                    <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
-                      Annuler la programmation
-                    </button>
-                  </>
-                ) : null;
-              })()
-            ) : (
-              <>
-                <button className="primary planif-btn" type="button" onClick={ouvrirPlanif}>
-                  <CalendarBlank size={14} weight="bold" /> Programmer dans le calendrier
-                </button>
-                <div className="planif-hint">Quand le contenu est prêt, planifiez sa publication.</div>
-              </>
-            )}
-          </div>
+          {(estDocument || brouillon.statut === 'valide' || brouillon.programme) && (
+            <div className="sp-section planif-section">
+              {estDocument ? (
+                <div className="planif-nodoc">
+                  <CheckCircle size={13} /> Livrable de communication : pas de programmation réseau
+                </div>
+              ) : brouillon.programme ? (
+                (() => {
+                  const prog = parseProgramme(brouillon.programme);
+                  return prog ? (
+                    <>
+                      <div className="planif-fait">
+                        <CheckCircle size={13} />
+                        Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
+                        {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
+                      </div>
+                      <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
+                        Annuler la programmation
+                      </button>
+                    </>
+                  ) : null;
+                })()
+              ) : (
+                <>
+                  <button className="primary planif-btn" type="button" onClick={ouvrirPlanif}>
+                    <CalendarBlank size={14} weight="bold" /> Programmer dans le calendrier
+                  </button>
+                  <div className="planif-hint">Quand le contenu est prêt, planifiez sa publication.</div>
+                </>
+              )}
+            </div>
+          )}
 
           {!estDocument && brouillon.statut === 'valide' && (
             <div className="sp-section postiz-section">
