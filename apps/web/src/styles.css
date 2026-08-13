@@ -1606,6 +1606,30 @@ main {
 .modal .field input:focus, .modal .field select:focus { border-color: var(--color-accent-base); outline: none; }
 .modal .field select { cursor: pointer; }
 
+/* ── Confirmation (remplace window.confirm) ────────────────────────── */
+button.danger {
+  background: var(--color-status-err);
+  border-color: var(--color-status-err);
+  color: var(--color-accent-on-accent);
+  font-weight: 600;
+}
+button.danger:hover {
+  background: var(--color-status-err);
+  border-color: var(--color-status-err);
+  color: var(--color-accent-on-accent);
+  filter: brightness(1.08);
+}
+.confirm-modal { width: min(400px, calc(100vw - 32px)); }
+.confirm-titre { display: inline-flex; align-items: center; gap: 7px; }
+.confirm-warn { color: var(--color-status-err); flex-shrink: 0; }
+.confirm-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-ink-secondary);
+}
+.confirm-desc strong { color: var(--color-ink-primary); font-weight: 600; }
+
 /* ── Programmation faite ────────────────────────────────────────────── */
 .planif-fait {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;

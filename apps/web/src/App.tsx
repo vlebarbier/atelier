@@ -7,6 +7,7 @@ import { DraftDetail } from './components/DraftDetail';
 import { CommandPalette } from './components/CommandPalette';
 import { ContentListPage } from './components/ContentListPage';
 import { CreationModal } from './components/CreationModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import type { TemplateCreation } from './format';
 import { CalendarPage } from './pages/CalendarPage';
 import { BrandPage } from './pages/BrandPage';
@@ -46,6 +47,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creationOpen, setCreationOpen] = useState(false);
+  // Suppression en attente de confirmation in-app (id du brouillon/document).
+  const [suppressionId, setSuppressionId] = useState<string | null>(null);
   const [panneauReplie, setPanneauReplie] = useState(false);
   // Sidebar repliee : le bouton vit dans la barre du haut (pattern PushRank).
   const [sidebarRepliee, setSidebarRepliee] = useState(() => localStorage.getItem('atelier.sidebar.collapsed') === '1');
@@ -219,8 +222,7 @@ export default function App() {
   }
 
   function confirmDelete(id: string) {
-    const b = brouillons.find((x) => x.id === id);
-    if (window.confirm(`Supprimer « ${b?.titre ?? id} » ?`)) handleDelete(id);
+    setSuppressionId(id);
   }
 
   function navigate(nextPage: string) {
@@ -357,6 +359,24 @@ export default function App() {
           onClose={() => setCreationOpen(false)}
           onPhrase={creerDepuisPhrase}
           onTemplate={creerDepuisTemplate}
+        />
+      )}
+
+      {suppressionId && (
+        <ConfirmModal
+          titre="Supprimer ce contenu ?"
+          description={
+            <>
+              <strong>{brouillons.find((b) => b.id === suppressionId)?.titre ?? 'Ce contenu'}</strong>{' '}
+              sera définitivement supprimé. Cette action est irréversible.
+            </>
+          }
+          onConfirm={() => {
+            const id = suppressionId;
+            setSuppressionId(null);
+            handleDelete(id);
+          }}
+          onClose={() => setSuppressionId(null)}
         />
       )}
     </div>

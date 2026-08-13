@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, CaretDown, Check, Trash, Article as ArticleIcon, ArrowUpRight } from '@phosphor-icons/react';
 import { fetchBrouillon, updateBrouillon, publierCms, parseArticle, type BrouillonDetail, type ArticleMeta, type Statut } from '../api';
 import { CATEGORIES_ARTICLE, CATEGORIES_ARTICLE_LABELS, STATUT_LABELS, STATUTS_ORDRE } from '../format';
+import { ConfirmModal } from './ConfirmModal';
 
 interface ArticleEditorProps {
   id: string;
@@ -38,6 +39,8 @@ export function ArticleEditor({ id, onClose, onDelete, onPublished }: ArticleEdi
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  // Suppression en attente de confirmation in-app.
+  const [suppression, setSuppression] = useState(false);
 
   // Champs article en cours d'édition (copie locale, persistée à la sauvegarde).
   const [meta, setMeta] = useState<ArticleMeta>({});
@@ -176,7 +179,7 @@ export function ArticleEditor({ id, onClose, onDelete, onPublished }: ArticleEdi
           >
             {publishing ? 'Publication...' : 'Publier vers le CMS'}
           </button>
-          <button type="button" className="delete" onClick={() => { if (window.confirm('Supprimer cet article ? Cette action est definitive.')) onDelete(); }} title="Supprimer l'article">
+          <button type="button" className="delete" onClick={() => setSuppression(true)} title="Supprimer l'article">
             <Trash size={13} /> Supprimer
           </button>
         </div>
@@ -301,6 +304,23 @@ export function ArticleEditor({ id, onClose, onDelete, onPublished }: ArticleEdi
           )}
         </div>
       </div>
+
+      {suppression && (
+        <ConfirmModal
+          titre="Supprimer cet article ?"
+          description={
+            <>
+              <strong>{titre.trim() || 'Cet article'}</strong> sera définitivement supprimé.
+              Cette action est irréversible.
+            </>
+          }
+          onConfirm={() => {
+            setSuppression(false);
+            onDelete();
+          }}
+          onClose={() => setSuppression(false)}
+        />
+      )}
     </div>
   );
 }
