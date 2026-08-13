@@ -168,6 +168,30 @@ describe('Dissociation contenus / documents (type)', () => {
   });
 });
 
+describe('POST /api/brouillon/:id/dupliquer (action survol ecran Publications)', () => {
+  it('repond 404 pour un brouillon inconnu', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillon/inconnu/dupliquer', { method: 'POST' });
+    expect(res.status).toBe(404);
+  });
+
+  it('duplique le brouillon seede : titre (copie), statut brouillon, slide copiee', async () => {
+    const { app, db } = buildTestApp();
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7/dupliquer', { method: 'POST' });
+    expect(res.status).toBe(201);
+    const created = (await res.json()) as { id: string; titre: string; statut: string; slideCount: number };
+    expect(created.id).not.toBe('carrousel-bordeluche-v7');
+    expect(created.titre).toBe('Carrousel, Pourquoi Bordeluche existe (v7) (copie)');
+    expect(created.statut).toBe('brouillon');
+
+    const detail = await app.request(`/api/brouillon/${created.id}`);
+    expect(detail.status).toBe(200);
+    const body = (await detail.json()) as { statut: string; slideCount: number };
+    expect(body.statut).toBe('brouillon');
+    expect(body.slideCount).toBe(1);
+  });
+});
+
 describe('GET /api/conversations/en-attente (worker asynchrone)', () => {
   it('ne liste rien quand aucune conversation ou dernier message agent', async () => {
     const { app } = buildTestApp();

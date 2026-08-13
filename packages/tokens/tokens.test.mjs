@@ -17,9 +17,9 @@ describe('tokens sources', () => {
     expect(tokens.color.bg['level-1'].$extensions.light).toBe('#FFFFFF');
   });
 
-  it('contient l accent unique dore #E8C97A (dark) / ambre profond #B45309 (light)', () => {
+  it('contient l accent dore #E8C97A UNIFIE dark+light (decision Victor 13/08)', () => {
     expect(tokens.color.accent.base.$value).toBe('#E8C97A');
-    expect(tokens.color.accent.base.$extensions.light).toBe('#B45309');
+    expect(tokens.color.accent.base.$extensions.light).toBe('#E8C97A');
     expect(tokens.color.accent['on-accent'].$value).toBe('#0A0A0A');
   });
 
@@ -29,8 +29,10 @@ describe('tokens sources', () => {
     expect(tokens.color.status.warn.$extensions.light).not.toBe(tokens.color.accent.base.$extensions.light);
   });
 
-  it('contient le statut valide vert #4CAF7D et le statut erreur rouge', () => {
+  it('contient le statut publie vert #4CAF7D, le statut valide BLEU #4A8FD4 et le statut erreur rouge', () => {
     expect(tokens.color.status.ok.$value).toBe('#4CAF7D');
+    expect(tokens.color.status.validated.$value).toBe('#4A8FD4');
+    expect(tokens.color.status.validated.$value).not.toBe(tokens.color.status.ok.$value);
     expect(tokens.color.status.err.$value).toBe('#FF5252');
   });
 
@@ -57,6 +59,7 @@ describe('build Style Dictionary', () => {
 
     const built = JSON.parse(readFileSync(jsonPath, 'utf8'));
     expect(built['color.accent.base'].dark).toBe('#E8C97A');
-    expect(built['color.accent.base'].light).toBe('#B45309');
+    expect(built['color.accent.base'].light).toBe('#E8C97A');
+    expect(built['color.status.validated'].dark).toBe('#4A8FD4');
   });
 });

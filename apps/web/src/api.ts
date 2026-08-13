@@ -105,6 +105,8 @@ export interface Brouillon {
   slides: string[];
   updated: string | null;
   type?: string;
+  /** Reseaux cibles (cles presentes dans le champ reseaux du brouillon). */
+  reseaux?: string[];
   programme?: string | Programme | null;
   article?: string | ArticleMeta | null;
 }
@@ -115,7 +117,7 @@ export interface ReseauEntry {
   statut: Statut;
 }
 
-export interface BrouillonDetail extends Brouillon {
+export interface BrouillonDetail extends Omit<Brouillon, 'reseaux'> {
   notes: string;
   type: string;
   reseaux: Record<string, ReseauEntry>;
@@ -221,6 +223,17 @@ export async function deleteBrouillon(id: string): Promise<{ ok: boolean }> {
     method: 'DELETE'
   });
   return handle<{ ok: boolean }>(res);
+}
+
+/**
+ * POST /api/brouillon/:id/dupliquer → copie complete (source + slides), statut
+ * remis a brouillon. Renvoie le nouveau brouillon (id, titre, type...).
+ */
+export async function dupliquerBrouillon(id: string): Promise<Brouillon> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/dupliquer`), {
+    method: 'POST'
+  });
+  return handle<Brouillon>(res);
 }
 
 export async function fetchCharte(): Promise<Charte> {
