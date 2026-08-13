@@ -662,7 +662,7 @@ main {
 .detail-stage .thumbs img.active { border-color: var(--color-accent-base); opacity: 1; }
 .no-slides { color: var(--color-ink-tertiary); font-size: var(--font-size-base); text-align: center; }
 
-/* Le panneau droit : notes, checklist, legendes — etroit et silencieux */
+/* Le panneau droit (checklist, edition du contenu, planification) : etroit et silencieux */
 .side-panel {
   width: 330px; flex-shrink: 0;
   background: var(--color-bg-level-1);
