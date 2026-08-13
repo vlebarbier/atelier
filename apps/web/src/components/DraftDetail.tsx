@@ -11,6 +11,7 @@ import { comparerSlides, nombreSlidesDiff, urlsAvantApres, type ZoneDiff } from 
 import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
 import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate, relTime, type Creneau } from '../format';
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerFichier, telechargerHTML } from '../export';
+import { ConfirmModal } from './ConfirmModal';
 
 const RESEAU_ICONES: Record<string, Icon> = {
   instagram: InstagramLogo,
@@ -114,6 +115,14 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [annotationTexte, setAnnotationTexte] = useState('');
   // Annotation selectionnee (depuis un marqueur ou la liste du panneau).
   const [annotationSel, setAnnotationSel] = useState<string | null>(null);
+  // Confirmation in-app (remplace window.confirm) : une seule modale, le type
+  // d'action determine titre, description et bouton. null = aucune modale.
+  const [confirmation, setConfirmation] = useState<
+    | { type: 'supprimer-brouillon' }
+    | { type: 'restaurer'; numero: number }
+    | { type: 'supprimer-slide'; index: number }
+    | null
+  >(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -320,13 +329,14 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     }
   }
 
-  /** Restaure la source HTML depuis une version snapshot (chantier 5), avec
-   *  confirmation (jamais de restauration destructive sans confirmation).
-   *  La restauration = set_source + regenerer : l'API remet le contenu de la
-   *  version dans sourceHtml, on recharge puis on relance le rendu. */
-  async function onRestaurerVersion(numero: number) {
+  /** Ouvre la modale de confirmation de restauration. */
+  function demanderRestaurerVersion(numero: number) {
     if (!brouillon) return;
-    if (!window.confirm(`Restaurer la source depuis la version v${numero} ? Les slides seront régénérées depuis ce contenu.`)) return;
+    setConfirmation({ type: 'restaurer', numero });
+  }
+
+  /** Execute la restauration (appele par la modale apres confirmation). */
+  async function executerRestaurerVersion(numero: number) {
     setSourceBusy(true);
     setSourceMsg(null);
     try {
@@ -681,9 +691,15 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     }
   }
 
-  async function supprimerSlide(index: number) {
+  /** Ouvre la modale de confirmation de suppression de slide. */
+  function demanderSupprimerSlide(index: number) {
     if (!brouillon) return;
-    if (!window.confirm(`Supprimer la slide ${index + 1} ?`)) return;
+    setConfirmation({ type: 'supprimer-slide', index });
+  }
+
+  /** Execute la suppression de slide (appele par la modale apres confirmation). */
+  async function executerSupprimerSlide(index: number) {
+    if (!brouillon) return;
     const next = brouillon.slides.filter((_, i) => i !== index);
     setBrouillon({ ...brouillon, slides: next });
     setSlide((s) => Math.min(s, next.length - 1));
@@ -911,9 +927,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   className="more-delete"
                   onClick={() => {
                     setOverflowOpen(false);
-                    if (window.confirm('Supprimer ce brouillon ? Cette action est definitive.')) {
-                      onDelete();
-                    }
+                    setConfirmation({ type: 'supprimer-brouillon' });
                   }}
                 >
                   <Trash size={14} /> Supprimer
@@ -1400,7 +1414,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                           <button
                             type="button"
                             className="ghost"
-                            onClick={() => onRestaurerVersion(v.numero)}
+                            onClick={() => demanderRestaurerVersion(v.numero)}
                             disabled={sourceBusy || rendering}
                             title={`Restaurer la source depuis v${v.numero}`}
                           >
@@ -1443,7 +1457,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                       <button
                         type="button"
                         className="ghost danger"
-                        onClick={(e) => { e.stopPropagation(); supprimerSlide(i); }}
+                        onClick={(e) => { e.stopPropagation(); demanderSupprimerSlide(i); }}
                         title="Supprimer"
                       >
                         <Trash size={12} />
@@ -1688,6 +1702,47 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
             </div>
           </div>
         </div>
+      )}
+
+      {confirmation && (
+        <ConfirmModal
+          titre={
+            confirmation.type === 'restaurer'
+              ? `Restaurer la version v${confirmation.numero} ?`
+              : confirmation.type === 'supprimer-slide'
+                ? `Supprimer la slide ${confirmation.index + 1} ?`
+                : 'Supprimer ce brouillon ?'
+          }
+          description={
+            confirmation.type === 'restaurer' ? (
+              <>
+                Les slides seront régénérées depuis ce contenu. La version v{confirmation.numero}{' '}
+                remplace la source actuelle.
+              </>
+            ) : confirmation.type === 'supprimer-slide' ? (
+              <>
+                La slide {confirmation.index + 1} de <strong>{brouillon?.titre ?? 'ce brouillon'}</strong>{' '}
+                sera définitivement supprimée.
+              </>
+            ) : (
+              <>
+                <strong>{brouillon?.titre ?? 'Ce brouillon'}</strong> sera définitivement supprimé, ainsi
+                que ses slides. Cette action est irréversible.
+              </>
+            )
+          }
+          labelConfirmer={
+            confirmation.type === 'restaurer' ? 'Restaurer' : 'Supprimer'
+          }
+          danger={confirmation.type !== 'restaurer'}
+          onConfirm={() => {
+            if (confirmation.type === 'restaurer') void executerRestaurerVersion(confirmation.numero);
+            else if (confirmation.type === 'supprimer-slide') void executerSupprimerSlide(confirmation.index);
+            else onDelete();
+            setConfirmation(null);
+          }}
+          onClose={() => setConfirmation(null)}
+        />
       )}
     </div>
   );
