@@ -81,6 +81,26 @@ describe('POST /api/brouillon/:id', () => {
     const body = (await check.json()) as { statut: string };
     expect(body.statut).toBe('a-valider');
   });
+
+  it('persiste des annotations de revision (JSON) et les renvoie dans le detail', async () => {
+    const { app } = buildTestApp();
+    const annotations = JSON.stringify([
+      { id: 'ann-1', slide: 0, x: 0.32, y: 0.58, texte: 'Texte trop petit', at: '2026-08-12T10:00:00.000Z' },
+      { id: 'ann-2', slide: 2, x: 0.5, y: 0.2, texte: 'Logo flou', at: '2026-08-12T10:05:00.000Z' }
+    ]);
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ annotations })
+    });
+    expect(res.status).toBe(200);
+
+    const detail = await app.request('/api/brouillon/carrousel-bordeluche-v7');
+    const body = (await detail.json()) as { annotations: string };
+    const parsed = JSON.parse(body.annotations) as { id: string; x: number; y: number }[];
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0]).toMatchObject({ id: 'ann-1', x: 0.32, y: 0.58 });
+  });
 });
 
 describe('Dissociation contenus / documents (type)', () => {

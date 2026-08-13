@@ -35,6 +35,10 @@ export const brouillons = sqliteTable('brouillons', {
   /** Versions de la source HTML (JSON : [{numero, fichier, blobUrl, at, auteur, taille}]).
    *  Chaque depot de source ajoute une version (chantier 5 : la securite qui debloque tout). */
   versions: text('versions'),
+  /** Annotations de revision attachees au visuel (JSON : [{id, slide, x, y, texte, at}]).
+   *  x/y en fractions 0..1 : les marqueurs se superposent a la slide quel que soit son
+   *  affichage (pattern proofing Krock/Ziflow : le feedback est ancre au pixel, pas au chat). */
+  annotations: text('annotations').notNull().default('[]'),
   updatedAt: text('updated_at')
 });
 
