@@ -108,26 +108,25 @@ function ongletDefautPour(b: BrouillonDetail): OngletPanneau {
 
 /**
  * Tunnel (SPEC-TUNNEL.md §3.4) : index de l'etape courante, DERIVE de l'etat
- * reel (conversation, slides, statut, programme), jamais stocke.
- *   - 0 Demander  : rien n'a ete produit (0 message, 0 slide)
- *   - 1 Reviser   : contenu produit, statut brouillon
- *   - 2 Valider   : statut a-valider (ou valide sans programme)
+ * reel (statut, contenu, programme), jamais stocke. Le statut prime (coherent
+ * avec modeDetail) ; le contenu ne departage que le stade brouillon.
+ *   - 0 Demander  : brouillon sans contenu (0 message, 0 slide)
+ *   - 1 Reviser   : brouillon avec contenu
+ *   - 2 Valider   : statut a-valider, ou valide sans programme
  *   - 3 Programmer: programme pose, ou publie
  */
 function wsIndex(brouillon: BrouillonDetail): number {
+  const statut = brouillon.statut;
+  if (statut === 'a-valider') return 2;
+  if (statut === 'valide') return brouillon.programme ? 3 : 2;
+  if (statut === 'publie') return 3;
   let conv: unknown[] = [];
   try {
     conv = JSON.parse(brouillon.conversation || '[]') as unknown[];
   } catch {
     conv = [];
   }
-  const demande = conv.length > 0 || brouillon.slides.length > 0;
-  if (!demande) return 0;
-  const statut = brouillon.statut;
-  if (statut === 'brouillon') return 1;
-  if (statut === 'a-valider') return 2;
-  if (statut === 'valide') return brouillon.programme ? 3 : 2;
-  return 3;
+  return conv.length > 0 || brouillon.slides.length > 0 ? 1 : 0;
 }
 
 /**

@@ -92,7 +92,10 @@ async function main() {
     ongletAgentVisible: await page.locator('.panel-tabs button:has-text("Agent")').isVisible().catch(() => false),
     ongletReseauxVisible: await page.locator('.panel-tabs button:has-text("Réseaux")').isVisible().catch(() => false),
     checklistMasquee: !(await page.locator('.sp-section:has-text("Checklist")').isVisible().catch(() => false)),
-    planifMasquee: !(await page.locator('.planif-section').isVisible().catch(() => false))
+    planifMasquee: !(await page.locator('.planif-section').isVisible().catch(() => false)),
+    // Tunnel : suggestion S0 (contenu vide) + stepper sur Demander.
+    suggestionS0: await page.locator('.suggestion-band:has-text("Demandez un premier jet")').isVisible().catch(() => false),
+    stepperCourant: (await page.locator('.tunnel-step.current .tunnel-step-label').textContent().catch(() => '')).trim()
   };
   resultats.push(['CREER', creerChecks]);
   await page.screenshot({ path: '/tmp/a1-creer.png' });
@@ -120,7 +123,10 @@ async function main() {
     // Le chat reste accessible (le cœur), les onglets d'edition sont masques.
     ongletAgentVisible: await page.locator('.panel-tabs button:has-text("Agent")').isVisible().catch(() => false),
     ongletReseauxMasque: !(await page.locator('.panel-tabs button:has-text("Réseaux")').isVisible().catch(() => false)),
-    planifMasquee: !(await page.locator('.planif-section').isVisible().catch(() => false))
+    planifMasquee: !(await page.locator('.planif-section').isVisible().catch(() => false)),
+    // Tunnel : pas de suggestion en a-valider + stepper sur Valider.
+    suggestionAbsente: !(await page.locator('.suggestion-band').isVisible().catch(() => false)),
+    stepperCourant: (await page.locator('.tunnel-step.current .tunnel-step-label').textContent().catch(() => '')).trim()
   };
   resultats.push(['VALIDER', validerChecks]);
   await page.screenshot({ path: '/tmp/a1-valider.png' });
@@ -133,7 +139,11 @@ async function main() {
     planifVisible: await page.locator('.planif-section').isVisible().catch(() => false),
     planifBoutonVisible: await page.locator('.planif-btn').isVisible().catch(() => false),
     checklistMasquee: !(await page.locator('.sp-section:has-text("Checklist")').isVisible().catch(() => false)),
-    ongletReseauxVisible: await page.locator('.panel-tabs button:has-text("Réseaux")').isVisible().catch(() => false)
+    ongletReseauxVisible: await page.locator('.panel-tabs button:has-text("Réseaux")').isVisible().catch(() => false),
+    // Tunnel : suggestion S2 (valide, a programmer) + stepper sur Valider
+    // (le programme n'est pas encore pose -> etape Valider courante).
+    suggestionS2: await page.locator('.suggestion-band:has-text("programmation")').isVisible().catch(() => false),
+    stepperCourant: (await page.locator('.tunnel-step.current .tunnel-step-label').textContent().catch(() => '')).trim()
   };
   resultats.push(['PROGRAMMER', programmerChecks]);
   await page.screenshot({ path: '/tmp/a1-programmer.png' });
@@ -155,9 +165,12 @@ async function main() {
   const ok =
     creerChecks.mode === 'creer' && creerChecks.emptyStateVisible && creerChecks.ongletAgentVisible &&
     creerChecks.checklistMasquee && creerChecks.planifMasquee &&
+    creerChecks.suggestionS0 && creerChecks.stepperCourant === 'Demander' &&
     reviserChecks.mode === 'reviser' && reviserChecks.ongletAgentVisible && reviserChecks.checklistVisible && reviserChecks.planifMasquee &&
     validerChecks.mode === 'valider' && validerChecks.checklistVisible && validerChecks.ongletAgentVisible && validerChecks.ongletReseauxMasque &&
+    validerChecks.suggestionAbsente && validerChecks.stepperCourant === 'Valider' &&
     programmerChecks.mode === 'programmer' && programmerChecks.planifVisible && programmerChecks.planifBoutonVisible &&
+    programmerChecks.suggestionS2 && programmerChecks.stepperCourant === 'Valider' &&
     erreurs.length === 0;
   console.log('\nVERDICT:', ok ? 'OK' : 'ECHEC');
   process.exit(ok ? 0 : 1);
