@@ -152,9 +152,15 @@ que personne n'utilise — la priorité est de SOUSTRAIRE, pas d'empiler.
 
 ---
 
-## 6. La nouvelle DA — « claire, éditoriale, professionnelle, neutre »
+## 6. La nouvelle DA — « noire + dorée » (MISE À JOUR 13/08, révisé)
 
-**Direction validée par Victor** : lumineuse/neutre SaaS (abandon des fonds noirs),
+> **RÉVISION 13/08/2026** : la direction « claire » ci-dessous a été **remplacée** par
+> **« noire + dorée »** (fonds noirs conservés, accent unique doré `#E8C97A` dark /
+> `#B45309` light, typo Plus Jakarta Sans, statuts ambre `#D9A441` / vert `#4CAF7D`).
+> Le mode sombre reste la vitrine ; le mode clair est conservé mais secondaire.
+> Source de vérité : `packages/tokens/tokens.json` (voir tâche UX B1 — « DA noire + dorée, pas claire »).
+
+**Direction initiale (12/08, remplacée)** : lumineuse/neutre SaaS (abandon des fonds noirs),
 **sans identité Bordeluche** (outil générique).
 
 | Token | Valeur recommandée | Note |

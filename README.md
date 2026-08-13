@@ -56,7 +56,7 @@ Atelier/
 
 - **Web** : React 19, TypeScript strict, Vite, @phosphor-icons/react (icônes), design tokens @atelier/tokens
 - **API** : Hono, better-sqlite3, Drizzle ORM, Zod (validation)
-- **DA** : « Linear du contenu social » — dark-first, accent cyan, Geist, hairlines alpha
+- **DA** : « Linear du contenu social » — dark-first, accent doré #E8C97A, Plus Jakarta Sans, hairlines alpha
 - **Visual regression** : Playwright snapshots (golden images dark + light) — toute dérive DA fait échouer les tests
 
 ## Outils MCP exposés
