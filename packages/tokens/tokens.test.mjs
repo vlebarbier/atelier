@@ -10,23 +10,32 @@ describe('tokens sources', () => {
   const raw = readFileSync(path.join(root, 'tokens.json'), 'utf8');
   const tokens = JSON.parse(raw);
 
-  it('contient l accent monochrome blanc (dark) / noir (light)', () => {
-    expect(tokens.color.accent.base.$value).toBe('#FFFFFF');
-    expect(tokens.color.accent.base.$extensions.light).toBe('#0A0A0A');
+  it('conserve des fonds noirs (dark) et un mode clair adouci (light)', () => {
+    expect(tokens.color.bg.deepest.$value).toBe('#050505');
+    expect(tokens.color.bg['level-1'].$value).toBe('#0A0A0A');
+    expect(tokens.color.bg.deepest.$extensions.light).toBe('#F6F6F4');
+    expect(tokens.color.bg['level-1'].$extensions.light).toBe('#FFFFFF');
   });
 
-  it('contient le statut a-valider ambre, distinct de l accent', () => {
-    expect(tokens.color.status.warn.$value).toBe('#F5A623');
+  it('contient l accent unique dore #E8C97A (dark) / ambre profond #B45309 (light)', () => {
+    expect(tokens.color.accent.base.$value).toBe('#E8C97A');
+    expect(tokens.color.accent.base.$extensions.light).toBe('#B45309');
+    expect(tokens.color.accent['on-accent'].$value).toBe('#0A0A0A');
+  });
+
+  it('contient le statut a-valider ambre #D9A441, distinct de l accent (dark ET light)', () => {
+    expect(tokens.color.status.warn.$value).toBe('#D9A441');
     expect(tokens.color.status.warn.$value).not.toBe(tokens.color.accent.base.$value);
+    expect(tokens.color.status.warn.$extensions.light).not.toBe(tokens.color.accent.base.$extensions.light);
   });
 
-  it('contient le statut valide vert et le statut erreur rouge', () => {
-    expect(tokens.color.status.ok.$value).toBe('#2FD06B');
+  it('contient le statut valide vert #4CAF7D et le statut erreur rouge', () => {
+    expect(tokens.color.status.ok.$value).toBe('#4CAF7D');
     expect(tokens.color.status.err.$value).toBe('#FF5252');
   });
 
-  it('utilise Geist comme unique famille de police', () => {
-    expect(tokens.font.family.ui.$value).toContain('Geist');
+  it('utilise Plus Jakarta Sans comme unique famille de police', () => {
+    expect(tokens.font.family.ui.$value).toContain('Plus Jakarta Sans');
   });
 
   it('definit des hairlines alpha (jamais de gris plein)', () => {
@@ -43,11 +52,11 @@ describe('build Style Dictionary', () => {
     expect(existsSync(jsonPath)).toBe(true);
 
     const css = readFileSync(cssPath, 'utf8');
-    expect(css).toContain('--color-accent-base: #FFFFFF');
+    expect(css).toContain('--color-accent-base: #E8C97A');
     expect(css).toContain('@media (prefers-color-scheme: light)');
 
     const built = JSON.parse(readFileSync(jsonPath, 'utf8'));
-    expect(built['color.accent.base'].dark).toBe('#FFFFFF');
-    expect(built['color.accent.base'].light).toBe('#0A0A0A');
+    expect(built['color.accent.base'].dark).toBe('#E8C97A');
+    expect(built['color.accent.base'].light).toBe('#B45309');
   });
 });

@@ -2,7 +2,7 @@
   "name": "@atelier/tokens",
   "version": "0.1.0",
   "private": true,
-  "description": "Design tokens Atelier, source unique de verite (DA Linear du contenu social, accent cyan)",
+  "description": "Design tokens Atelier, source unique de verite (DA noire Linear, accent dore #E8C97A)",
   "license": "MIT",
   "type": "module",
   "main": "dist/tokens.json",
