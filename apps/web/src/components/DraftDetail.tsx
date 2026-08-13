@@ -512,7 +512,24 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
         cacheBust: true,
         width,
         height,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        // Les <link> cross-origin Google Fonts rendent les cssRules illisibles
+        // (SecurityError) → html-to-image échoue en inlinant les polices. Le filtre
+        // retire les feuilles cross-origin du clone (seules les polices sont perdues
+        // dans le PNG de diff ; la fonte exacte reste dans le HTML source). skipFonts
+        // couvre le cas document.fonts ; le filter couvre les <link> eux-mêmes.
+        skipFonts: true,
+        filter: (node: Node) => {
+          if (node instanceof HTMLLinkElement && node.rel === 'stylesheet') {
+            try {
+              const href = node.href || '';
+              if (!href.startsWith(location.origin)) return false;
+            } catch {
+              return false;
+            }
+          }
+          return true;
+        }
       });
     } catch {
       return null;
