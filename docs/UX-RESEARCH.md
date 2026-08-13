@@ -214,4 +214,4 @@ emojis-icônes, toute référence visuelle à Bordeluche (couleurs, logos).
 - Ybug — Content approval workflow best practices : https://ybug.io/blog/content-approval-workflow
 - Reddit r/UXDesign — Maker/Checker flow best practices
 - ui-ux-pro-max — design system recommandé (Plus Jakarta Sans, palette claire)
-- SPEC-TUNNEL.md, SPEC-ASK-USER.md, SPEC-WORKER-ASYNCHRONE.md (déjà écrites, compatibles)
+- SPEC-TUNNEL.md, SPEC-ASK-USER.md, SPEC-WORKER-ASYNCHRONE.md, SPEC-VALIDATION-ESTHETIQUE.md (déjà écrites, compatibles)
