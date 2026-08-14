@@ -1526,6 +1526,42 @@ main {
 .dot--publie { background: var(--color-status-ok); }
 .statut-btn .dot, .statut-menu button .dot, .dot.status-pop { animation: statusPop 250ms var(--motion-ease) backwards; }
 
+/* ── Decision maker/checker (UX A3) : Approuver / Demander des modifs ── */
+.decide-group { display: inline-flex; gap: 6px; align-items: center; }
+.decide-group button { height: 30px; }
+.decide-ok { background: var(--color-status-ok); border-color: var(--color-status-ok); color: #050505; }
+.decide-ok:hover { background: color-mix(in srgb, var(--color-status-ok) 88%, #000); border-color: var(--color-status-ok); }
+.decide-note {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 40;
+  background: var(--color-bg-level-3); border: 1px solid var(--color-line-default);
+  border-radius: 10px; box-shadow: var(--color-shadow-lg);
+  padding: 10px; width: 280px;
+  display: flex; flex-direction: column; gap: 8px;
+  animation: fadeUp var(--motion-duration-fast) var(--motion-ease) backwards;
+}
+.decide-note-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-ink-tertiary); }
+.decide-note textarea {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 64px;
+  background: var(--color-bg-level-1); border: 1px solid var(--color-line-default);
+  border-radius: 8px; color: var(--color-ink-primary); padding: 8px;
+  font-family: var(--font-family-ui); font-size: 12.5px; line-height: 1.5;
+}
+.decide-note-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.decide-note-actions button { height: 28px; }
+
+/* Trace de la decision (qui, quand) affichee dans le panneau droit. */
+.decision-trace {
+  display: flex; gap: 8px; align-items: flex-start;
+  border: 1px solid var(--color-line-default); border-radius: 10px;
+  padding: 9px 10px; margin-bottom: 10px; font-size: 12px;
+}
+.decision-trace.approuver { border-color: color-mix(in srgb, var(--color-status-ok) 45%, transparent); background: var(--color-status-ok-soft); color: var(--color-status-ok); }
+.decision-trace.demander-modifs { border-color: color-mix(in srgb, var(--color-status-warn) 45%, transparent); background: var(--color-status-warn-soft); color: var(--color-status-warn); }
+.decision-trace svg { flex-shrink: 0; margin-top: 1px; }
+.decision-trace-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.decision-trace-t { font-weight: 600; }
+.decision-trace-s { font-size: 11.5px; opacity: 0.85; line-height: 1.45; overflow-wrap: anywhere; }
+
 /* ── Onglets du panneau ─────────────────────────────────────────────── */
 .panel-tabs { display: flex; gap: 2px; background: var(--color-bg-level-2); border: 1px solid var(--color-line-default); border-radius: 8px; padding: 2px; }
 .panel-tabs button {

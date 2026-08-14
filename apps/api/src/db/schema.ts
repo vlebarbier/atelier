@@ -39,6 +39,9 @@ export const brouillons = sqliteTable('brouillons', {
    *  x/y en fractions 0..1 : les marqueurs se superposent a la slide quel que soit son
    *  affichage (pattern proofing Krock/Ziflow : le feedback est ancre au pixel, pas au chat). */
   annotations: text('annotations').notNull().default('[]'),
+  /** Decision de validation maker/checker (JSON : {decision:'approuver'|'demander-modifs', note?, par, at}).
+   *  Enregistree quand le user approuve ou demande des modifications (chantier UX A3). */
+  decision: text('decision'),
   updatedAt: text('updated_at')
 });
 

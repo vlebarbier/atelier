@@ -26,6 +26,7 @@ export interface BrouillonRow {
   diff: string | null;
   versions: string | null;
   annotations: string;
+  decision: string | null;
   updatedAt: string | null;
 }
 
@@ -52,6 +53,7 @@ export interface BrouillonPatch {
   diff?: string | null;
   versions?: string | null;
   annotations?: string;
+  decision?: string | null;
   updatedAt?: string;
 }
 
@@ -70,6 +72,7 @@ export interface NewBrouillon {
   article?: string | null;
   diff?: string | null;
   annotations?: string;
+  decision?: string | null;
   updatedAt: string | null;
 }
 

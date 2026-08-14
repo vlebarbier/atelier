@@ -657,3 +657,84 @@ describe('Versioning de la source HTML (chantier 5)', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('POST /api/brouillon/:id/decision (UX A3 : maker/checker)', () => {
+  it('refuse une decision sans note quand on demande des modifications (400)', async () => {
+    const { app } = buildTestApp();
+    // Passer d'abord le brouillon en a-valider.
+    await app.request('/api/brouillon/carrousel-bordeluche-v7', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statut: 'a-valider' })
+    });
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7/decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'demander-modifs' })
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('approuve un brouillon a-valider → statut valide + trace (qui, quand)', async () => {
+    const { app } = buildTestApp();
+    await app.request('/api/brouillon/carrousel-bordeluche-v7', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statut: 'a-valider' })
+    });
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7/decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'approuver' })
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { statut: string; decision: { decision: string; par: string; at: string } };
+    expect(body.statut).toBe('valide');
+    expect(body.decision.decision).toBe('approuver');
+    expect(body.decision.par).toBe('user');
+    expect(typeof body.decision.at).toBe('string');
+
+    const detail = await app.request('/api/brouillon/carrousel-bordeluche-v7');
+    const detailBody = (await detail.json()) as { statut: string; decision: { decision: string } };
+    expect(detailBody.statut).toBe('valide');
+    expect(detailBody.decision.decision).toBe('approuver');
+  });
+
+  it('demande des modifications → statut brouillon + note conservee', async () => {
+    const { app } = buildTestApp();
+    await app.request('/api/brouillon/carrousel-bordeluche-v7', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statut: 'a-valider' })
+    });
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7/decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'demander-modifs', note: '  Le slide 3 est trop sombre  ' })
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { statut: string; decision: { note: string } };
+    expect(body.statut).toBe('brouillon');
+    expect(body.decision.note).toBe('Le slide 3 est trop sombre');
+  });
+
+  it('refuse une decision si le brouillon n est pas en a-valider (409)', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillon/carrousel-bordeluche-v7/decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'approuver' })
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it('repond 404 pour un id inconnu', async () => {
+    const { app } = buildTestApp();
+    const res = await app.request('/api/brouillon/inconnu/decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'approuver' })
+    });
+    expect(res.status).toBe(404);
+  });
+});

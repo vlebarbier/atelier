@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import path from 'node:path';
 import fs from 'node:fs';
-import { updateBrouillonSchema } from './validation.js';
+import { updateBrouillonSchema, decisionSchema } from './validation.js';
 import { storeSlide, storeRessource } from './storage/blob.js';
 import { snapshotSlidesAvant } from './diff.js';
 import { snapshotSource, lireVersion, parseVersions } from './versions.js';
@@ -511,6 +511,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       article: row.article ? JSON.parse(row.article) : null,
       diff: row.diff ? JSON.parse(row.diff) : null,
       versions: parseVersions(row.versions),
+      decision: row.decision ? JSON.parse(row.decision) : null,
       reseaux,
       updated: row.updatedAt,
       slideCount: fichiers.length,
@@ -713,6 +714,60 @@ export function createApp(repo: Repo, options: AppOptions) {
     });
 
     return c.json({ ok: true, sourceHtml: contenu, versions: versionsApres });
+  });
+
+  // POST /api/brouillon/:id/decision → decision explicite maker/checker (UX A3).
+  // Quand le brouillon est en attente de validation, deux actions claires :
+  //   - 'approuver'       → statut 'valide' (approbation tracee : qui, quand)
+  //   - 'demander-modifs' → statut 'brouillon' (note obligatoire, transmise a l'agent)
+  // Remplace le menu statut generique pour ce statut. La decision est conservee
+  // dans la colonne decision (JSON) et journalisee (Activite IA).
+  app.post('/api/brouillon/:id/decision', async (c) => {
+    const id = c.req.param('id');
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: 'JSON invalide' }, 400);
+    }
+    const parsed = decisionSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: 'Validation echouee', details: parsed.error.flatten() }, 400);
+    }
+    const { decision, note } = parsed.data;
+
+    // La decision explicite n'a de sens que sur un brouillon en attente de validation.
+    if (row.statut !== 'a-valider') {
+      return c.json({ error: `Decision impossible : statut actuel '${row.statut}' (attendu 'a-valider')` }, 409);
+    }
+
+    const auteur = auteurDe(c);
+    const at = new Date().toISOString();
+    const nextStatut = decision === 'approuver' ? 'valide' : 'brouillon';
+    const trace = { decision, note: note?.trim() || null, par: auteur, at };
+
+    await repo.updateBrouillon(id, {
+      statut: nextStatut,
+      decision: JSON.stringify(trace),
+      updatedAt: at
+    });
+
+    await journaliser(repo, {
+      type: 'decision',
+      auteur,
+      brouillonId: id,
+      brouillonTitre: row.titre,
+      message:
+        decision === 'approuver'
+          ? 'a approuve le contenu'
+          : `a demande des modifications : ${(note ?? '').trim()}`,
+      details: { decision, note: note?.trim() || null, vers: nextStatut }
+    });
+
+    return c.json({ ok: true, statut: nextStatut, decision: trace });
   });
 
   app.post('/api/brouillon/:id/slides', async (c) => {
