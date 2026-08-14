@@ -35,7 +35,7 @@ const RESEAU_CONTRAINTES: Record<string, { maxChars: number; maxHashtags: number
   gmb: { maxChars: 1500, maxHashtags: 0, maxImages: 10, format: 'Carré 1080×1080 (min 250×250)' }
 };
 
-type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source' | 'annotations';
+type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source' | 'annotations' | 'planif';
 
 /**
  * Tunnel de creation (SPEC-TUNNEL.md) : les 4 etapes visibles dans le header
@@ -91,8 +91,10 @@ const MODE_UI: Record<
   // VALIDER : la checklist seule dans le panneau (le diff est dans le stage),
   // le chat reste accessible via son onglet.
   valider: { onglets: ['agent'], ongletDefaut: null, checklist: true, planif: false },
-  // PROGRAMMER : le creneau domine, reseaux + slides en appui, chat accessible.
-  programmer: { onglets: ['agent', 'reseaux', 'slides'], ongletDefaut: 'reseaux', checklist: false, planif: true }
+  // PROGRAMMER (A4) : le calendrier integre domine (creneaux intelligents +
+  // apercu du post), les reseaux (legende) et slides restent en appui, le chat
+  // reste accessible via son onglet.
+  programmer: { onglets: ['planif', 'agent', 'reseaux', 'slides'], ongletDefaut: 'planif', checklist: false, planif: true }
 };
 
 /** Onglet initial d'un brouillon : le defaut de son mode courant, sauf en
@@ -104,6 +106,38 @@ function ongletDefautPour(b: BrouillonDetail): OngletPanneau {
   const defaut = MODE_UI[mode].ongletDefaut;
   if (defaut) return defaut;
   return TYPES_DOCUMENTS.includes(b.type) ? 'slides' : 'agent';
+}
+
+/** Date locale au format YYYY-MM-DD (attendu par <input type="date"> et par le
+ *  champ `programme`). Utilisee par les cellules du mini-calendrier (A4). */
+function jourISO(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const j = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${j}`;
+}
+
+/** Onglets reseau (Instagram, LinkedIn...) partages entre l'onglet Reseaux du
+ *  panneau et le calendrier du mode PROGRAMMER (A4 : changer de reseau change
+ *  les creneaux proposes et l'apercu du post). */
+function ReseauTabs({ actif, onChange }: { actif: string; onChange: (r: string) => void }) {
+  return (
+    <div className="reseau-tabs">
+      {RESEAUX.map((r) => {
+        const Icon = RESEAU_ICONES[r] || InstagramLogo;
+        return (
+          <button
+            key={r}
+            className={r === actif ? 'active' : ''}
+            onClick={() => onChange(r)}
+            type="button"
+          >
+            <Icon size={14} weight="regular" />
+            <span>{RESEAUX_LABELS[r] || r}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 /**
@@ -206,10 +240,8 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState('');
   const [decisionBusy, setDecisionBusy] = useState(false);
-  const [planifOpen, setPlanifOpen] = useState(false);
   const [planifDate, setPlanifDate] = useState('');
   const [planifHeure, setPlanifHeure] = useState('09:00');
-  const [planifReseau, setPlanifReseau] = useState('instagram');
   const [postizEnvoi, setPostizEnvoi] = useState(false);
   const [postizMsg, setPostizMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [conversation, setConversation] = useState<MessageChat[]>([]);
@@ -314,6 +346,22 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, brouillon?.statut, brouillon?.slides.length, brouillon?.type]);
 
+  // A4 : en mode PROGRAMMER sans programmation posee, le premier creneau du
+  // reseau actif est preselectionne (meme logique que la modale US-06, mais
+  // directement dans le calendrier du panneau). Changer de reseau re-propose
+  // les heures de pointe de ce reseau ; un creneau choisi manuellement n'est
+  // pas ecrase (l'effet ne se relance pas sur planifDate).
+  useEffect(() => {
+    if (mode !== 'programmer' || !brouillon) return;
+    if (parseProgramme(brouillon.programme)) return;
+    const defaut = (CRENEAUX_PAR_RESEAU[reseauActif] ?? [])[0];
+    if (defaut) {
+      setPlanifDate(prochainJour(defaut.jour));
+      setPlanifHeure(defaut.heure);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, reseauActif, brouillon?.programme]);
+
   // Pseudo de la marque pour l'en-tete de l'apercu publie : le nom de la charte
   // (ex. « Bordeluche ») si dispo, sinon placeholder generique (US-05).
   useEffect(() => {
@@ -367,27 +415,12 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     if (!brouillon || !planifDate) return;
     try {
       await updateBrouillon(id, {
-        programme: JSON.stringify({ date: planifDate, heure: planifHeure, reseau: planifReseau })
+        programme: JSON.stringify({ date: planifDate, heure: planifHeure, reseau: reseauActif })
       });
-      setPlanifOpen(false);
+      await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de programmation');
     }
-  }
-
-  /** Ouvre la modale de programmation : reseau actif preselectionne, suggestion
-   *  par defaut (premier creneau du reseau) appliquee d'office. Le user garde
-   *  la main : les chips proposent les heures de pointe, les champs restent
-   *  editables. */
-  function ouvrirPlanif() {
-    setPlanifReseau(reseauActif);
-    const creneaux = CRENEAUX_PAR_RESEAU[reseauActif] ?? [];
-    const defaut = creneaux[0];
-    if (defaut) {
-      setPlanifDate(prochainJour(defaut.jour));
-      setPlanifHeure(defaut.heure);
-    }
-    setPlanifOpen(true);
   }
 
   /** Ferme la suggestion courante pour la session (SPEC-TUNNEL §4.6). */
@@ -404,14 +437,16 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     } else if (s === 'S1') {
       setStatut('a-valider');
     } else if (s === 'S2') {
-      ouvrirPlanif();
+      // A4 : la programmation se fait dans le calendrier du panneau (pas de modale).
+      setOnglet('planif');
     }
   }
 
-  /** Applique un creneau choisi : date = prochaine occurrence du jour, heure =
-   *  celle du creneau (spec creneaux pertinents, US-06). */
-  function appliquerCreneau(c: Creneau) {
-    setPlanifDate(prochainJour(c.jour));
+  /** Applique un creneau sur le jour exact d'une cellule du mini-calendrier
+   *  (date YYYY-MM-DD locale, pas la prochaine occurrence du jour de semaine :
+   *  la cellule EST l'occurrence affichee). */
+  function appliquerCreneauJour(c: Creneau, date: string) {
+    setPlanifDate(date);
     setPlanifHeure(c.heure);
   }
 
@@ -419,7 +454,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     if (!brouillon) return;
     try {
       await updateBrouillon(id, { programme: null });
-      setPlanifOpen(false);
+      await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur');
     }
@@ -981,6 +1016,13 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const nbHashtags = (currentReseau.hashtags || '').split(/\s+/).filter((h) => h.startsWith('#')).length;
   const currentSlideFichier = brouillon.slides[slide];
   const estVideoSlide = Boolean(currentSlideFichier && (currentSlideFichier.endsWith('.mp4') || currentSlideFichier.endsWith('.webm')));
+  // A4 : les 7 prochains jours du mini-calendrier du mode PROGRAMMER (aujourd'hui
+  // inclus). Les creneaux conseilles du reseau actif s'affichent sur leur jour.
+  const prochainsJours: Date[] = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d;
+  });
 
   return (
     <div id="detail" className={`detail-shell detail--${mode ?? ''}`} data-mode={mode ?? ''}>
@@ -1555,6 +1597,11 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           <div className="sp-section">
             <div className="sp-label">Édition du contenu</div>
             <div className="panel-tabs">
+              {(!modeOnglets || modeOnglets.includes('planif')) && (
+              <button type="button" className={onglet === 'planif' ? 'on' : ''} onClick={() => setOnglet('planif')}>
+                <CalendarBlank size={12} /> Calendrier
+              </button>
+              )}
               {(!modeOnglets || modeOnglets.includes('annotations')) && (
               <button type="button" className={onglet === 'annotations' ? 'on' : ''} onClick={() => setOnglet('annotations')}>
                 <MapPin size={12} /> Annotations
@@ -1583,7 +1630,129 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               )}
             </div>
 
-            {onglet === 'annotations' ? (
+            {onglet === 'planif' ? (
+              <div className="planif-panel">
+                {(() => {
+                  const prog = parseProgramme(brouillon.programme);
+                  return prog ? (
+                    <>
+                      <div className="planif-fait">
+                        <CheckCircle size={13} />
+                        Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{' '}
+                        {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
+                      </div>
+                      <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
+                        Annuler la programmation
+                      </button>
+                      <div className="planif-cal-hint">
+                        Choisissez un autre créneau ci-dessous : la programmation sera mise à jour.
+                      </div>
+                    </>
+                  ) : null;
+                })()}
+
+                <ReseauTabs actif={reseauActif} onChange={setReseauActif} />
+
+                <div className="planif-cal">
+                  <div className="sp-label">
+                    <span>Créneaux conseillés</span>
+                  </div>
+                  <div className="cal-week">
+                    {prochainsJours.map((d, i) => {
+                      const iso = jourISO(d);
+                      const creneauxJour = (CRENEAUX_PAR_RESEAU[reseauActif] ?? []).filter((c) => c.jour === d.getDay());
+                      return (
+                        <div key={iso} className={`cal-day${i === 0 ? ' today' : ''}`}>
+                          <span className="cal-day-name">{JOURS_COURTS[d.getDay()] ?? ''}</span>
+                          <span className="cal-day-num">{d.getDate()}</span>
+                          <div className="cal-day-chips">
+                            {creneauxJour.map((c, j) => {
+                              const actif = planifDate === iso && planifHeure === c.heure;
+                              return (
+                                <button
+                                  key={`${iso}-${c.heure}-${j}`}
+                                  type="button"
+                                  className={`cal-chip${actif ? ' on' : ''}`}
+                                  title={`${JOURS_COURTS[c.jour] ?? ''} ${c.fenetre}`}
+                                  aria-pressed={actif}
+                                  onClick={() => appliquerCreneauJour(c, iso)}
+                                >
+                                  {c.heure}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="planif-cal-hint">
+                    Heures de pointe pour {RESEAUX_LABELS[reseauActif] ?? reseauActif}. Cliquez un créneau, ou ajustez date et heure librement.
+                  </div>
+                </div>
+
+                <div className="planif-fields">
+                  <label className="planif-field">
+                    <span>Date</span>
+                    <input type="date" value={planifDate} onChange={(e) => setPlanifDate(e.target.value)} />
+                  </label>
+                  <label className="planif-field">
+                    <span>Heure</span>
+                    <input type="time" value={planifHeure} onChange={(e) => setPlanifHeure(e.target.value)} />
+                  </label>
+                </div>
+
+                <div className="planif-post-wrap">
+                  <div className="sp-label">
+                    <span>Aperçu du post</span>
+                  </div>
+                  <div className="planif-post">
+                    <div className="planif-post-media">
+                      {currentSlideFichier ? (
+                        estVideoSlide ? (
+                          <VideoCamera size={18} weight="regular" />
+                        ) : (
+                          <img src={slideUrl(brouillon.id, currentSlideFichier)} alt="" />
+                        )
+                      ) : (
+                        <Stack size={18} weight="regular" />
+                      )}
+                    </div>
+                    <div className="planif-post-body">
+                      <div className="planif-post-head">
+                        {(() => {
+                          const Icon = RESEAU_ICONES[reseauActif] || InstagramLogo;
+                          return <Icon size={12} weight="regular" />;
+                        })()}
+                        <span className="planif-post-reseau">{RESEAUX_LABELS[reseauActif] ?? reseauActif}</span>
+                        <span className="planif-post-pseudo">{pseudo}</span>
+                      </div>
+                      {(currentReseau.caption || '').trim() !== '' ? (
+                        <p className="planif-post-caption">{currentReseau.caption}</p>
+                      ) : (
+                        <p className="planif-post-vide">Aucune légende pour ce réseau. Onglet Réseaux pour l'écrire.</p>
+                      )}
+                      {(currentReseau.hashtags || '').trim() !== '' && (
+                        <p className="planif-post-hashtags">{currentReseau.hashtags}</p>
+                      )}
+                      <div className={`planif-post-count${(currentReseau.caption || '').length > contraintes.maxChars ? ' over' : ''}`}>
+                        {(currentReseau.caption || '').length} / {contraintes.maxChars} caractères
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  className="primary planif-btn"
+                  type="button"
+                  onClick={onProgrammer}
+                  disabled={!planifDate}
+                >
+                  <CalendarBlank size={14} weight="bold" />
+                  {parseProgramme(brouillon.programme) ? 'Mettre à jour' : 'Programmer'}
+                </button>
+              </div>
+            ) : onglet === 'annotations' ? (
               <div className="annot-panel">
                 <div className="annot-panel-note">
                   <MapPin size={13} />
@@ -1819,22 +1988,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               </div>
             ) : (
               <>
-                <div className="reseau-tabs">
-                  {RESEAUX.map((r) => {
-                    const Icon = RESEAU_ICONES[r] || InstagramLogo;
-                    return (
-                      <button
-                        key={r}
-                        className={r === reseauActif ? 'active' : ''}
-                        onClick={() => setReseauActif(r)}
-                        type="button"
-                      >
-                        <Icon size={14} weight="regular" />
-                        <span>{RESEAUX_LABELS[r] || r}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <ReseauTabs actif={reseauActif} onChange={setReseauActif} />
                 <div className="format-reco">
                   <Stack size={14} />
                   <div className="format-reco-body">
@@ -1915,38 +2069,31 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           </div>
           )}
 
-          {mode && (MODE_UI[mode].planif || brouillon.programme || (estDocument && mode !== 'creer')) && (
+          {mode && (estDocument && mode !== 'creer' ? (
           <div className="sp-section planif-section">
-            {estDocument ? (
-              <div className="planif-nodoc">
-                <CheckCircle size={13} /> Livrable de communication : pas de programmation réseau
-              </div>
-            ) : brouillon.programme ? (
-              (() => {
-                const prog = parseProgramme(brouillon.programme);
-                return prog ? (
-                  <>
-                    <div className="planif-fait">
-                      <CheckCircle size={13} />
-                      Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
-                      {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
-                    </div>
-                    <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
-                      Annuler la programmation
-                    </button>
-                  </>
-                ) : null;
-              })()
-            ) : (
-              <>
-                <button className="primary planif-btn" type="button" onClick={ouvrirPlanif}>
-                  <CalendarBlank size={14} weight="bold" /> Programmer dans le calendrier
-                </button>
-                <div className="planif-hint">Quand le contenu est prêt, planifiez sa publication.</div>
-              </>
-            )}
+            <div className="planif-nodoc">
+              <CheckCircle size={13} /> Livrable de communication : pas de programmation réseau
+            </div>
           </div>
-          )}
+          ) : !estDocument && brouillon.programme && mode !== 'programmer' ? (
+          <div className="sp-section planif-section">
+            {(() => {
+              const prog = parseProgramme(brouillon.programme);
+              return prog ? (
+                <>
+                  <div className="planif-fait">
+                    <CheckCircle size={13} />
+                    Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
+                    {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
+                  </div>
+                  <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
+                    Annuler la programmation
+                  </button>
+                </>
+              ) : null;
+            })()}
+          </div>
+          ) : null)}
 
           {!estDocument && brouillon.statut === 'valide' && (
             <div className="sp-section postiz-section">
@@ -1970,82 +2117,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           )}
         </aside>
       </div>
-
-      {planifOpen && (
-        <div className="modal-overlay modal-overlay-in" onClick={() => setPlanifOpen(false)}>
-          <div className="modal modal-panel-in" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>Programmer la publication</h3>
-              <button className="modal-x" type="button" onClick={() => setPlanifOpen(false)} aria-label="Fermer">
-                X
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="field">
-                <label htmlFor="p-reseau">Réseau</label>
-                <select
-                  id="p-reseau"
-                  value={planifReseau}
-                  onChange={(e) => {
-                    const r = e.target.value;
-                    setPlanifReseau(r);
-                    // La suggestion par defaut suit le reseau : premier creneau
-                    // de sa table d'heures de pointe (US-06).
-                    const defaut = (CRENEAUX_PAR_RESEAU[r] ?? [])[0];
-                    if (defaut) {
-                      setPlanifDate(prochainJour(defaut.jour));
-                      setPlanifHeure(defaut.heure);
-                    }
-                  }}
-                >
-                  {RESEAUX.map((r) => (
-                    <option key={r} value={r}>{RESEAUX_LABELS[r] || r}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="creneaux-section">
-                <label className="creneaux-label">Créneaux conseillés</label>
-                <div className="creneaux-row">
-                  {(CRENEAUX_PAR_RESEAU[planifReseau] ?? []).map((c, i) => {
-                    const jour = c.jour;
-                    const dateChip = prochainJour(jour);
-                    const actif = planifDate === dateChip && planifHeure === c.heure;
-                    return (
-                      <button
-                        key={`${jour}-${c.heure}-${i}`}
-                        type="button"
-                        className={`creneau-chip${actif ? ' on' : ''}`}
-                        title={`${JOURS_COURTS[jour] ?? ''} ${c.fenetre}`}
-                        aria-pressed={actif}
-                        onClick={() => appliquerCreneau(c)}
-                      >
-                        {JOURS_COURTS[jour] ?? ''} {c.heure}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="creneaux-hint">Heures de pointe pour {RESEAUX_LABELS[planifReseau] ?? planifReseau}. Cliquez pour pré-remplir, ou saisissez librement.</div>
-              </div>
-              <div className="field">
-                <label htmlFor="p-date">Date</label>
-                <input id="p-date" type="date" value={planifDate} onChange={(e) => setPlanifDate(e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="p-heure">Heure</label>
-                <input id="p-heure" type="time" value={planifHeure} onChange={(e) => setPlanifHeure(e.target.value)} />
-              </div>
-            </div>
-            <div className="modal-foot">
-              <button className="ghost" type="button" onClick={() => setPlanifOpen(false)}>
-                Annuler
-              </button>
-              <button className="primary" type="button" onClick={onProgrammer} disabled={!planifDate}>
-                <CalendarBlank size={13} weight="bold" /> Programmer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {confirmation && (
         <ConfirmModal
