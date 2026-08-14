@@ -48,13 +48,119 @@ const ETAPES_TUNNEL: { id: string; label: string }[] = [
   { id: 'programmer', label: 'Programmer' }
 ];
 
-function etapeEtat(statut: string, index: number): string {
-  // Ordre des statuts : brouillon < a-valider < valide < publie.
-  const ordre: Record<string, number> = { brouillon: 0, 'a-valider': 1, valide: 2, publie: 3 };
-  const niveau = ordre[statut] ?? 0;
-  if (index < niveau) return 'done';
-  if (index === niveau) return 'current';
-  return 'todo';
+/**
+ * Modes contextuels de la vue detail (UX-RESEARCH.md §4, chantier A1) :
+ * la page se transforme selon l'etape du workflow. Le mode est DERIVE de
+ * l'etat reel du brouillon (statut + contenu), jamais stocke.
+ *   - creer     : brouillon vide (0 slide, 0 message) -> le chat domine
+ *   - reviser   : brouillon avec contenu -> la slide est le heros
+ *   - valider   : statut a-valider -> checklist + diff + decision
+ *   - programmer: statut valide/publie -> creneau + calendrier
+ * Les documents (pitch deck, flyer...) n'ont pas d'etape Programmer : un
+ * document valide retombe sur le mode valider.
+ */
+type ModeDetail = 'creer' | 'reviser' | 'valider' | 'programmer';
+
+function modeDetail(brouillon: BrouillonDetail): ModeDetail {
+  let conv: unknown[] = [];
+  try {
+    conv = JSON.parse(brouillon.conversation || '[]') as unknown[];
+  } catch {
+    conv = [];
+  }
+  const demande = conv.length > 0 || brouillon.slides.length > 0;
+  if (brouillon.statut === 'brouillon') return demande ? 'reviser' : 'creer';
+  if (brouillon.statut === 'a-valider') return 'valider';
+  return TYPES_DOCUMENTS.includes(brouillon.type) ? 'valider' : 'programmer';
+}
+
+/** Configuration du panneau droit par mode : onglets visibles, onglet par
+ *  defaut, sections affichees. « Une action primaire par mode, le reste en
+ *  progressive disclosure » (UX-RESEARCH.md §4). Le chat (onglet Agent) reste
+ *  accessible dans TOUS les modes : « le chat est le cœur, jamais caché » (§1). */
+const MODE_UI: Record<
+  ModeDetail,
+  { onglets: OngletPanneau[]; ongletDefaut: OngletPanneau | null; checklist: boolean; planif: boolean }
+> = {
+  // CRÉER : uniquement les outils de creation (chat agent + source).
+  creer: { onglets: ['agent', 'source'], ongletDefaut: 'agent', checklist: false, planif: false },
+  // RÉVISER : tous les onglets (dont les annotations A2), le chat en appui
+  // (la slide est le heros du stage). L'onglet initial est calcule a part
+  // (ongletDefautPour) : annotations quand il y a des slides.
+  reviser: { onglets: ['annotations', 'agent', 'reseaux', 'slides', 'source'], ongletDefaut: 'agent', checklist: true, planif: false },
+  // VALIDER : la checklist seule dans le panneau (le diff est dans le stage),
+  // le chat reste accessible via son onglet.
+  valider: { onglets: ['agent'], ongletDefaut: null, checklist: true, planif: false },
+  // PROGRAMMER : le creneau domine, reseaux + slides en appui, chat accessible.
+  programmer: { onglets: ['agent', 'reseaux', 'slides'], ongletDefaut: 'reseaux', checklist: false, planif: true }
+};
+
+/** Onglet initial d'un brouillon : le defaut de son mode courant, sauf en
+ *  revision ou les slides ouvrent sur les annotations (A2, feedback ancre au
+ *  visuel). Le chat reste accessible en onglet dans tous les modes. */
+function ongletDefautPour(b: BrouillonDetail): OngletPanneau {
+  const mode = modeDetail(b);
+  if (mode === 'reviser' && !TYPES_DOCUMENTS.includes(b.type) && b.slides.length > 0) return 'annotations';
+  const defaut = MODE_UI[mode].ongletDefaut;
+  if (defaut) return defaut;
+  return TYPES_DOCUMENTS.includes(b.type) ? 'slides' : 'agent';
+}
+
+/**
+ * Tunnel (SPEC-TUNNEL.md §3.4) : index de l'etape courante, DERIVE de l'etat
+ * reel (statut, contenu, programme), jamais stocke. Le statut prime (coherent
+ * avec modeDetail) ; le contenu ne departage que le stade brouillon.
+ *   - 0 Demander  : brouillon sans contenu (0 message, 0 slide)
+ *   - 1 Reviser   : brouillon avec contenu
+ *   - 2 Valider   : statut a-valider, ou valide sans programme
+ *   - 3 Programmer: programme pose, ou publie
+ */
+function wsIndex(brouillon: BrouillonDetail): number {
+  const statut = brouillon.statut;
+  if (statut === 'a-valider') return 2;
+  if (statut === 'valide') return brouillon.programme ? 3 : 2;
+  if (statut === 'publie') return 3;
+  let conv: unknown[] = [];
+  try {
+    conv = JSON.parse(brouillon.conversation || '[]') as unknown[];
+  } catch {
+    conv = [];
+  }
+  return conv.length > 0 || brouillon.slides.length > 0 ? 1 : 0;
+}
+
+/**
+ * Suggestions workflow (SPEC-TUNNEL.md §4) : LE bandeau qui porte la prochaine
+ * action, priorite S1 > S2 > S0. Une seule visible a la fois, fermable pour la
+ * session. Tout est derive, rien n'est stocke sauf les fermetures.
+ */
+type Suggestion = 'S0' | 'S1' | 'S2';
+
+function calculerSuggestion(b: BrouillonDetail, fermees: Set<string>): Suggestion | null {
+  let conv: unknown[] = [];
+  try {
+    conv = JSON.parse(b.conversation || '[]') as unknown[];
+  } catch {
+    conv = [];
+  }
+  const statut = b.statut;
+  const estDocument = TYPES_DOCUMENTS.includes(b.type);
+  if (statut === 'publie' || statut === 'a-valider') return null;
+  // S1 : checklist complete -> passer a A valider (jamais sur contenu vide).
+  if (statut === 'brouillon') {
+    let checklist: { checked: boolean }[] = [];
+    try {
+      checklist = JSON.parse(b.checklist || '[]') as { checked: boolean }[];
+    } catch {
+      checklist = [];
+    }
+    if (checklist.length > 0 && checklist.every((c) => c.checked) && b.slides.length > 0 && !fermees.has('S1')) return 'S1';
+  }
+  // S2 : contenu valide sans programmation -> proposer le creneau.
+  if (statut === 'valide' && !estDocument && !b.programme && !fermees.has('S2')) return 'S2';
+  // S0 : boucle Demander (contenu vide).
+  if (statut === 'brouillon' && conv.length === 0 && b.slides.length === 0 && !fermees.has('S0')) return 'S0';
+  return null;
 }
 
 interface DraftDetailProps {
@@ -98,6 +204,9 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [apercuPublie, setApercuPublie] = useState(false);
   // Pseudo de la marque pour l'en-tete de l'apercu (charte si dispo, sinon placeholder).
   const [charteNom, setCharteNom] = useState<string | null>(null);
+  // Suggestions fermees pour la session (SPEC-TUNNEL.md §4.6) : Set<string> de
+  // 'S0'|'S1'|'S2'. Pas de persistence localStorage au v1.
+  const [suggestionsFermees, setSuggestionsFermees] = useState<Set<string>>(new Set());
   // Diff visuel avant/apres (chantier 3) : mode, position du slider, zones calculees.
   const [modeDiff, setModeDiff] = useState(false);
   const [diffPos, setDiffPos] = useState(55);
@@ -137,10 +246,10 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
       }
       setSlide(0);
       setReseauActif('instagram');
-      // Mode REVISER (UX-RESEARCH.md §4 mode 2) : des qu'il y a des slides a
-      // reviser, le panneau s'ouvre sur les annotations (le feedback est ancre
-      // au visuel), pas sur le chat. Le chat reste accessible en onglet.
-      setOnglet(TYPES_DOCUMENTS.includes(data.type) ? 'slides' : data.slides.length > 0 ? 'annotations' : 'agent');
+      // A1 : l'onglet initial vient du mode contextuel ; A2 : en revision avec
+      // des slides, le panneau s'ouvre sur les annotations (le feedback est
+      // ancre au visuel), pas sur le chat. Le chat reste accessible en onglet.
+      setOnglet(ongletDefautPour(data));
       setAgentEnTravail(false);
       try {
         setConversation(JSON.parse(data.conversation || '[]'));
@@ -165,6 +274,22 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   useEffect(() => {
     load();
   }, [load]);
+
+  // Mode contextuel (A1) : quand l'etape change (statut, contenu), on bascule
+  // sur l'onglet par defaut du mode si l'onglet courant n'y est plus. Sinon on
+  // respecte le choix du user (progressive disclosure, pas de saut force).
+  const mode = brouillon ? modeDetail(brouillon) : null;
+  const modeOnglets = mode ? MODE_UI[mode].onglets : null;
+  // Tunnel (SPEC-TUNNEL.md) : etape courante + suggestion active, tout derive.
+  const ws = brouillon ? wsIndex(brouillon) : -1;
+  const suggestionActive = brouillon ? calculerSuggestion(brouillon, suggestionsFermees) : null;
+  useEffect(() => {
+    if (!mode || !modeOnglets || modeOnglets.length === 0) return;
+    if (!modeOnglets.includes(onglet)) {
+      setOnglet(MODE_UI[mode].ongletDefaut ?? modeOnglets[0] ?? 'agent');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, brouillon?.statut, brouillon?.slides.length, brouillon?.type]);
 
   // Pseudo de la marque pour l'en-tete de l'apercu publie : le nom de la charte
   // (ex. « Bordeluche ») si dispo, sinon placeholder generique (US-05).
@@ -240,6 +365,24 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
       setPlanifHeure(defaut.heure);
     }
     setPlanifOpen(true);
+  }
+
+  /** Ferme la suggestion courante pour la session (SPEC-TUNNEL §4.6). */
+  function fermerSuggestion(s: Suggestion) {
+    setSuggestionsFermees((prev) => new Set(prev).add(s));
+  }
+
+  /** Action du CTA de la suggestion courante (SPEC-TUNNEL §4.2-4.4). */
+  function actionSuggestion(s: Suggestion) {
+    if (s === 'S0') {
+      setOnglet('agent');
+      const ta = document.querySelector<HTMLTextAreaElement>('.chat-input textarea');
+      ta?.focus();
+    } else if (s === 'S1') {
+      setStatut('a-valider');
+    } else if (s === 'S2') {
+      ouvrirPlanif();
+    }
   }
 
   /** Applique un creneau choisi : date = prochaine occurrence du jour, heure =
@@ -772,6 +915,8 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
 
   const currentReseau = brouillon.reseaux[reseauActif] || { caption: '', hashtags: '', statut: 'brouillon' };
   const estDocument = TYPES_DOCUMENTS.includes(brouillon.type);
+  // Documents (pitch deck, flyer...) : pas d'etape Programmer (SPEC-TUNNEL §3.4).
+  const etapesTunnel = estDocument ? ETAPES_TUNNEL.slice(0, 3) : ETAPES_TUNNEL;
   // Pseudo affiche dans l'apercu publie : « @bordeluche » si la charte porte un
   // nom de marque, sinon placeholder generique (US-05).
   const pseudo = charteNom ? `@${slugifier(charteNom)}` : '@votremarque';
@@ -782,7 +927,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const estVideoSlide = Boolean(currentSlideFichier && (currentSlideFichier.endsWith('.mp4') || currentSlideFichier.endsWith('.webm')));
 
   return (
-    <div id="detail" className="detail-shell">
+    <div id="detail" className={`detail-shell detail--${mode ?? ''}`} data-mode={mode ?? ''}>
       <header className="detail-bar">
         <div className="l">
           <button className="back" type="button" onClick={onClose}>
@@ -792,13 +937,18 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           <span className="title" title={brouillon.titre}>{brouillon.titre}</span>
         </div>
         <div className="tunnel-steps" aria-label="Progression du workflow">
-          {ETAPES_TUNNEL.map((etape, i) => {
-            const etat = etapeEtat(brouillon.statut, i);
+          {etapesTunnel.map((etape, i) => {
+            // wsIndex derive (SPEC-TUNNEL §3.4) : etape faite < ws, courante = ws.
+            const etat = i < ws ? 'done' : i === ws ? 'current' : 'todo';
             return (
               <div key={etape.id} className={`tunnel-step ${etat}`} title={etape.label}>
-                <span className="tunnel-step-dot" />
+                {etat === 'done' ? (
+                  <Check size={10} weight="bold" className="tunnel-step-check" />
+                ) : (
+                  <span className="tunnel-step-dot" />
+                )}
                 <span className="tunnel-step-label">{etape.label}</span>
-                {i < ETAPES_TUNNEL.length - 1 && <span className="tunnel-step-line" />}
+                {i < etapesTunnel.length - 1 && <span className="tunnel-step-line" />}
               </div>
             );
           })}
@@ -1179,12 +1329,68 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 ))}
               </div>
             </>
+          ) : mode === 'creer' ? (
+            <div className="stage-empty-guide">
+              <div className="empty-guide-mark"><Sparkle size={22} weight="regular" /></div>
+              <h3>Le contenu est vide</h3>
+              <p>
+                Demandez un premier jet a votre agent dans le chat, ou deposez la
+                source HTML de votre document dans l'onglet Source.
+              </p>
+              <div className="empty-guide-actions">
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    setOnglet('agent');
+                    const ta = document.querySelector<HTMLTextAreaElement>('.chat-input textarea');
+                    ta?.focus();
+                  }}
+                >
+                  <Sparkle size={13} /> Demander a l'agent
+                </button>
+                <button type="button" className="ghost" onClick={() => setOnglet('source')}>
+                  <Code size={13} /> Deposer la source
+                </button>
+              </div>
+            </div>
           ) : (
             <p className="no-slides">Aucune slide.</p>
           )}
         </div>
 
         <aside className={`side-panel${panneauReplie ? ' is-replie' : ''}`}>
+          {suggestionActive && (
+            <div className="suggestion-band" role="status">
+              <span className="suggestion-ico">
+                {suggestionActive === 'S1' ? <CheckCircle size={13} /> : <Sparkle size={13} />}
+              </span>
+              <span className="suggestion-texte">
+                {suggestionActive === 'S0'
+                  ? 'Le contenu est vide. Demandez un premier jet à votre agent.'
+                  : suggestionActive === 'S1'
+                    ? 'Checklist complète. Le contenu est prêt à valider.'
+                    : 'Contenu validé. Il ne manque que la programmation.'}
+              </span>
+              <button
+                type="button"
+                className="primary suggestion-cta"
+                onClick={() => actionSuggestion(suggestionActive)}
+              >
+                {suggestionActive === 'S0' ? 'Demander à l\'agent' : suggestionActive === 'S1' ? 'Passer à À valider' : 'Programmer'}
+              </button>
+              <button
+                type="button"
+                className="suggestion-close"
+                onClick={() => fermerSuggestion(suggestionActive)}
+                aria-label="Fermer la suggestion"
+                title="Fermer"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+          {mode && MODE_UI[mode].checklist && (
           <div className="sp-section">
             <div className="sp-label">
               <span>Checklist de validation</span>
@@ -1219,26 +1425,38 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 </button>
               )}
           </div>
+          )}
 
+          {(!mode || modeOnglets === null || modeOnglets.length > 0) && (
           <div className="sp-section">
             <div className="sp-label">Édition du contenu</div>
             <div className="panel-tabs">
+              {(!modeOnglets || modeOnglets.includes('annotations')) && (
               <button type="button" className={onglet === 'annotations' ? 'on' : ''} onClick={() => setOnglet('annotations')}>
                 <MapPin size={12} /> Annotations
                 {annotations.length > 0 && <span className="panel-tab-count">{annotations.length}</span>}
               </button>
+              )}
+              {(!modeOnglets || modeOnglets.includes('agent')) && (
               <button type="button" className={onglet === 'agent' ? 'on' : ''} onClick={() => setOnglet('agent')}>
                 <Sparkle size={12} /> Agent
               </button>
+              )}
+              {(!modeOnglets || modeOnglets.includes('reseaux')) && (
               <button type="button" className={onglet === 'reseaux' ? 'on' : ''} onClick={() => setOnglet('reseaux')}>
                 <ArrowRight size={12} /> Réseaux
               </button>
+              )}
+              {(!modeOnglets || modeOnglets.includes('slides')) && (
               <button type="button" className={onglet === 'slides' ? 'on' : ''} onClick={() => setOnglet('slides')}>
                 <Stack size={12} /> Slides
               </button>
+              )}
+              {(!modeOnglets || modeOnglets.includes('source')) && (
               <button type="button" className={onglet === 'source' ? 'on' : ''} onClick={() => setOnglet('source')}>
                 <Code size={12} /> Source
               </button>
+              )}
             </div>
 
             {onglet === 'annotations' ? (
@@ -1571,38 +1789,39 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               </>
             )}
           </div>
+          )}
 
-          {(estDocument || brouillon.statut === 'valide' || brouillon.programme) && (
-            <div className="sp-section planif-section">
-              {estDocument ? (
-                <div className="planif-nodoc">
-                  <CheckCircle size={13} /> Livrable de communication : pas de programmation réseau
-                </div>
-              ) : brouillon.programme ? (
-                (() => {
-                  const prog = parseProgramme(brouillon.programme);
-                  return prog ? (
-                    <>
-                      <div className="planif-fait">
-                        <CheckCircle size={13} />
-                        Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
-                        {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
-                      </div>
-                      <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
-                        Annuler la programmation
-                      </button>
-                    </>
-                  ) : null;
-                })()
-              ) : (
-                <>
-                  <button className="primary planif-btn" type="button" onClick={ouvrirPlanif}>
-                    <CalendarBlank size={14} weight="bold" /> Programmer dans le calendrier
-                  </button>
-                  <div className="planif-hint">Quand le contenu est prêt, planifiez sa publication.</div>
-                </>
-              )}
-            </div>
+          {mode && (MODE_UI[mode].planif || brouillon.programme || (estDocument && mode !== 'creer')) && (
+          <div className="sp-section planif-section">
+            {estDocument ? (
+              <div className="planif-nodoc">
+                <CheckCircle size={13} /> Livrable de communication : pas de programmation réseau
+              </div>
+            ) : brouillon.programme ? (
+              (() => {
+                const prog = parseProgramme(brouillon.programme);
+                return prog ? (
+                  <>
+                    <div className="planif-fait">
+                      <CheckCircle size={13} />
+                      Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
+                      {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
+                    </div>
+                    <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
+                      Annuler la programmation
+                    </button>
+                  </>
+                ) : null;
+              })()
+            ) : (
+              <>
+                <button className="primary planif-btn" type="button" onClick={ouvrirPlanif}>
+                  <CalendarBlank size={14} weight="bold" /> Programmer dans le calendrier
+                </button>
+                <div className="planif-hint">Quand le contenu est prêt, planifiez sa publication.</div>
+              </>
+            )}
+          </div>
           )}
 
           {!estDocument && brouillon.statut === 'valide' && (
