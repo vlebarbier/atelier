@@ -1736,6 +1736,72 @@ button.danger:hover {
 }
 .creneaux-hint { font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.5; }
 
+/* ── Mode PROGRAMMER (A4) : calendrier integre au panneau ─────────────── */
+/* Le panneau devient un calendrier : creneaux intelligents (CRENEAUX_PAR_RESEAU)
+ * affiches sur leur jour dans la semaine, apercu du post, action primaire
+ * Programmer. DA monochrome : actif = ink-primary 9% + accent, jamais de statut. */
+.planif-panel { display: flex; flex-direction: column; gap: 12px; }
+.planif-cal { display: flex; flex-direction: column; gap: 8px; }
+.planif-cal-hint { font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.5; }
+.cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px 2px 5px; min-width: 0;
+  border: 1px solid var(--color-line-default); border-radius: 8px;
+}
+.cal-day.today { border-color: color-mix(in srgb, var(--color-ink-primary) 30%, transparent); }
+.cal-day-name { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-ink-tertiary); }
+.cal-day-num { font-size: 12px; font-weight: 600; color: var(--color-ink-primary); line-height: 1.1; }
+.cal-day.today .cal-day-num { color: var(--color-accent-base); }
+.cal-day-chips { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+.cal-chip {
+  width: 100%; text-align: center; font-size: 9px; padding: 2px 0; border-radius: 5px;
+  background: transparent; border: 1px solid var(--color-line-default);
+  color: var(--color-ink-secondary); font-family: var(--font-family-ui); cursor: pointer;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease), color var(--motion-duration-fast) var(--motion-ease), background var(--motion-duration-fast) var(--motion-ease);
+}
+.cal-chip:hover { background: var(--color-bg-level-3); color: var(--color-ink-primary); }
+.cal-chip.on {
+  background: color-mix(in srgb, var(--color-ink-primary) 9%, transparent);
+  border-color: var(--color-accent-base); color: var(--color-ink-primary); font-weight: 600;
+}
+.planif-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.planif-field { display: flex; flex-direction: column; gap: 4px; }
+.planif-field span {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--color-ink-tertiary);
+}
+.planif-field input {
+  width: 100%; background: var(--color-bg-level-3); border: 1px solid var(--color-line-default);
+  border-radius: 8px; padding: 7px 9px; color: var(--color-ink-primary);
+  font-family: var(--font-family-ui); font-size: 12px;
+}
+.planif-field input:focus { border-color: var(--color-accent-base); outline: none; }
+.planif-post-wrap { display: flex; flex-direction: column; gap: 6px; }
+.planif-post {
+  display: flex; gap: 10px; padding: 10px; border-radius: 12px;
+  background: var(--color-bg-level-2); border: 1px solid var(--color-line-default);
+}
+.planif-post-media {
+  width: 50px; height: 50px; border-radius: 8px; overflow: hidden; flex-shrink: 0;
+  background: var(--color-bg-level-3); border: 1px solid var(--color-line-default);
+  display: flex; align-items: center; justify-content: center; color: var(--color-ink-tertiary);
+}
+.planif-post-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.planif-post-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.planif-post-head { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--color-ink-secondary); }
+.planif-post-head svg { flex-shrink: 0; }
+.planif-post-reseau { white-space: nowrap; }
+.planif-post-pseudo { margin-left: auto; color: var(--color-ink-tertiary); font-size: 10px; }
+.planif-post-caption {
+  margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--color-ink-primary);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.planif-post-vide { margin: 0; font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.4; }
+.planif-post-hashtags { margin: 0; font-size: 10.5px; color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.planif-post-count { font-size: 10px; color: var(--color-ink-tertiary); }
+.planif-post-count.over { color: var(--color-status-err); font-weight: 600; }
+
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -2381,6 +2447,6 @@ button.danger:hover {
  * (reseaux/slides/source) sont masques par le JSX (MODE_UI.valider.onglets). */
 
 /* Mode PROGRAMMER : le creneau est la zone dominante du panneau. */
-.detail--programmer .planif-section { order: -1; }
-.detail--programmer .planif-section .planif-btn { width: 100%; }
+/* Mode PROGRAMMER (A4) : le calendrier est dans le panneau (onglet Calendrier),
+ * plus de section planif en bas de panneau ni de modale. */
 
