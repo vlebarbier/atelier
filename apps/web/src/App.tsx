@@ -19,10 +19,10 @@ import { SettingsPage } from './pages/SettingsPage';
 import { HelpPage } from './pages/HelpPage';
 import { ArticleEditor } from './components/ArticleEditor';
 import { TYPE_ARTICLE, TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
-import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
+import { fetchBrouillons, createBrouillon, deleteBrouillon, dupliquerBrouillon, type Brouillon, type Statut } from './api';
 
 const PAGE_LABELS: Record<string, string> = {
-  brouillons: 'Contenus',
+  brouillons: 'Publications',
   documents: 'Documents',
   blog: 'Blog',
   calendrier: 'Calendrier',
@@ -125,6 +125,10 @@ export default function App() {
   const articles = useMemo(() => brouillons.filter((b) => b.type === TYPE_ARTICLE), [brouillons]);
 
   const aValider = useMemo(() => brouillons.filter((b) => b.statut === 'a-valider').length, [brouillons]);
+  const aValiderContenus = useMemo(
+    () => contenus.filter((b) => b.statut === 'a-valider').length,
+    [contenus]
+  );
 
   function openBrouillon(id: string) {
     setSelectedId(id);
@@ -225,6 +229,16 @@ export default function App() {
     setSuppressionId(id);
   }
 
+  /** Duplication au survol de l'ecran Publications : copie complete, puis recharge. */
+  async function handleDuplicate(id: string) {
+    try {
+      await dupliquerBrouillon(id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de duplication');
+    }
+  }
+
   function navigate(nextPage: string) {
     setSelectedId(null);
     setPage(nextPage);
@@ -277,7 +291,7 @@ export default function App() {
 
           {page === 'brouillons' && !selectedId && (
             <ContentListPage
-              titre="Contenus"
+              titre="Publications"
               sub="Vos creations pour les reseaux sociaux : carrousels, posts, videos, stories."
               brouillons={contenus}
               loading={loading}
@@ -286,12 +300,15 @@ export default function App() {
               onVueChange={setVue}
               onOpen={openBrouillon}
               onDelete={confirmDelete}
+              onDuplicate={handleDuplicate}
               onCreate={() => setCreationOpen(true)}
+              labelNouveau="Nouvelle publication"
               typesFiltrables={TYPES_CONTENUS}
               filtre={filtre}
               onFiltreChange={setFiltre}
+              aValider={aValiderContenus}
               emptyTitle="Pas encore de contenu."
-              emptySub="Creez votre premier contenu avec votre agent : il utilisera vos elements de marque."
+              emptySub="Creez votre premiere publication avec votre agent : il utilisera vos elements de marque."
             />
           )}
 
@@ -306,7 +323,9 @@ export default function App() {
               onVueChange={setVue}
               onOpen={openBrouillon}
               onDelete={confirmDelete}
+              onDuplicate={handleDuplicate}
               onCreate={() => setCreationOpen(true)}
+              labelNouveau="Nouveau document"
               typesNouveau={TYPES_DOCUMENTS}
               typesFiltrables={TYPES_DOCUMENTS}
               onCreateType={(type) => createDocument(type)}

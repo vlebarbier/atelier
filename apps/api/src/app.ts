@@ -209,6 +209,12 @@ export function createApp(repo: Repo, options: AppOptions) {
       await Promise.all(
         rows.map(async (row) => {
           const fichiers = await slideFichiersDe(repo, row.id);
+          let reseaux: string[] = [];
+          try {
+            reseaux = Object.keys(JSON.parse(row.reseaux || '{}'));
+          } catch {
+            reseaux = [];
+          }
           return {
             id: row.id,
             titre: row.titre,
@@ -216,6 +222,7 @@ export function createApp(repo: Repo, options: AppOptions) {
             type: row.type || 'carrousel',
             programme: row.programme ? JSON.parse(row.programme) : null,
             article: row.article ? JSON.parse(row.article) : null,
+            reseaux,
             slideCount: fichiers.length,
             slides: fichiers,
             updated: row.updatedAt
@@ -328,6 +335,100 @@ export function createApp(repo: Repo, options: AppOptions) {
       message: `a supprime le brouillon "${row.titre}"`
     });
     return c.json({ ok: true });
+  });
+
+  // POST /api/brouillon/:id/dupliquer → copie le brouillon (metadonnees + source
+  // + slides physiques) sous un nouvel id, statut remis a brouillon. L'action
+  // "Dupliquer" au survol de l'ecran Publications s'appuie dessus : la copie
+  // est une base de travail, jamais une publication (statut brouillon force).
+  app.post('/api/brouillon/:id/dupliquer', async (c) => {
+    const id = c.req.param('id');
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+
+    const newId = `brouillon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const titre = `${row.titre} (copie)`;
+
+    await repo.insertBrouillon({
+      id: newId,
+      titre,
+      statut: 'brouillon',
+      type: row.type || 'carrousel',
+      notes: row.notes,
+      reseaux: row.reseaux,
+      sourceHtml: row.sourceHtml,
+      charteId: row.charteId,
+      checklist: row.checklist,
+      conversation: '[]',
+      programme: null,
+      article: row.article,
+      diff: null,
+      annotations: '[]',
+      updatedAt: new Date().toISOString()
+    });
+
+    // Copie des slides physiques : fichier local → recopie disque, blob → copy SDK.
+    const slidesSource = await repo.listSlides(id);
+    let copies = 0;
+    for (const s of slidesSource) {
+      try {
+        if (s.blobUrl) {
+          const { copy } = await import('@vercel/blob');
+          const fromPath = new URL(s.blobUrl).pathname.replace(/^\//, '');
+          const toPath = `${newId}/${s.fichier}`;
+          const result = await copy(fromPath, toPath, {
+            access: 'private',
+            addRandomSuffix: false,
+            allowOverwrite: true
+          });
+          await repo.insertSlide({
+            brouillonId: newId,
+            fichier: s.fichier,
+            position: s.position,
+            typeMedia: s.typeMedia,
+            blobUrl: result.url
+          });
+        } else {
+          const src = path.join(options.dataDir, id, s.fichier);
+          if (fs.existsSync(src)) {
+            const buffer = fs.readFileSync(src);
+            const stored = await storeSlide(newId, s.fichier, buffer, options.dataDir);
+            await repo.insertSlide({
+              brouillonId: newId,
+              fichier: s.fichier,
+              position: s.position,
+              typeMedia: s.typeMedia,
+              blobUrl: stored.blobUrl
+            });
+          } else {
+            await repo.insertSlide({
+              brouillonId: newId,
+              fichier: s.fichier,
+              position: s.position,
+              typeMedia: s.typeMedia,
+              blobUrl: null
+            });
+          }
+        }
+        copies++;
+      } catch {
+        /* une slide non copiee ne bloque pas la duplication */
+      }
+    }
+
+    await journaliser(repo, {
+      type: 'duplication',
+      auteur: auteurDe(c),
+      brouillonId: newId,
+      brouillonTitre: titre,
+      message: `a duplique "${row.titre}" (${copies} slide${copies > 1 ? 's' : ''} copiees)`,
+      details: { sourceId: id, copies }
+    });
+
+    return c.json(
+      { id: newId, titre, statut: 'brouillon', type: row.type || 'carrousel', slideCount: copies, updated: new Date().toISOString() },
+      201
+    );
   });
 
   app.get('/api/charte', async (c) => {

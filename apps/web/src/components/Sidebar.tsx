@@ -30,7 +30,7 @@ const GROUPES: { label: string; items: NavItem[] }[] = [
   {
     label: 'Travail',
     items: [
-      { id: 'brouillons', label: 'Contenus', Icon: SquaresFour },
+      { id: 'brouillons', label: 'Publications', Icon: SquaresFour },
       { id: 'documents', label: 'Documents', Icon: FileText },
       { id: 'blog', label: 'Blog', Icon: Article },
       { id: 'calendrier', label: 'Calendrier', Icon: CalendarBlank }

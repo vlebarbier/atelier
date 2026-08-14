@@ -1,7 +1,7 @@
 export const RESEAUX: readonly string[] = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok', 'gmb'];
 
-/** Types de contenu reseaux sociaux (programmables, publics). */
-export const TYPES_CONTENUS: readonly string[] = ['carrousel', 'video', 'post', 'story'];
+/** Types de contenu reseaux sociaux (programmables, publics). Ordre de la maquette. */
+export const TYPES_CONTENUS: readonly string[] = ['carrousel', 'post', 'story', 'video'];
 
 /** Types de documents (livrables hors reseaux : pitch deck, flyers...). */
 export const TYPES_DOCUMENTS: readonly string[] = [
@@ -171,16 +171,39 @@ export const RESEAUX_LABELS: Record<string, string> = {
   instagram: 'Instagram',
   linkedin: 'LinkedIn',
   facebook: 'Facebook',
-  x: 'X (Twitter)',
+  x: 'X',
   tiktok: 'TikTok',
   gmb: 'Google Business Profile'
 };
 
+/**
+ * Badge de type precis pour une publication, derive du type + nombre de slides
+ * (maquette publications.html validee Victor 13/08) :
+ *   carrousel → "9 slides" · document → "12 pages" · post 1 slide → "1 image"
+ *   · post sans slide → "1 post" · video/story/autre selon le compteur.
+ */
+export function badgeType(type: string | undefined, slideCount: number): string {
+  const n = slideCount;
+  const t = type ?? 'carrousel';
+  const plural = (mot: string, pl: string) => (n > 1 ? `${n} ${pl}` : `${n} ${mot}`);
+  if (TYPES_DOCUMENTS.includes(t)) return plural('page', 'pages');
+  if (t === 'video') return plural('vidéo', 'vidéos');
+  if (t === 'story') return plural('story', 'stories');
+  if (t === 'post') {
+    if (n === 0) return '1 post';
+    if (n === 1) return '1 image';
+    return `${n} slides`;
+  }
+  if (t === TYPE_ARTICLE) return '1 article';
+  // carrousel et defaut
+  return n === 1 ? '1 slide' : `${n} slides`;
+}
+
 export const STATUT_LABELS: Record<string, string> = {
   brouillon: 'Brouillon',
-  'a-valider': 'A valider',
-  valide: 'Valide',
-  publie: 'Publie'
+  'a-valider': 'À valider',
+  valide: 'Validée',
+  publie: 'Publiée'
 };
 
 export const STATUTS_ORDRE: readonly string[] = ['brouillon', 'a-valider', 'valide', 'publie'];
