@@ -18,8 +18,9 @@ import { BlogPage } from './pages/BlogPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { HelpPage } from './pages/HelpPage';
 import { ArticleEditor } from './components/ArticleEditor';
-import { TYPE_ARTICLE, TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
-import { fetchBrouillons, createBrouillon, deleteBrouillon, dupliquerBrouillon, type Brouillon, type Statut } from './api';
+import { RESEAUX_LABELS, TYPE_ARTICLE, TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
+import { fetchBrouillons, createBrouillon, deleteBrouillon, dupliquerBrouillon, parseProgramme, type Brouillon, type Statut } from './api';
+import type { NotifEvent } from './components/NotificationBell';
 
 const PAGE_LABELS: Record<string, string> = {
   brouillons: 'Publications',
@@ -129,6 +130,31 @@ export default function App() {
     () => contenus.filter((b) => b.statut === 'a-valider').length,
     [contenus]
   );
+
+  // Evenements de la cloche (MVP 1.5) : a valider (action requise) et publies
+  // recemment (resultat), tries du plus recent au plus ancien, 8 max.
+  const notifEvents = useMemo<NotifEvent[]>(() => {
+    const events: NotifEvent[] = [];
+    for (const b of brouillons) {
+      const titre = b.titre || 'Contenu sans titre';
+      if (b.statut === 'a-valider') {
+        events.push({ kind: 'a-valider', id: b.id, titre, at: b.updated });
+      } else if (b.statut === 'publie') {
+        const prog = parseProgramme(b.programme);
+        const cleReseau = prog?.reseau ?? b.reseaux?.[0];
+        const reseau =
+          b.type === TYPE_ARTICLE
+            ? 'le blog'
+            : cleReseau
+              ? RESEAUX_LABELS[cleReseau] ?? cleReseau
+              : undefined;
+        events.push({ kind: 'publie', id: b.id, titre, reseau, at: b.updated });
+      }
+    }
+    return events
+      .sort((a, b) => (b.at ?? '').localeCompare(a.at ?? ''))
+      .slice(0, 8);
+  }, [brouillons]);
 
   function openBrouillon(id: string) {
     setSelectedId(id);
@@ -256,8 +282,8 @@ export default function App() {
       <div className="shell">
         <Header
           onOpenPalette={() => setPaletteOpen(true)}
-          aValider={aValider}
-          onOpenNotifications={() => navigate('brouillons')}
+          notifs={notifEvents}
+          onOpenNotification={openDepuisJournal}
           brouillonOuvert={page === 'brouillons' && !!selectedId}
           panneauReplie={panneauReplie}
           onTogglePanneau={() => setPanneauReplie((v) => !v)}
