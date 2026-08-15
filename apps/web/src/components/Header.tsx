@@ -1,10 +1,11 @@
-import { MagnifyingGlass, Bell, ArrowsInLineVertical, Sun, Moon, CaretDoubleLeft, CaretDoubleRight } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowsInLineVertical, Sun, Moon, CaretDoubleLeft, CaretDoubleRight } from '@phosphor-icons/react';
+import { NotificationBell, type NotifEvent } from './NotificationBell';
 
 interface HeaderProps {
   onOpenPalette: () => void;
-  /** Nombre de brouillons a valider — badge de la cloche. */
-  aValider: number;
-  onOpenNotifications: () => void;
+  /** Evenements de la cloche : a valider + publies recemment. */
+  notifs: NotifEvent[];
+  onOpenNotification: (id: string) => void;
   /** Vue detail ouverte : on peut replier le panneau d'edition pour voir la slide en grand. */
   brouillonOuvert: boolean;
   panneauReplie: boolean;
@@ -19,11 +20,11 @@ interface HeaderProps {
 
 /**
  * Barre d'actions GLOBALE (pattern PushRank/Linear) : ce qui est vrai sur
- * toutes les pages — volet sidebar, recherche ⌘K, theme, replier la page,
+ * toutes les pages : volet sidebar, recherche ⌘K, theme, replier la page,
  * notifications. Les controles contextuels (toggle vue, filtres, Nouveau)
  * vivent dans la page.
  */
-export function Header({ onOpenPalette, aValider, onOpenNotifications, brouillonOuvert, panneauReplie, onTogglePanneau, theme, onToggleTheme, sidebarRepliee, onToggleSidebar }: HeaderProps) {
+export function Header({ onOpenPalette, notifs, onOpenNotification, brouillonOuvert, panneauReplie, onTogglePanneau, theme, onToggleTheme, sidebarRepliee, onToggleSidebar }: HeaderProps) {
   return (
     <header className="app-bar">
       <div className="app-bar-left">
@@ -50,10 +51,7 @@ export function Header({ onOpenPalette, aValider, onOpenNotifications, brouillon
             <ArrowsInLineVertical size={15} />
           </button>
         )}
-        <button className="icon-btn notif-btn" type="button" onClick={onOpenNotifications} title="Notifications">
-          <Bell size={15} />
-          {aValider > 0 && <span className="notif-badge">{aValider}</span>}
-        </button>
+        <NotificationBell events={notifs} onOpen={onOpenNotification} />
       </div>
     </header>
   );
