@@ -34,6 +34,44 @@ server.tool(
 );
 
 server.tool(
+  'creer_brouillon',
+  'Crée un nouveau brouillon de contenu. C\'est la porte d\'entrée de la boucle agent : l\'agent démarre une création (titre + demande initiale du user pré-remplie dans la conversation), puis produit la source HTML (set_source), les slides (deposer_slides) et les légendes (set_legende).',
+  {
+    titre: z.string().optional().describe('Titre du brouillon (défaut : Nouveau brouillon)'),
+    type: z.string().optional().describe('Type de contenu : carrousel, video, post, story (défaut : carrousel)'),
+    demande: z.string().optional().describe('Demande initiale du user, pré-remplie dans la conversation (ex: "Un carrousel sur les avantages de la conciergerie")')
+  },
+  async ({ titre, type, demande }) => {
+    try {
+      const conversation = demande
+        ? [{ role: 'user', texte: demande }]
+        : undefined;
+      const data = (await client.creerBrouillon({ titre, type, conversation })) as Record<string, unknown>;
+      return rep(true, { ...data });
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
+server.tool(
+  'deposer_slides',
+  'Remplace toutes les slides d\'un brouillon depuis un tableau de dataURL (PNG base64 ou MP4). Le stockage passe par l\'API (Vercel Blob en prod, disque en local) : c\'est le moyen fiable pour l\'agent de pousser ses visuels générés, quel que soit l\'environnement de l\'API.',
+  {
+    id: z.string().describe('Identifiant du brouillon'),
+    slides: z.array(z.string()).describe('Tableau de dataURL : data:image/png;base64,... (ou data:video/mp4;base64,...)')
+  },
+  async ({ id, slides }) => {
+    try {
+      const data = (await client.deposerSlides(id, slides)) as Record<string, unknown>;
+      return rep(true, { ...data });
+    } catch (e) {
+      return rep(false, { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+);
+
+server.tool(
   'lire_brouillon',
   'Détail complet d\'un brouillon : slides, notes, statut, légendes par réseau, type de contenu et conversation avec le user (messages user en attente de traitement + réponses agent).',
   { id: z.string().describe('Identifiant du brouillon (ex: carrousel-bordeluche-v7)') },

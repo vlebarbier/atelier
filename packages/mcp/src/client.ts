@@ -60,6 +60,29 @@ export class AtelierClient {
     return this.request('/api/brouillons');
   }
 
+  /** POST /api/brouillons → crée un brouillon (vide, ou avec demande initiale
+   *  pré-remplie dans la conversation — la porte d'entrée de la boucle agent). */
+  async creerBrouillon(payload: {
+    titre?: string;
+    type?: string;
+    conversation?: { role?: string; texte?: string }[];
+  }): Promise<unknown> {
+    return this.request('/api/brouillons', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  /** POST /api/brouillon/:id/slides → remplace toutes les slides du brouillon
+   *  depuis un tableau de dataURL (PNG/MP4). Stocké via l'API (Blob en prod,
+   *  disque en local) : fonctionne quelle que soit la cible. */
+  async deposerSlides(id: string, slides: string[]): Promise<unknown> {
+    return this.request(`/api/brouillon/${encodeURIComponent(id)}/slides`, {
+      method: 'POST',
+      body: JSON.stringify({ slides })
+    });
+  }
+
   /** GET /api/brouillon/:id → détail complet. */ 
   async lireBrouillon(id: string): Promise<unknown> {
     return this.request(`/api/brouillon/${encodeURIComponent(id)}`);
