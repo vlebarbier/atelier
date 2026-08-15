@@ -18,9 +18,11 @@ const apiRoot = path.resolve(dir, '..');
 const PORT = Number(process.env.API_PORT) || 4310;
 const DB_PATH = process.env.API_DB_PATH || path.join(apiRoot, 'data', 'atelier.db');
 const DATA_DIR = path.join(apiRoot, 'data', 'brouillons');
-const SEED_DIR =
-  process.env.API_BROUILLONS_SEED_DIR ||
-  '/Users/victorlebarbier/Bordeluche/.hermes-instagram/brouillons';
+// Seed du prototype : OPT-IN. La boucle de production du contenu passe par
+// l'agent (MCP creer_brouillon + set_source + deposer_slides + set_legende),
+// plus par l'import d'un dossier local. On ne seed que si l'env est posee
+// explicitement (migration ponctuelle depuis le prototype Bordeluche).
+const SEED_DIR = process.env.API_BROUILLONS_SEED_DIR || '';
 
 async function buildRepo(): Promise<Repo> {
   if (isPostgres()) {

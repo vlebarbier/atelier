@@ -63,13 +63,22 @@ Atelier/
 
 | Outil | Rôle |
 |---|---|
+| `creer_brouillon` | Crée un brouillon (titre, type, demande initiale pré-remplie) — la porte d'entrée de la boucle agent |
 | `liste_brouillons` | Liste des brouillons + statuts |
-| `lire_brouillon` | Détail complet (slides, notes, légendes) |
+| `lire_brouillon` | Détail complet (slides, notes, légendes, conversation) |
 | `set_statut` | brouillon / a-valider / valide / publie |
 | `set_notes` | Notes de révision |
 | `set_legende` | Caption + hashtags par réseau |
-| `regenerer_slides` | Régénère les visuels depuis le HTML source |
+| `set_source` | Dépose le HTML source (le document de travail, source de vérité) |
+| `deposer_slides` | Remplace les slides depuis des dataURL (stockage via l'API : Blob en prod, disque en local) |
+| `regenerer_slides` | Régénère les visuels depuis le HTML source (rendu local) |
+| `repondre_brouillon` | Répond dans la conversation du brouillon |
 | `creer_brouillon_postiz` | Envoie le brouillon validé en draft Postiz |
+| `get_charte` | Charte graphique active transformée en instructions marque |
+| `lister_ressources` / `lire_ressource` / `deposer_ressource` | Bibliothèque (mémoire de la marque) |
+| `lire_journal` | Journal des actions agents |
+
+**La boucle agent réelle** : `creer_brouillon` (demande initiale) → `set_source` (HTML) → `deposer_slides` (visuels via l'API) → `set_legende` → `repondre_brouillon`. La production passe par cette boucle MCP ; le seed depuis un dossier local n'existe plus (opt-in `API_BROUILLONS_SEED_DIR` pour migration ponctuelle).
 
 ## Philosophie
 
