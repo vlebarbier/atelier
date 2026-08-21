@@ -6,7 +6,7 @@
 
 ---
 
-## 1. Classement RICE complet (51 features notées ; 4 déjà livrées)
+## 1. Classement RICE complet (51 features notées au 10/08 ; + 8 le 15/08 = 59 ; 4 déjà livrées)
 
 ### Tableau complet, du plus haut au plus bas
 
@@ -64,6 +64,23 @@
 | 50 | F-55 | Rôles | 0.3 | 10j | Fondations |
 
 **Déjà livrées** : F-10 (import CSS) · F-11 (éditeur charte) · F-19 (MCP set_source) · F-37 (statuts par réseau).
+
+### Nouvelles features — F-56 à F-63 (ajoutées le 15/08/2026)
+
+| Rang | ID | Feature | RICE | Effort | Pilier |
+|---|---|---|---|---|---|
+| 1 | F-63 | Score d'authenticité (anti-AI-slop) | 3.2 | 1.5j | Conformité |
+| 2 | F-58 | Carrousel validé → vidéo animée | 2.4 | 2.5j | Sortie |
+| 3 | F-60 | Lien de révision partagé (sans compte) | 2.1 | 1.5j | Révision |
+| 4 | F-59 | Dictée → brouillon (Whisper) | 1.8 | 2.5j | Agent / Bibliothèque |
+| 5 | F-61 | Analytics de publication (post → perf) | 1.4 | 4.5j | Sortie |
+| 6 | F-57 | Source unique → multi-format (remix orchestré) | 1.3 | 5j | Réceptacle / Agent |
+| 7 | F-62 | Adaptation multi-langue (contenu validé → N langues) | 0.8 | 3.5j | Sortie |
+| 8 | F-56 | Présentateurs vidéo (visage / sans visage) | 0.25 | 6j | Sortie / Réceptacle |
+
+Paramètres RICE (R · I · C, effort en jours) : F-63 = 3·2·0.8 / 1.5 · F-58 = 3·2.5·0.8 / 2.5 · F-60 = 2·2·0.8 / 1.5 · F-59 = 3·2.5·0.6 / 2.5 · F-61 = 3·3·0.7 / 4.5 · F-57 = 3·3·0.7 / 5 · F-62 = 2·2·0.7 / 3.5 · F-56 = 1·3·0.5 / 6.
+
+**Lecture honnête** : même pattern que le tableau principal — les quick wins (F-63, F-58, F-60) montent en tête, les différenciateurs stratégiques (F-57 multi-format, F-61 analytics, F-56 présentateurs) sont plus bas car plus chers. Le RICE seul ne décide pas : le chemin critique du MVP prime, et ces différenciateurs portent la vente quand le produit passe multi-clients.
 
 ### Lecture honnête du RICE
 
@@ -159,6 +176,8 @@ F-29 (injection rendu) · F-33 (badge) · F-34 (détail écarts) · F-35 (re-con
 8. F-07 (archivage web) · F-22 (MCP archive_url) — l'autonomie de l'agent
 9. F-51 (auth) + F-52 (stockage par user) — quand on passe produit
 10. F-54 (multi-chartes) · F-55 (rôles) · F-24 (SDK) · F-25 (webhooks) — l'expansion
+11. **F-56 (présentateurs vidéo — visage / sans visage)** — l'acteur réutilisable : créer un présentateur une fois (Seedance 2.5 via FAL, ~$7/30s), le réutiliser à coût marginal ~0 sur toutes les vidéos suivantes. Deux variantes au choix dans les paramètres de création (visage ou voix seule), révision = changer de présentateur ou régénérer. RICE : 0.25 (Reach 1 · Impact 3 · Conf 0.5 · Effort 6j) — différenciateur stratégique malgré le RICE bas, même logique que F-45/F-20 : le RICE seul ne décide pas.
+12. **F-57 → F-63 (ajoutées 15/08)** — par ordre RICE : F-63 (score anti-AI-slop, 1.5j) → F-58 (carrousel → vidéo animée, 2.5j) → F-60 (lien de révision partagé, 1.5j) → F-59 (dictée → brouillon, 2.5j) → F-61 (analytics publication, 4.5j) → F-57 (source unique → multi-format, 5j) → F-62 (multi-langue, 3.5j). Quick wins d'abord (F-63/F-58/F-60), différenciateurs ensuite (F-61/F-57). Détails et paramètres RICE : section 1.
 
 ---
 
