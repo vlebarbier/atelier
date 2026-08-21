@@ -1,6 +1,6 @@
 # SPEC-PORTAGE-PROTOTYPE.md — Du prototype HTML vers l'app React
 
-> 13/08/2026 · Pont entre les maquettes validées (`maquettes/`) et l'app Atelier
+> Pont entre les maquettes validées (`design/prototype/`) et l'app Atelier
 > (React + Vite, déployée sur Vercel). Chaque écran validé par Victor est porté
 > écran par écran. Le prototype reste la source de vérité visuelle pendant la
 > transition.
@@ -33,7 +33,7 @@
 
 ### Écran 1 — Publications ✅ VALIDÉ (13/08)
 
-**Maquette** : `maquettes/publications.html`
+**Maquette** : `design/prototype/publications.html`
 **Carte kanban** : t_4b1bfb4c (Héphaïstos, ready)
 
 | Élément maquette | Conversion React | Fichier cible |
@@ -50,7 +50,7 @@
 
 ### Écran 2 — Créer (chat au centre) ⏳ À valider
 
-**Maquette** : `maquettes/detail.html?mode=creer`
+**Maquette** : `design/prototype/detail.html?mode=creer`
 **Carte** : A2/A2+ (Apollon)
 
 | Élément | Conversion React | Fichier cible |
@@ -63,7 +63,7 @@
 
 ### Écran 3 — Réviser (contenu au centre) ⏳
 
-**Maquette** : `maquettes/detail.html?mode=reviser`
+**Maquette** : `design/prototype/detail.html?mode=reviser`
 
 | Élément | Conversion React | Fichier cible |
 |---|---|---|
@@ -74,7 +74,7 @@
 
 ### Écran 4 — Valider (conformité + esthétique) ⏳
 
-**Maquette** : `maquettes/detail.html?mode=valider`
+**Maquette** : `design/prototype/detail.html?mode=valider`
 **Carte** : A3 (Héphaïstos) + A3+ (Apollon — « Est-ce beau ? »)
 
 | Élément | Conversion React | Fichier cible |
@@ -86,7 +86,7 @@
 
 ### Écran 5 — Programmer (créneaux) ⏳
 
-**Maquette** : `maquettes/detail.html?mode=programmer`
+**Maquette** : `design/prototype/detail.html?mode=programmer`
 **Carte** : A4 (Athéna)
 
 | Élément | Conversion React | Fichier cible |
@@ -97,7 +97,7 @@
 
 ### Écran 6 — Calendrier ⏳
 
-**Maquette** : `maquettes/calendrier.html`
+**Maquette** : `design/prototype/calendrier.html`
 
 | Élément | Conversion React | Fichier cible |
 |---|---|---|
@@ -109,7 +109,7 @@
 
 ### Écran 7 — Documents ⏳
 
-**Maquette** : `maquettes/documents.html`
+**Maquette** : `design/prototype/documents.html`
 
 | Élément | Conversion React | Fichier cible |
 |---|---|---|
@@ -119,7 +119,7 @@
 
 ### Écran 8 — Bibliothèque + collecte ⏳
 
-**Maquette** : `maquettes/bibliotheque.html`
+**Maquette** : `design/prototype/bibliotheque.html`
 **Carte** : D1 (Athéna)
 
 | Élément | Conversion React | Fichier cible |
@@ -131,7 +131,7 @@
 
 ### Écran 9 — Charte ⏳
 
-**Maquette** : `maquettes/charte.html`
+**Maquette** : `design/prototype/charte.html`
 
 | Élément | Conversion React | Fichier cible |
 |---|---|---|
@@ -142,7 +142,7 @@
 
 ### Écrans secondaires (Blog, Activité IA, Intégrations, Paramètres, Aide)
 
-**Maquettes** : `maquettes/{blog,activite,integrations,parametres,aide}.html`
+**Maquettes** : `design/prototype/{blog,activite,integrations,parametres,aide}.html`
 
 | Écran | Fichier cible | Priorité |
 |---|---|---|

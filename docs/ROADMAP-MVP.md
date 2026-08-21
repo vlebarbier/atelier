@@ -1,6 +1,6 @@
 # ROADMAP MVP — Atelier
 
-> Établie le 14/08/2026 après audit complet du code (apps/api + apps/web) et du prototype (27 pages maquettes/).
+> Établie le 14/08/2026 après audit complet du code (apps/api + apps/web) et du prototype (27 pages design/prototype/).
 > Principe : **le produit réel est déjà bien avancé** — la priorité est de combler l'écart
 > prototype → code, pas de repartir de zéro.
 

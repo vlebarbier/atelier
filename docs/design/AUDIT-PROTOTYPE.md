@@ -1,6 +1,6 @@
 # AUDIT PROTOTYPE — améliorations page par page
 
-> 13/08/2026 · Audit visuel des 9 écrans du prototype (maquettes/), headless + vision.
+> 13/08/2026 · Audit visuel des 9 écrans du prototype (design/prototype/), headless + vision.
 > Objectif : lister les améliorations concrètes avant implémentation.
 > Légende : 🔴 friction · 🟠 ergonomie · 🟢 amélioration · ⚠️ incohérence.
 

@@ -161,7 +161,7 @@ etape 4 : vue detail plein ecran).
 
 ## 6. Porte d'entrée creation : « Nouvelle création » avec templates (11/08/2026)
 
-La spec complete vit dans `docs/SPEC-CREATION.md`. Resume de la direction (decision
+La spec complete vit dans `docs/specs/SPEC-CREATION.md`. Resume de la direction (decision
 Victor 11/08, Phase 6g) :
 
 - **« Nouveau » devient « Nouvelle création »** : le user decrit son besoin en 1 phrase

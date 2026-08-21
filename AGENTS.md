@@ -23,8 +23,8 @@
 
 ## Docs de référence (à lire avant de toucher une feature)
 
-- `docs/PRODUCT.md`, `docs/DESIGN.md`, `docs/PRIORISATION.md`, `docs/REFONTE-DESIGN.md`
-- `docs/SPEC-*.md` — specs des briques (création, blog, charte évolutive, conformité, agent réactif, ask-user…)
+- `docs/PRODUCT.md`, `docs/design/DESIGN.md`, `docs/PRIORISATION.md`, `docs/design/REFONTE-DESIGN.md`
+- `docs/specs/SPEC-*.md` — specs des briques (création, blog, charte évolutive, conformité, agent réactif, ask-user…)
 - La charte et les tokens vivent dans `packages/tokens/` — ne pas hardcoder les couleurs
 
 ## Règles

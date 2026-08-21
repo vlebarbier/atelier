@@ -65,7 +65,7 @@ permanence la **prochaine opportunité** : l'écart GSC le plus rentable sans ar
 dédié (requête positionnée 11-30 avec volume, aucun article du blog ne la couvre).
 Un clic pré-remplit un brouillon article ciblé sur ce mot-clé. C'est « l'agent
 propose, pas seulement exécute » (ROADMAP-MVP.md 3.3) : le prototype l'a déjà
-dessiné (maquettes/blog-references.html, carte « Prochaine opportunité »).
+dessiné (design/prototype/blog-references.html, carte « Prochaine opportunité »).
 
 ### 1.4 Hors périmètre (v1)
 
@@ -348,7 +348,7 @@ reste fonctionnelle, les propositions sont moins fines.
 
 ### 7.1 Section « Amélioration continue » (prototype : bandeau 🔄)
 
-En bas de la page Références blog (maquettes/blog-references.html), un bandeau
+En bas de la page Références blog (design/prototype/blog-references.html), un bandeau
 visible seulement si des rétroactions `proposee` existent :
 
 - Titre : « Amélioration continue » + compteur (« 1 mise à jour proposée »).

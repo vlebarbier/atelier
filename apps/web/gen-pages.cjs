@@ -1,5 +1,5 @@
 const fs = require('fs');
-const path = '/Users/victorlebarbier/Atelier/maquettes/';
+const path = '/Users/victorlebarbier/Atelier/design/prototype/';
 
 function page(titre, dataPage, contenu) {
   return `<!DOCTYPE html>
