@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Prototype global (panneau droit contextuel)</title>
+<style>
+  :root {
+    --bg-deep: #050505; --bg-1: #0A0A0A; --bg-2: #101010; --bg-3: #171717; --line: #232323;
+    --text-1: #F5F5F4; --text-2: #A1A1AA; --text-3: #6B6B72;
+    --accent: #8B8B8F; --accent-strong: #B0B0B5; --accent-soft: rgba(139,139,143,0.18);
+    --ok: #34D399; --warn: #F5A623; --err: #F87171;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --radius: 10px; --radius-sm: 7px; --card-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  html[data-theme="light"] {
+    --bg-deep: #FAFAF9; --bg-1: #FFFFFF; --bg-2: #F2F2EF; --bg-3: #E8E8E4; --line: #E2E2DD;
+    --text-1: #17171A; --text-2: #52525B; --text-3: #A1A1AA;
+    --accent: #6E6E73; --accent-strong: #8E8E93; --accent-soft: rgba(110,110,115,0.14);
+    --ok: #059669; --warn: #B45309; --err: #DC2626; --card-shadow: 0 12px 40px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--bg-deep); color: var(--text-1); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; padding: 32px 40px 64px; max-width: 1500px; margin: 0 auto; transition: background 0.25s, color 0.25s; }
+  h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.02em; }
+  .topbar { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .topbar .spacer { flex: 1; }
+  .theme-toggle { display: inline-flex; background: var(--bg-1); border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; }
+  .theme-toggle button { border: none; background: transparent; color: var(--text-3); padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .theme-toggle button.on { background: var(--bg-3); color: var(--text-1); }
+
+  /* Stepper des étapes */
+  .steps { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .step { display: inline-flex; align-items: center; gap: 7px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-1); color: var(--text-3); font-size: 12px; font-weight: 500; cursor: pointer; }
+  .step .n { width: 18px; height: 18px; border-radius: 50%; background: var(--bg-3); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  .step.on { border-color: var(--accent); color: var(--text-1); background: var(--accent-soft); }
+  .step.on .n { background: var(--accent); color: #fff; }
+  .step.done { color: var(--ok); border-color: rgba(52,211,153,0.4); }
+  .step.done .n { background: var(--ok); color: #04140B; }
+
+  .mock { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg-deep); }
+  .mock-top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--bg-1); }
+  .mock-top .crumb { font-size: 12px; color: var(--text-2); }
+  .mock-top .crumb b { color: var(--text-1); font-weight: 600; }
+  .mock-top .spacer { flex: 1; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 3px 10px; border: 1px solid var(--line); }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge-brouillon { background: var(--bg-2); color: var(--text-2); }
+  .badge-brouillon .dot { background: var(--text-3); }
+  .badge-valider { background: #3B2A0A; color: #FDE68A; border-color: #523A0F; }
+  .badge-valider .dot { background: var(--warn); }
+  .badge-valide { background: #0E3B2E; color: #D1FAE5; border-color: #14532D; }
+  .badge-valide .dot { background: var(--ok); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--bg-2); color: var(--text-1); padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn:hover { background: var(--bg-3); }
+  .btn-primary { background: var(--text-1); color: var(--bg-deep); border-color: transparent; font-weight: 600; }
+  .btn-primary:hover { background: var(--text-2); }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+  .btn-ghost:hover { background: var(--bg-2); color: var(--text-1); }
+
+  .mock-body { display: grid; grid-template-columns: 1fr 1fr 320px; min-height: 480px; }
+
+  /* Contenu (gauche) */
+  .mock-slide { display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--line); padding: 24px; background: var(--bg-1); }
+  .slide-preview { width: 300px; border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--card-shadow); overflow: hidden; }
+  .slide-preview .head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
+  .slide-preview .head span { font-size: 11px; color: var(--text-3); }
+  .slide-preview .body { padding: 24px 18px; min-height: 160px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+  .slide-preview .body h4 { font-size: 17px; letter-spacing: -0.02em; }
+  .slide-preview .body p { font-size: 12px; color: rgba(209,250,229,0.75); }
+  .slide-nav { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
+  .slide-nav .arrow { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-2); display: inline-flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 13px; }
+
+  /* Chat (centre) — toujours là */
+  .mock-chat { border-right: 1px solid var(--line); display: flex; flex-direction: column; background: var(--bg-deep); }
+  .mock-chat-head { padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
+  .mock-chat-head .avatar { width: 20px; height: 20px; border-radius: 50%; background: var(--accent-soft); border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--accent-strong); }
+  .mock-msgs { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.55; }
+  .msg-user { align-self: flex-end; background: var(--text-1); color: var(--bg-deep); border-bottom-right-radius: 4px; }
+  .msg-agent { align-self: flex-start; background: var(--bg-2); border: 1px solid var(--line); color: var(--text-1); border-bottom-left-radius: 4px; }
+  .msg-agent .chip { display: inline-block; font-size: 10px; background: var(--bg-3); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; margin-right: 6px; color: var(--text-2); }
+  .mock-input { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; gap: 8px; }
+  .field { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13px; color: var(--text-1); width: 100%; }
+  .field:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+  /* Panneau droit — change selon l'étape */
+  .mock-side { padding: 16px; display: flex; flex-direction: column; gap: 14px; background: var(--bg-deep); overflow-y: auto; }
+  .sec-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); margin-bottom: 8px; }
+  .net-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); }
+  .net-item .net-icon { width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+  .net-item .net-name { flex: 1; font-size: 13px; font-weight: 500; }
+  .net-item .net-status { font-size: 10px; color: var(--text-3); }
+  .ig { background: linear-gradient(135deg, #F58529, #DD2A7B, #8134AF); }
+  .li { background: #0A66C2; }
+  .x { background: #000; border: 1px solid var(--line); }
+  .checklist { display: flex; flex-direction: column; gap: 8px; }
+  .check-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-2); }
+  .check-item .cb { width: 16px; height: 16px; border-radius: 5px; border: 1px solid var(--line); background: var(--bg-2); flex-shrink: 0; }
+  .check-item.on .cb { background: var(--ok); border-color: var(--ok); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #04140B; }
+  .check-item.on { color: var(--text-1); }
+
+  /* Actions de validation dans le panneau */
+  .side-actions { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+  .btn-ok { background: var(--ok); color: #04140B; border-color: transparent; font-weight: 700; padding: 10px; width: 100%; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; }
+  .btn-ok:hover { filter: brightness(1.1); }
+  .btn-ko { background: transparent; border-color: #7F1D1D; color: var(--err); font-weight: 600; padding: 10px; width: 100%; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; }
+  .btn-ko:hover { background: rgba(248,113,113,0.08); }
+  .btn-cta { background: var(--accent); color: #fff; border-color: transparent; font-weight: 700; padding: 10px; width: 100%; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; }
+  .btn-cta:hover { background: var(--accent-strong); }
+  .note { font-size: 11.5px; color: var(--text-3); }
+
+  /* Étape 2 : révision (annotation) */
+  .anno { border: 1px dashed var(--warn); border-radius: 6px; padding: 3px 6px; font-size: 10px; color: var(--warn); background: rgba(245,166,35,0.08); }
+  .anno-item { padding: 9px 10px; border-radius: var(--radius-sm); background: var(--bg-1); border: 1px solid var(--line); font-size: 12px; color: var(--text-2); display: flex; gap: 8px; align-items: flex-start; }
+  .anno-item .pin { color: var(--warn); font-weight: 700; flex-shrink: 0; }
+
+  /* Étape 3 : programmation */
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .cal-dow { font-size: 9px; font-weight: 600; text-transform: uppercase; color: var(--text-3); text-align: center; padding: 3px 0; }
+  .cal-day { aspect-ratio: 1; border-radius: 7px; border: 1px solid var(--line); background: var(--bg-2); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-2); }
+  .cal-day.today { border-color: var(--accent); color: var(--text-1); box-shadow: inset 0 0 0 1px var(--accent); }
+  .cal-day.has { background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; }
+  .cal-day.pick { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .slot-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .slot { padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-2); font-size: 11.5px; color: var(--text-2); cursor: pointer; }
+  .slot.best { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); font-weight: 600; }
+  .summary-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 5px 0; }
+  .summary-row .k { color: var(--text-3); }
+  .summary-row .v { font-weight: 600; }
+
+  .divider { border: none; border-top: 1px solid var(--line); margin: 8px 0; }
+  .explain { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-1); font-size: 12.5px; color: var(--text-2); line-height: 1.6; }
+  .explain b { color: var(--text-1); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Atelier — Prototype global</h1>
+  <span class="spacer"></span>
+  <div class="theme-toggle" id="themeToggle">
+    <button class="on" data-t="dark">Sombre</button>
+    <button data-t="light">Clair</button>
+  </div>
+</div>
+
+<!-- Stepper : seul le panneau droit change -->
+<div class="steps" id="steps">
+  <button class="step on" data-s="creer"><span class="n">1</span> Créer</button>
+  <button class="step" data-s="reviser"><span class="n">2</span> Réviser</button>
+  <button class="step" data-s="programmer"><span class="n">3</span> Programmer</button>
+</div>
+
+<div class="mock">
+  <div class="mock-top">
+    <span class="crumb">Atelier / <b>Contenus réseaux</b> / Carousel Conciergerie — v7</span>
+    <span class="badge" id="statusBadge"><span class="dot"></span><span id="statusText">Brouillon</span></span>
+    <span class="spacer"></span>
+    <button class="btn btn-ghost" style="font-size:12px">Voir le HTML</button>
+    <button class="btn">Exporter ▾</button>
+  </div>
+  <div class="mock-body">
+    <!-- Contenu (gauche) : toujours là -->
+    <div class="mock-slide">
+      <div>
+        <div class="slide-preview">
+          <div class="head"><span>Slide 2/9</span></div>
+          <div class="body" style="background:#0E3B2E">
+            <h4 style="color:#D1FAE5">Vos revenus, sans la charge mentale</h4>
+            <p>Ménage, accueil, annonces : on s'occupe de tout.</p>
+          </div>
+        </div>
+        <div class="slide-nav"><span class="arrow">←</span><span class="arrow">→</span></div>
+      </div>
+    </div>
+
+    <!-- Chat (centre) : toujours là -->
+    <div class="mock-chat">
+      <div class="mock-chat-head"><span class="avatar">✦</span> Agent · Atelier <span style="color:var(--text-3)">· en ligne</span></div>
+      <div class="mock-msgs" id="chatMsgs">
+        <div class="msg msg-agent"><span class="chip">html</span>J'ai mis à jour la slide 2 : titre raccourci, fond vert profond.</div>
+        <div class="msg msg-agent"><span class="chip">légende</span>Instagram : « 3 logements, 9 slides, une seule promesse : vos revenus sans la charge mentale. » <b style="color:var(--ok)">✓ 148/2200</b></div>
+        <div class="msg msg-user">Bien. Je révise puis je programme.</div>
+        <div class="msg msg-agent"><span class="chip">✓</span>Parfait. Dis-moi quand c'est bon.</div>
+      </div>
+      <div class="mock-input"><input class="field" placeholder="Demande à l'agent : texte, HTML, slide…"><button class="btn btn-primary">Envoyer</button></div>
+    </div>
+
+    <!-- Panneau droit : évolue selon l'étape -->
+    <div class="mock-side" id="sidePanel"></div>
+  </div>
+</div>
+
+<div class="explain" id="explain">
+  <b>Le principe :</b> le contenu (gauche) et le chat (centre) ne bougent jamais. <b>Seul le panneau droit change selon l'étape</b> — clique sur les étapes ci-dessus pour le voir évoluer : légendes + conformité en Créer, annotations de révision en Réviser, calendrier + créneaux en Programmer. Les boutons de validation apparaissent <b>au bon moment</b>, dans le panneau.
+</div>
+
+<script>
+  const steps = document.getElementById('steps');
+  const sidePanel = document.getElementById('sidePanel');
+  const statusBadge = document.getElementById('statusBadge');
+  const statusText = document.getElementById('statusText');
+
+  const panels = {
+    creer: `
+      <div>
+        <div class="sec-title">Légendes par réseau</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="net-item"><span class="net-icon ig" style="color:#fff">IG</span><span class="net-name">Instagram</span><span class="net-status" style="color:var(--ok)">● 148/2200</span></div>
+          <div class="net-item"><span class="net-icon li" style="color:#fff">in</span><span class="net-name">LinkedIn</span><span class="net-status" style="color:var(--ok)">● 96/3000</span></div>
+          <div class="net-item"><span class="net-icon x" style="color:#fff">X</span><span class="net-name">X / Twitter</span><span class="net-status" style="color:var(--warn)">○ à compléter</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-title">Conformité</div>
+        <div class="checklist">
+          <div class="check-item on"><span class="cb">✓</span>Charte respectée (DA, typos)</div>
+          <div class="check-item on"><span class="cb">✓</span>Logo présent sur les slides</div>
+          <div class="check-item"><span class="cb"></span>Légende X remplie</div>
+        </div>
+      </div>
+      <div class="side-actions">
+        <button class="btn-cta" data-go="reviser">Passer à la révision →</button>
+      </div>`,
+    reviser: `
+      <div>
+        <div class="sec-title">Révision de l'agent (2)</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="anno-item"><span class="pin">①</span><span>Slide 2 : le <span class="anno">titre</span> a été raccourci — OK pour toi ?</span></div>
+          <div class="anno-item"><span class="pin">②</span><span>Légende Instagram <span class="anno">modifiée</span> (148/2200) — à confirmer.</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-title">Diff avant / après</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg-1)">
+            <div style="font-size:9px;color:var(--text-3);margin-bottom:6px">AVANT</div>
+            <div style="height:5px;border-radius:3px;background:#3F3F46;width:85%;margin-bottom:4px"></div>
+            <div style="height:5px;border-radius:3px;background:#3F3F46;width:60%"></div>
+          </div>
+          <span style="color:var(--text-3)">→</span>
+          <div style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg-1)">
+            <div style="font-size:9px;color:var(--text-3);margin-bottom:6px">APRÈS</div>
+            <div style="height:5px;border-radius:3px;background:var(--warn);width:55%;margin-bottom:4px"></div>
+            <div style="height:5px;border-radius:3px;background:#3F3F46;width:60%"></div>
+          </div>
+        </div>
+        <p class="note" style="margin-top:6px">2 éléments modifiés — clique pour les voir en détail.</p>
+      </div>
+      <div class="side-actions">
+        <button class="btn-ko" data-go="creer">← Demander des modifs</button>
+        <button class="btn-ok" data-go="programmer">✓ Tout est bon — Programmer</button>
+      </div>`,
+    programmer: `
+      <div>
+        <div class="sec-title">Choisir la date</div>
+        <div class="cal-grid">
+          <span class="cal-dow">L</span><span class="cal-dow">M</span><span class="cal-dow">M</span><span class="cal-dow">J</span><span class="cal-dow">V</span><span class="cal-dow">S</span><span class="cal-dow">D</span>
+          <span class="cal-day"></span><span class="cal-day"></span><span class="cal-day"></span><span class="cal-day"></span><span class="cal-day has">5</span><span class="cal-day">6</span><span class="cal-day">7</span>
+          <span class="cal-day">8</span><span class="cal-day">9</span><span class="cal-day">10</span><span class="cal-day">11</span><span class="cal-day has">12</span><span class="cal-day today pick">13</span><span class="cal-day">14</span>
+          <span class="cal-day">15</span><span class="cal-day">16</span><span class="cal-day has">17</span><span class="cal-day">18</span><span class="cal-day">19</span><span class="cal-day">20</span><span class="cal-day">21</span>
+          <span class="cal-day">22</span><span class="cal-day">23</span><span class="cal-day">24</span><span class="cal-day">25</span><span class="cal-day">26</span><span class="cal-day">27</span><span class="cal-day">28</span>
+        </div>
+      </div>
+      <div>
+        <div class="sec-title">Heure — mercredi 13</div>
+        <div class="slot-row">
+          <span class="slot">12:00</span>
+          <span class="slot best">18:00 ★</span>
+          <span class="slot best">19:00 ★</span>
+          <span class="slot">20:00</span>
+        </div>
+      </div>
+      <div>
+        <div class="sec-title">Résumé</div>
+        <div class="summary-row"><span class="k">Réseaux</span><span class="v">IG + LinkedIn</span></div>
+        <div class="summary-row"><span class="k">Date</span><span class="v">Mer. 13/08 · 18:00</span></div>
+        <div class="summary-row"><span class="k">Contenu</span><span class="v">9 slides + 2 légendes</span></div>
+      </div>
+      <div class="side-actions">
+        <button class="btn-cta" data-go="done">✓ Programmer</button>
+        <p class="note" style="text-align:center">Envoi à Postiz. Rien n'est publié sans ce clic.</p>
+      </div>`
+  };
+
+  const statuses = {
+    creer: ['badge-brouillon', 'Brouillon'],
+    reviser: ['badge-valider', 'À valider'],
+    programmer: ['badge-valide', 'Validé'],
+    done: ['badge-valide', 'Publié']
+  };
+
+  function setStep(s) {
+    steps.querySelectorAll('.step').forEach(b => b.classList.toggle('on', b.dataset.s === s));
+    steps.querySelectorAll('.step').forEach(b => {
+      const order = ['creer', 'reviser', 'programmer'];
+      b.classList.toggle('done', order.indexOf(b.dataset.s) < order.indexOf(s));
+    });
+    sidePanel.innerHTML = panels[s] || panels.creer;
+    const [cls, txt] = statuses[s] || statuses.creer;
+    statusBadge.className = 'badge ' + cls;
+    statusText.textContent = txt;
+  }
+
+  steps.addEventListener('click', (e) => {
+    const b = e.target.closest('.step');
+    if (b) setStep(b.dataset.s);
+  });
+  sidePanel.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]');
+    if (b) setStep(b.dataset.go);
+  });
+
+  const toggle = document.getElementById('themeToggle');
+  toggle.addEventListener('click', (e) => {
+    if (e.target.tagName !== 'BUTTON') return;
+    document.documentElement.dataset.theme = e.target.dataset.t;
+    toggle.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
+  });
+
+  setStep('creer');
+</script>
+</body>
+</html>

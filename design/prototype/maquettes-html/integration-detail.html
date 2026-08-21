@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Détail intégration</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .int-wrap { padding: 20px 26px; max-width: 760px; }
+  .int-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .int-logo { width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: #fff; flex-shrink: 0; }
+  .int-head h2 { font-size: 19px; font-weight: 700; }
+  .int-head .sub { font-size: 12.5px; color: var(--ink-2); }
+  .int-block { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 16px; margin-bottom: 14px; }
+  .int-block .bl { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px; }
+  .field-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .field-row .label { font-size: 11.5px; color: var(--ink-2); font-weight: 600; }
+  .perm-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); }
+  .perm-item:last-child { border-bottom: none; }
+  .perm-item .sw { width: 34px; height: 20px; border-radius: 999px; background: var(--ok); position: relative; flex-shrink: 0; margin-left: auto; }
+  .perm-item .sw::after { content: ''; position: absolute; top: 3px; right: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+  .perm-item .sw.off { background: var(--surface-3); }
+  .perm-item .sw.off::after { right: auto; left: 3px; }
+  .btn-primary-full { background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; padding: 11px; width: 100%; border-radius: 9px; font-size: 13.5px; cursor: pointer; }
+  .btn-primary-full:hover { filter: brightness(1.15); }
+  .connected-bar { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.35); border-radius: 10px; padding: 10px 13px; font-size: 12.5px; color: var(--st-valide); display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .risk-note { font-size: 11.5px; color: var(--ink-3); margin-top: 10px; }
+</style>
+</head>
+<body class="theme-dark" data-page="integrations">
+
+<div class="int-wrap">
+  <a href="integrations.html" style="font-size:12px;color:var(--ink-3);text-decoration:none">← Retour aux intégrations</a>
+
+  <div class="int-head" style="margin-top:12px">
+    <div class="int-logo" style="background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF)">IG</div>
+    <div>
+      <h2>Instagram</h2>
+      <div class="sub">Graph API — lecture + publication</div>
+    </div>
+    <span style="margin-left:auto" class="itag itag-ok">Connecté</span>
+  </div>
+
+  <div class="connected-bar">✓ Connecté — le compte @bordeluche peut recevoir les publications.</div>
+
+  <div class="int-block">
+    <div class="bl">Compte connecté</div>
+    <div style="display:flex;align-items:center;gap:12px;padding:6px 0">
+      <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px">B</div>
+      <div>
+        <div style="font-size:13.5px;font-weight:600">@bordeluche</div>
+        <div style="font-size:11.5px;color:var(--ink-3)">Business · connecté depuis le 12/03/2026</div>
+      </div>
+      <button class="btn" style="margin-left:auto">Changer de compte</button>
+    </div>
+  </div>
+
+  <div class="int-block">
+    <div class="bl">Permissions accordées</div>
+    <p style="font-size:11.5px;color:var(--ink-3);margin-bottom:10px">Atelier n'utilise que ce dont il a besoin : <b>publier le contenu et lire les métriques</b>. Pas de messagerie, pas de lecture des contenus — hors périmètre.</p>
+    <div class="perm-item"><span>Publication de contenu</span><span class="sw"></span></div>
+    <div class="perm-item"><span>Lecture des métriques</span><span class="sw"></span></div>
+    <div class="perm-item"><span>Envoi de messages directs</span><span class="sw off" style="opacity:0.35"></span></div>
+    <div class="perm-item"><span>Lecture des contenus et commentaires</span><span class="sw off" style="opacity:0.35"></span></div>
+    <p style="font-size:11px;color:var(--ink-3);margin-top:8px">Messagerie et lecture de contenus sont <b>désactivées par défaut</b> — elles ne sont pas nécessaires à Atelier et ne peuvent pas être activées.</p>
+  </div>
+
+  <div class="int-block">
+    <div class="bl">Déconnexion</div>
+    <button class="btn-ko" style="width:100%;border-radius:9px;padding:11px">Déconnecter Instagram</button>
+    <div class="risk-note">La déconnexion bloque la publication vers Instagram jusqu'à une reconnexion. Les brouillons existants sont conservés.</div>
+  </div>
+</div>
+
+<script src="assets/proto.js"></script>
+</body>
+</html>

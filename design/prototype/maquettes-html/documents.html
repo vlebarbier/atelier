@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Documents</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .liste { padding: 22px 26px; }
+  .liste-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .liste-head h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .liste-head .count { font-size: 12.5px; color: var(--ink-3); }
+  .liste-head .spacer { flex: 1; }
+  .filtres { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .pill { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); }
+  .pill.on { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+  .docs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .doc { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; cursor: pointer; transition: border-color 0.15s, transform 0.15s; display: block; text-decoration: none; color: var(--ink); }
+  .doc:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .doc .cover { height: 90px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; }
+  .doc .body { padding: 12px 14px; }
+  .doc .body .t { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+  .doc .body .row { margin-top: 8px; }
+  .doc .body .maj { font-size: 11px; color: var(--ink-3); margin-top: 8px; }
+</style>
+</head>
+<body class="theme-dark" data-page="documents">
+
+  <div class="liste">
+    <div class="liste-head">
+      <h2>Documents</h2>
+      <span class="count">5</span>
+      <span class="spacer"></span>
+      <button class="btn primary sm">Nouveau</button>
+    </div>
+
+    <div class="filtres">
+      <span class="pill on">Tous</span>
+      <span class="pill">Devis</span>
+      <span class="pill">Pitch deck</span>
+      <span class="pill">Flyer</span>
+      <span class="pill">Affiche</span>
+      <span class="pill">Plaquette</span>
+    </div>
+
+    <div class="docs">
+      <a class="doc" href="documents-detail.html?mode=creer">
+        <div class="cover cc-sauge">PDF</div>
+        <div class="body">
+          <div class="t">Devis — conciergerie Les Mûriers</div>
+          <div class="row"><span class="statut st-a-valider"><span class="dot"></span>À valider</span></div>
+          <div class="maj">2 pages · il y a 2 h</div>
+        </div>
+      </a>
+      <a class="doc" href="documents-detail.html?mode=creer">
+        <div class="cover cc-bleu">PDF</div>
+        <div class="body">
+          <div class="t">Pitch deck — présentation Atelier</div>
+          <div class="row"><span class="statut st-brouillon"><span class="dot"></span>Brouillon</span></div>
+          <div class="maj">12 pages · il y a 3 h</div>
+        </div>
+      </a>
+      <a class="doc" href="documents-detail.html?mode=creer">
+        <div class="cover cc-gold">PDF</div>
+        <div class="body">
+          <div class="t">Flyer — offre propriétaires</div>
+          <div class="row"><span class="statut st-a-valider"><span class="dot"></span>À valider</span></div>
+          <div class="maj">1 page · il y a 1 j</div>
+        </div>
+      </a>
+      <a class="doc" href="documents-detail.html?mode=creer">
+        <div class="cover cc-bordeaux">PDF</div>
+        <div class="body">
+          <div class="t">Plaquette — présentation Bordeluche</div>
+          <div class="row"><span class="statut st-valide"><span class="dot"></span>Validé</span></div>
+          <div class="maj">8 pages · il y a 4 j</div>
+        </div>
+      </a>
+      <a class="doc" href="documents-detail.html?mode=creer">
+        <div class="cover cc-perle">PDF</div>
+        <div class="body">
+          <div class="t">Affiche — duplex Gambetta</div>
+          <div class="row"><span class="statut st-publie"><span class="dot"></span>Publié</span></div>
+          <div class="maj">1 page · il y a 6 j</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <script src="assets/proto.js"></script>
+</body>
+</html>

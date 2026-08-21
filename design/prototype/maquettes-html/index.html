@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Prototype navigable</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .intro { max-width: 1100px; margin: 40px auto 0; padding: 0 24px; }
+  .intro h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+  .intro .lead { color: var(--ink-2); margin-top: 8px; max-width: 640px; }
+  .start { margin-top: 24px; }
+  .start .btn { font-size: 14px; padding: 10px 22px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; margin-top: 36px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px; text-decoration: none; color: var(--ink);
+    display: flex; flex-direction: column; gap: 8px; transition: border-color 0.15s, transform 0.15s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card .num { font-size: 11px; color: var(--accent); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .card .t { font-size: 14.5px; font-weight: 700; }
+  .card .d { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+  .note { color: var(--ink-3); font-size: 12px; margin-top: 36px; max-width: 700px; line-height: 1.7; }
+  .note b { color: var(--ink-2); }
+  .flow { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+  .flow .step-flow { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 600; text-decoration: none; }
+  .flow .arrow { color: var(--ink-3); }
+</style>
+</head>
+<body class="theme-dark">
+
+  <div class="intro">
+    <h1>Atelier — Prototype navigable</h1>
+    <p class="lead">
+      Le parcours complet, comme un prototype Figma : cliquez pour naviguer.
+      DA noire (accent doré) · mode clair disponible via ☾ dans la barre du haut.
+      Rien n'est codé dans le produit — c'est une maquette de validation.
+    </p>
+
+    <div class="flow">
+      <a class="step-flow" href="publications.html">Publications</a>
+      <span class="arrow">→</span>
+      <a class="step-flow" href="detail.html?mode=creer">Créer</a>
+      <span class="arrow">→</span>
+      <a class="step-flow" href="detail.html?mode=reviser">Réviser</a>
+      <span class="arrow">→</span>
+      <a class="step-flow" href="detail.html?mode=programmer">Programmer</a>
+      <span class="arrow">→</span>
+      <a class="step-flow" href="calendrier.html">Calendrier</a>
+    </div>
+
+    <div class="start">
+      <a class="btn primary" href="publications.html">Commencer le parcours →</a>
+    </div>
+  </div>
+
+  <div class="grid" style="max-width:1100px;margin-left:auto;margin-right:auto;padding:0 24px">
+    <a class="card" href="publications.html">
+      <span class="num">Écran 1</span>
+      <span class="t">Publications</span>
+      <span class="d">Liste des contenus réseaux, filtres par statut et type. Cliquez une publication pour l'ouvrir.</span>
+    </a>
+    <a class="card" href="detail.html?mode=creer">
+      <span class="num">Écran 2 · Mode CRÉER</span>
+      <span class="t">Détail — Créer</span>
+      <span class="d">Le chat au centre, l'agent propose les réseaux, génère slides + légendes. « Nouveau » ouvre la modale.</span>
+    </a>
+    <a class="card" href="detail.html?mode=reviser">
+      <span class="num">Écran 3 · Mode RÉVISER</span>
+      <span class="t">Détail — Réviser</span>
+      <span class="d">Le contenu et le chat restent en place ; le panneau droit liste les annotations ①② + le diff, et la décision.</span>
+    </a>
+    <a class="card" href="blog-references.html">
+      <span class="num">Écran 4 · Références blog</span>
+      <span class="t">Blog — Références</span>
+      <span class="d">Le cahier des charges que l'agent charge avant chaque article : règles, ton, DA images, mots-clés GSC.</span>
+    </a>
+    <a class="card" href="detail.html?mode=programmer">
+      <span class="num">Écran 5 · Mode PROGRAMMER</span>
+      <span class="t">Détail — Programmer</span>
+      <span class="d">Créneaux suggérés par l'agent, calendrier intégré au panneau, lien vers le calendrier global.</span>
+    </a>
+    <a class="card" href="calendrier.html">
+      <span class="num">Écran 6</span>
+      <span class="t">Calendrier</span>
+      <span class="d">Vue mensuelle, publications programmées, liste « à programmer ».</span>
+    </a>
+    <a class="card" href="documents.html">
+      <span class="num">Écran 7</span>
+      <span class="t">Documents</span>
+      <span class="d">Pitch deck, flyers, affiches — les documents de marque.</span>
+    </a>
+    <a class="card" href="bibliotheque.html">
+      <span class="num">Écran 8</span>
+      <span class="t">Bibliothèque</span>
+      <span class="d">La mémoire de la marque : logos, photos, sources HTML.</span>
+    </a>
+    <a class="card" href="charte.html">
+      <span class="num">Écran 9</span>
+      <span class="t">Charte</span>
+      <span class="d">Couleurs, typo, ton de voix — ce que l'agent applique.</span>
+    </a>
+  </div>
+
+  <p class="note" style="max-width:1100px;margin-left:auto;margin-right:auto;padding:0 24px">
+    <b>Workflow :</b> on itère sur ces fichiers HTML (ouverts en local). Pas de commit ni déploiement pendant
+    l'itération — on valide le parcours ici, on implémente ensuite dans le produit.
+    Le stepper en haut de la vue détail change de mode ; la sidebar, la cloche de notifications et le bouton thème (☀/☾) sont cliquables partout.
+  </p>
+
+  <script src="assets/proto.js"></script>
+</body>
+</html>

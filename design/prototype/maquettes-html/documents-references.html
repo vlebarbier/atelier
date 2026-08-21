@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Modèles de documents</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .ref { padding: 22px 26px; max-width: 1000px; }
+  .ref-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .ref-head h2 { font-size: 20px; font-weight: 700; }
+  .ref-head .spacer { flex: 1; }
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-top: 16px; }
+  .ref-card { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .ref-card .rc-t { font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .ref-card .rc-d { font-size: 12px; color: var(--ink-2); line-height: 1.6; flex: 1; }
+  .ref-card .rc-foot { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ink-3); }
+  .ref-card .rc-ico { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .ref-card.chargé { border-color: rgba(52,211,153,0.35); }
+</style>
+</head>
+<body class="theme-dark" data-page="documents">
+
+  <div class="ref">
+    <div class="ref-head">
+      <h2>Modèles de documents</h2>
+      <span class="spacer"></span>
+      <a class="btn sm ghost" href="documents.html" style="text-decoration:none">← Retour aux documents</a>
+    </div>
+    <div style="font-size:12.5px;color:var(--ink-2);margin-top:6px">Les gabarits que l'agent charge <b>avant chaque document</b> : structure, champs, ton, règles métier. Modifiables à tout moment.</div>
+
+    <div class="ref-grid">
+      <div class="ref-card chargé">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(52,211,153,0.12);color:var(--st-valide)">📄</span> Devis de conciergerie</div>
+        <div class="rc-d">Structure : en-tête (logo + client), tableau des prestations (gestion 25 %, assurance incluse, missions), engagement 6 mois, résiliation 30 jours, numéro de devis.</div>
+        <div class="rc-foot"><span style="color:var(--st-valide)">● actif</span><span>· devis.md · v3</span></div>
+        <button class="btn sm">Voir le modèle</button>
+      </div>
+      <div class="ref-card chargé">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(240,246,252,0.1);color:#9AC0E8">📊</span> Pitch deck</div>
+        <div class="rc-d">12 pages : couverture, problème, solution, logements, équipe, modèle économique, projection, contact. DA noire + accents de la charte.</div>
+        <div class="rc-foot"><span style="color:var(--st-valide)">● actif</span><span>· pitch-deck.md · v2</span></div>
+        <button class="btn sm">Voir le modèle</button>
+      </div>
+      <div class="ref-card chargé">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(232,201,122,0.14);color:var(--accent)">📣</span> Flyer propriétaires</div>
+        <div class="rc-d">1 page A4 : accroche chiffrée, 3 bénéfices, logement en exemple, CTA rendez-vous. Une idée par visuel, zéro jargon.</div>
+        <div class="rc-foot"><span style="color:var(--st-valide)">● actif</span><span>· flyer.md · v1</span></div>
+        <button class="btn sm">Voir le modèle</button>
+      </div>
+      <div class="ref-card">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(255,255,255,0.08);color:var(--ink-2)">➕</span> Nouveau modèle</div>
+        <div class="rc-d">Créez un gabarit pour un type de document récurrent — l'agent le structurera à partir de vos consignes ou d'un exemple.</div>
+        <button class="btn sm primary">Créer un modèle</button>
+      </div>
+    </div>
+
+    <div style="font-size:11.5px;color:var(--ink-3);margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--surface)">
+      <b>Comment ça marche :</b> chaque modèle est un fichier md versionné, stocké dans l'espace marque. L'agent le charge avant chaque création, l'adapte au besoin, et vous pouvez le faire évoluer — les documents publiés alimentent l'amélioration continue des modèles.
+    </div>
+  </div>
+
+  <script src="assets/proto.js"></script>
+</body>
+</html>
