@@ -21,7 +21,7 @@ interface BlogPageProps {
 const STATUT_DOT: Record<string, string> = {
   brouillon: 'var(--color-ink-tertiary)',
   'a-valider': 'var(--color-status-warn)',
-  valide: 'var(--color-status-ok)',
+  valide: 'var(--color-status-validated)',
   publie: 'var(--color-status-ok)'
 };
 

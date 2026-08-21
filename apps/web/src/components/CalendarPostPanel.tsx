@@ -265,7 +265,7 @@ export function CalendarPostPanel({ brouillon, onClose, onRefresh, onOpenDetail 
 
       <div className="cal-panel-foot">
         <button className="ghost" type="button" onClick={() => onOpenDetail(brouillon.id)}>
-          <ArrowRight size={13} /> Ouvrir dans Contenus
+          <ArrowRight size={13} /> Ouvrir dans Publications
         </button>
       </div>
     </aside>

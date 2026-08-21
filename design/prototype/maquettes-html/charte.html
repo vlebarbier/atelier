@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Charte</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .charte { padding: 22px 26px; }
+  .charte-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .charte-head h2 { font-size: 20px; font-weight: 700; }
+  .charte-head .spacer { flex: 1; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .col h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 12px; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .swatch { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
+  .swatch .chip { height: 56px; }
+  .swatch .meta { padding: 7px 9px; }
+  .swatch .meta .name { font-size: 11.5px; font-weight: 600; color: var(--ink); }
+  .swatch .meta .hex { font-size: 10.5px; color: var(--ink-3); font-family: var(--mono); }
+  .typo-row { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px; }
+  .typo-row .tt { font-size: 11px; color: var(--ink-3); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .typo-row .serif { font-family: Georgia, serif; font-size: 20px; }
+  .typo-row .sans { font-size: 18px; font-weight: 600; }
+  .ton { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+  .ton b { color: var(--ink); }
+  .interdit { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .no-word { padding: 4px 10px; border-radius: 6px; background: rgba(179,38,30,0.10); border: 1px solid rgba(179,38,30,0.2); color: #E07A72; font-size: 12px; }
+</style>
+</head>
+<body class="theme-dark" data-page="charte">
+
+  <div class="charte">
+    <div class="charte-head">
+      <h2>Charte graphique</h2>
+      <span class="spacer"></span>
+      <button class="btn sm">Modifier</button>
+    </div>
+
+    <div class="cols">
+      <div class="col">
+        <h4>Couleurs</h4>
+        <div class="swatches">
+          <div class="swatch"><div class="chip" style="background:#422928"></div><div class="meta"><div class="name">Bordeaux</div><div class="hex">#422928</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#F1EFEA"></div><div class="meta"><div class="name">Ivoire</div><div class="hex">#F1EFEA</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#6F7F75"></div><div class="meta"><div class="name">Sauge</div><div class="hex">#6F7F75</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#B0BBB4"></div><div class="meta"><div class="name">Perle</div><div class="hex">#B0BBB4</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#E8C97A"></div><div class="meta"><div class="name">Gold</div><div class="hex">#E8C97A</div></div></div>
+        </div>
+
+        <h4 style="margin-top:20px">Typographie</h4>
+        <div class="typo-row"><div class="tt">Display</div><div class="serif">Cormorant Garamond</div></div>
+        <div class="typo-row"><div class="tt">UI</div><div class="sans">Jost</div></div>
+
+        <h4 style="margin-top:20px">Composants & signatures visuelles</h4>
+        <div class="typo-row" style="display:flex;align-items:center;justify-content:space-between">
+          <div><div class="tt">Badge de quartier</div><div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;opacity:0.6">Bègles · Terres Neuves</div></div>
+        </div>
+        <div class="typo-row" style="display:flex;align-items:center;justify-content:space-between">
+          <div><div class="tt">En-tête de slide</div><div style="font-family:Georgia,serif;font-size:14px">La Maison des Mûriers</div></div>
+          <span style="font-size:11px;color:var(--ink-3)">★ 4,9</span>
+        </div>
+        <div class="typo-row" style="display:flex;align-items:center;justify-content:space-between">
+          <div><div class="tt">Pied de slide</div><div style="font-size:10.5px;opacity:0.7">bordeluche · lesmûriers</div></div>
+        </div>
+      </div>
+
+      <div class="col">
+        <h4>Logo — variantes</h4>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px;display:flex;align-items:center;gap:12px">
+            <span style="width:30px;height:30px;border-radius:8px;background:#422928;color:#E8C97A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800">b</span>
+            <div>
+              <div style="font-size:15px;font-weight:700;letter-spacing:-0.01em">bordeluche</div>
+              <div style="font-size:10px;color:var(--ink-3)">Version principale — sur fonds clairs</div>
+            </div>
+          </div>
+          <div style="background:#422928;border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px;display:flex;align-items:center;gap:12px">
+            <span style="width:30px;height:30px;border-radius:8px;background:#F1EFEA;color:#422928;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800">b</span>
+            <div>
+              <div style="font-size:15px;font-weight:700;letter-spacing:-0.01em;color:#F1EFEA">bordeluche</div>
+              <div style="font-size:10px;color:rgba(241,239,234,0.6)">Version inversée — sur fonds bordeaux</div>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px;display:flex;align-items:center;justify-content:center">
+            <span style="width:40px;height:40px;border-radius:10px;background:#422928;color:#E8C97A;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800">b</span>
+          </div>
+          <div style="font-size:11px;color:var(--ink-3)">Monogramme seul (avatar, favicon, stories). Zone de sécurité : marge = hauteur du « b ».</div>
+        </div>
+
+        <h4 style="margin-top:20px">Ton de voix</h4>
+        <div class="ton">
+          <b>Expert ami, pas agence.</b> Direct, sans jargon. Nommer le problème concret
+          avant la solution. Des chiffres, pas des adjectifs.
+        </div>
+        <div class="interdit">
+          <span class="no-word">ultra</span>
+          <span class="no-word">maximum</span>
+          <span class="no-word">clé en main</span>
+          <span class="no-word">exceptionnel</span>
+          <span class="no-word">patrimoine locatif</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols" style="margin-top:18px">
+      <div class="col">
+        <h4>Formats de contenu</h4>
+        <div class="typo-row" style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="tt">Carrousel réseaux</div><div style="font-size:12px;color:var(--ink-2)">4:5 · 9 slides · hook → CTA</div></div>
+          <span style="font-size:11px;color:var(--ink-3)">1080×1350</span>
+        </div>
+        <div class="typo-row" style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="tt">Post annonce</div><div style="font-size:12px;color:var(--ink-2)">1 visuel · offre claire · logo</div></div>
+          <span style="font-size:11px;color:var(--ink-3)">1080×1080</span>
+        </div>
+        <div class="typo-row" style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="tt">Article blog</div><div style="font-size:12px;color:var(--ink-2)">H1 + H2 · 1400 mots · couverture 16:9</div></div>
+          <span style="font-size:11px;color:var(--ink-3)">1200×675</span>
+        </div>
+        <div class="typo-row" style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="tt">Document / devis</div><div style="font-size:12px;color:var(--ink-2)">A4 · tableau tarifs · engagement</div></div>
+          <span style="font-size:11px;color:var(--ink-3)">PDF</span>
+        </div>
+      </div>
+      <div class="col">
+        <h4>Règles d'usage</h4>
+        <div class="ton" style="font-size:12.5px">
+          <b>Accessibilité :</b> contraste AA — jamais d'accent sur fond sombre sans vérification.<br><br>
+          <b>Hiérarchie :</b> une idée par slide, un CTA par publication.<br><br>
+          <b>Photos :</b> lumière naturelle, habitants absents, émotion « vécu ». Pas de rendus 3D froids.<br><br>
+          <b>Chiffres :</b> toujours vérifiables (avis, revenus, taux) — jamais inventés.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/proto.js"></script>
+</body>
+</html>

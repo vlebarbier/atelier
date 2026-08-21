@@ -83,7 +83,7 @@ export function CommandPalette({
     for (const b of brouillons) {
       const estArticle = b.type === 'article';
       cmds.push({
-        grp: estArticle ? 'Articles' : 'Contenus',
+        grp: estArticle ? 'Articles' : 'Publications',
         label: `Ouvrir : ${b.titre}`,
         run: () => {
           onClose();

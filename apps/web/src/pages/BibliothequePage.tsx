@@ -9,6 +9,7 @@ import {
 } from '../api';
 import { relTime } from '../format';
 import { Page, PageHeader, EmptyState } from '../components/ui';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 const CATEGORIES = ['visuel', 'texte', 'document', 'site', 'autre'] as const;
 
@@ -63,6 +64,8 @@ export function BibliothequePage() {
   const [filtre, setFiltre] = useState<string>('tous');
   const [recherche, setRecherche] = useState('');
   const [archiverUrl, setArchiverUrl] = useState('');
+  // Suppression en attente de confirmation in-app (id + nom de la ressource).
+  const [suppression, setSuppression] = useState<{ id: string; nom: string } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   // Compteur de profondeur dragenter/dragleave : sans lui, passer sur un enfant
   // declenche dragleave et l'overlay clignote.
@@ -123,8 +126,11 @@ export function BibliothequePage() {
     }
   }
 
-  async function onDelete(id: string, nom: string) {
-    if (!window.confirm(`Supprimer « ${nom} » de la bibliothèque ?`)) return;
+  function demanderSuppression(id: string, nom: string) {
+    setSuppression({ id, nom });
+  }
+
+  async function executerSuppression(id: string) {
     try {
       await deleteRessource(id);
       load();
@@ -314,7 +320,7 @@ export function BibliothequePage() {
                     <button
                       className="ghost danger"
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onDelete(r.id, r.nom); }}
+                      onClick={(e) => { e.stopPropagation(); demanderSuppression(r.id, r.nom); }}
                       title="Supprimer"
                     >
                       <Trash size={13} />
@@ -326,6 +332,24 @@ export function BibliothequePage() {
           </div>
         )}
       </Page>
+
+      {suppression && (
+        <ConfirmModal
+          titre="Supprimer de la bibliothèque ?"
+          description={
+            <>
+              <strong>{suppression.nom}</strong> sera définitivement supprimé de la bibliothèque.
+              Cette action est irréversible.
+            </>
+          }
+          onConfirm={() => {
+            const id = suppression.id;
+            setSuppression(null);
+            void executerSuppression(id);
+          }}
+          onClose={() => setSuppression(null)}
+        />
+      )}
     </div>
   );
 }

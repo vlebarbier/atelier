@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import path from 'node:path';
 import fs from 'node:fs';
-import { updateBrouillonSchema } from './validation.js';
+import { updateBrouillonSchema, decisionSchema } from './validation.js';
 import { storeSlide, storeRessource } from './storage/blob.js';
 import { snapshotSlidesAvant } from './diff.js';
 import { snapshotSource, lireVersion, parseVersions } from './versions.js';
@@ -209,6 +209,12 @@ export function createApp(repo: Repo, options: AppOptions) {
       await Promise.all(
         rows.map(async (row) => {
           const fichiers = await slideFichiersDe(repo, row.id);
+          let reseaux: string[] = [];
+          try {
+            reseaux = Object.keys(JSON.parse(row.reseaux || '{}'));
+          } catch {
+            reseaux = [];
+          }
           return {
             id: row.id,
             titre: row.titre,
@@ -216,6 +222,7 @@ export function createApp(repo: Repo, options: AppOptions) {
             type: row.type || 'carrousel',
             programme: row.programme ? JSON.parse(row.programme) : null,
             article: row.article ? JSON.parse(row.article) : null,
+            reseaux,
             slideCount: fichiers.length,
             slides: fichiers,
             updated: row.updatedAt
@@ -330,6 +337,100 @@ export function createApp(repo: Repo, options: AppOptions) {
     return c.json({ ok: true });
   });
 
+  // POST /api/brouillon/:id/dupliquer → copie le brouillon (metadonnees + source
+  // + slides physiques) sous un nouvel id, statut remis a brouillon. L'action
+  // "Dupliquer" au survol de l'ecran Publications s'appuie dessus : la copie
+  // est une base de travail, jamais une publication (statut brouillon force).
+  app.post('/api/brouillon/:id/dupliquer', async (c) => {
+    const id = c.req.param('id');
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+
+    const newId = `brouillon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const titre = `${row.titre} (copie)`;
+
+    await repo.insertBrouillon({
+      id: newId,
+      titre,
+      statut: 'brouillon',
+      type: row.type || 'carrousel',
+      notes: row.notes,
+      reseaux: row.reseaux,
+      sourceHtml: row.sourceHtml,
+      charteId: row.charteId,
+      checklist: row.checklist,
+      conversation: '[]',
+      programme: null,
+      article: row.article,
+      diff: null,
+      annotations: '[]',
+      updatedAt: new Date().toISOString()
+    });
+
+    // Copie des slides physiques : fichier local → recopie disque, blob → copy SDK.
+    const slidesSource = await repo.listSlides(id);
+    let copies = 0;
+    for (const s of slidesSource) {
+      try {
+        if (s.blobUrl) {
+          const { copy } = await import('@vercel/blob');
+          const fromPath = new URL(s.blobUrl).pathname.replace(/^\//, '');
+          const toPath = `${newId}/${s.fichier}`;
+          const result = await copy(fromPath, toPath, {
+            access: 'private',
+            addRandomSuffix: false,
+            allowOverwrite: true
+          });
+          await repo.insertSlide({
+            brouillonId: newId,
+            fichier: s.fichier,
+            position: s.position,
+            typeMedia: s.typeMedia,
+            blobUrl: result.url
+          });
+        } else {
+          const src = path.join(options.dataDir, id, s.fichier);
+          if (fs.existsSync(src)) {
+            const buffer = fs.readFileSync(src);
+            const stored = await storeSlide(newId, s.fichier, buffer, options.dataDir);
+            await repo.insertSlide({
+              brouillonId: newId,
+              fichier: s.fichier,
+              position: s.position,
+              typeMedia: s.typeMedia,
+              blobUrl: stored.blobUrl
+            });
+          } else {
+            await repo.insertSlide({
+              brouillonId: newId,
+              fichier: s.fichier,
+              position: s.position,
+              typeMedia: s.typeMedia,
+              blobUrl: null
+            });
+          }
+        }
+        copies++;
+      } catch {
+        /* une slide non copiee ne bloque pas la duplication */
+      }
+    }
+
+    await journaliser(repo, {
+      type: 'duplication',
+      auteur: auteurDe(c),
+      brouillonId: newId,
+      brouillonTitre: titre,
+      message: `a duplique "${row.titre}" (${copies} slide${copies > 1 ? 's' : ''} copiees)`,
+      details: { sourceId: id, copies }
+    });
+
+    return c.json(
+      { id: newId, titre, statut: 'brouillon', type: row.type || 'carrousel', slideCount: copies, updated: new Date().toISOString() },
+      201
+    );
+  });
+
   app.get('/api/charte', async (c) => {
     const charte = await repo.getCharte('principale');
     if (!charte) return c.json({ id: 'principale', nom: 'Charte principale', data: '{}', updatedAt: null });
@@ -410,6 +511,7 @@ export function createApp(repo: Repo, options: AppOptions) {
       article: row.article ? JSON.parse(row.article) : null,
       diff: row.diff ? JSON.parse(row.diff) : null,
       versions: parseVersions(row.versions),
+      decision: row.decision ? JSON.parse(row.decision) : null,
       reseaux,
       updated: row.updatedAt,
       slideCount: fichiers.length,
@@ -612,6 +714,60 @@ export function createApp(repo: Repo, options: AppOptions) {
     });
 
     return c.json({ ok: true, sourceHtml: contenu, versions: versionsApres });
+  });
+
+  // POST /api/brouillon/:id/decision → decision explicite maker/checker (UX A3).
+  // Quand le brouillon est en attente de validation, deux actions claires :
+  //   - 'approuver'       → statut 'valide' (approbation tracee : qui, quand)
+  //   - 'demander-modifs' → statut 'brouillon' (note obligatoire, transmise a l'agent)
+  // Remplace le menu statut generique pour ce statut. La decision est conservee
+  // dans la colonne decision (JSON) et journalisee (Activite IA).
+  app.post('/api/brouillon/:id/decision', async (c) => {
+    const id = c.req.param('id');
+    const row = await repo.getBrouillon(id);
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: 'JSON invalide' }, 400);
+    }
+    const parsed = decisionSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: 'Validation echouee', details: parsed.error.flatten() }, 400);
+    }
+    const { decision, note } = parsed.data;
+
+    // La decision explicite n'a de sens que sur un brouillon en attente de validation.
+    if (row.statut !== 'a-valider') {
+      return c.json({ error: `Decision impossible : statut actuel '${row.statut}' (attendu 'a-valider')` }, 409);
+    }
+
+    const auteur = auteurDe(c);
+    const at = new Date().toISOString();
+    const nextStatut = decision === 'approuver' ? 'valide' : 'brouillon';
+    const trace = { decision, note: note?.trim() || null, par: auteur, at };
+
+    await repo.updateBrouillon(id, {
+      statut: nextStatut,
+      decision: JSON.stringify(trace),
+      updatedAt: at
+    });
+
+    await journaliser(repo, {
+      type: 'decision',
+      auteur,
+      brouillonId: id,
+      brouillonTitre: row.titre,
+      message:
+        decision === 'approuver'
+          ? 'a approuve le contenu'
+          : `a demande des modifications : ${(note ?? '').trim()}`,
+      details: { decision, note: note?.trim() || null, vers: nextStatut }
+    });
+
+    return c.json({ ok: true, statut: nextStatut, decision: trace });
   });
 
   app.post('/api/brouillon/:id/slides', async (c) => {

@@ -11,7 +11,7 @@ const FILTRES: { id: Statut | 'tous'; label: string; dot?: string }[] = [
   { id: 'tous', label: 'Tous' },
   { id: 'brouillon', label: 'Brouillon', dot: 'var(--color-ink-tertiary)' },
   { id: 'a-valider', label: 'A valider', dot: 'var(--color-status-warn)' },
-  { id: 'valide', label: 'Valide', dot: 'var(--color-status-ok)' },
+  { id: 'valide', label: 'Valide', dot: 'var(--color-status-validated)' },
   { id: 'publie', label: 'Publie', dot: 'var(--color-status-ok)' }
 ];
 

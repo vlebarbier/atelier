@@ -46,3 +46,19 @@ export const updateBrouillonSchema = z
   );
 
 export type UpdateBrouillonInput = z.infer<typeof updateBrouillonSchema>;
+
+/**
+ * Decision maker/checker (UX A3) : deux choix explicites quand un brouillon
+ * est en attente de validation. 'demander-modifs' exige une note (le rejet
+ * sans explication n'a pas de sens dans un flux de relecture).
+ */
+export const decisionSchema = z
+  .object({
+    decision: z.enum(['approuver', 'demander-modifs']),
+    note: z.string().max(4000).optional()
+  })
+  .refine((d) => d.decision !== 'demander-modifs' || (d.note ?? '').trim().length > 0, {
+    message: 'Une note est obligatoire pour demander des modifications'
+  });
+
+export type DecisionInput = z.infer<typeof decisionSchema>;

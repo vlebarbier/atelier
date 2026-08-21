@@ -7,6 +7,7 @@ import { DraftDetail } from './components/DraftDetail';
 import { CommandPalette } from './components/CommandPalette';
 import { ContentListPage } from './components/ContentListPage';
 import { CreationModal } from './components/CreationModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import type { TemplateCreation } from './format';
 import { CalendarPage } from './pages/CalendarPage';
 import { BrandPage } from './pages/BrandPage';
@@ -17,11 +18,12 @@ import { BlogPage } from './pages/BlogPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { HelpPage } from './pages/HelpPage';
 import { ArticleEditor } from './components/ArticleEditor';
-import { TYPE_ARTICLE, TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
-import { fetchBrouillons, createBrouillon, deleteBrouillon, type Brouillon, type Statut } from './api';
+import { RESEAUX_LABELS, TYPE_ARTICLE, TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
+import { fetchBrouillons, createBrouillon, deleteBrouillon, dupliquerBrouillon, parseProgramme, type Brouillon, type Statut } from './api';
+import type { NotifEvent } from './components/NotificationBell';
 
 const PAGE_LABELS: Record<string, string> = {
-  brouillons: 'Contenus',
+  brouillons: 'Publications',
   documents: 'Documents',
   blog: 'Blog',
   calendrier: 'Calendrier',
@@ -46,6 +48,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creationOpen, setCreationOpen] = useState(false);
+  // Suppression en attente de confirmation in-app (id du brouillon/document).
+  const [suppressionId, setSuppressionId] = useState<string | null>(null);
   const [panneauReplie, setPanneauReplie] = useState(false);
   // Sidebar repliee : le bouton vit dans la barre du haut (pattern PushRank).
   const [sidebarRepliee, setSidebarRepliee] = useState(() => localStorage.getItem('atelier.sidebar.collapsed') === '1');
@@ -122,6 +126,35 @@ export default function App() {
   const articles = useMemo(() => brouillons.filter((b) => b.type === TYPE_ARTICLE), [brouillons]);
 
   const aValider = useMemo(() => brouillons.filter((b) => b.statut === 'a-valider').length, [brouillons]);
+  const aValiderContenus = useMemo(
+    () => contenus.filter((b) => b.statut === 'a-valider').length,
+    [contenus]
+  );
+
+  // Evenements de la cloche (MVP 1.5) : a valider (action requise) et publies
+  // recemment (resultat), tries du plus recent au plus ancien, 8 max.
+  const notifEvents = useMemo<NotifEvent[]>(() => {
+    const events: NotifEvent[] = [];
+    for (const b of brouillons) {
+      const titre = b.titre || 'Contenu sans titre';
+      if (b.statut === 'a-valider') {
+        events.push({ kind: 'a-valider', id: b.id, titre, at: b.updated });
+      } else if (b.statut === 'publie') {
+        const prog = parseProgramme(b.programme);
+        const cleReseau = prog?.reseau ?? b.reseaux?.[0];
+        const reseau =
+          b.type === TYPE_ARTICLE
+            ? 'le blog'
+            : cleReseau
+              ? RESEAUX_LABELS[cleReseau] ?? cleReseau
+              : undefined;
+        events.push({ kind: 'publie', id: b.id, titre, reseau, at: b.updated });
+      }
+    }
+    return events
+      .sort((a, b) => (b.at ?? '').localeCompare(a.at ?? ''))
+      .slice(0, 8);
+  }, [brouillons]);
 
   function openBrouillon(id: string) {
     setSelectedId(id);
@@ -219,8 +252,17 @@ export default function App() {
   }
 
   function confirmDelete(id: string) {
-    const b = brouillons.find((x) => x.id === id);
-    if (window.confirm(`Supprimer « ${b?.titre ?? id} » ?`)) handleDelete(id);
+    setSuppressionId(id);
+  }
+
+  /** Duplication au survol de l'ecran Publications : copie complete, puis recharge. */
+  async function handleDuplicate(id: string) {
+    try {
+      await dupliquerBrouillon(id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de duplication');
+    }
   }
 
   function navigate(nextPage: string) {
@@ -240,8 +282,8 @@ export default function App() {
       <div className="shell">
         <Header
           onOpenPalette={() => setPaletteOpen(true)}
-          aValider={aValider}
-          onOpenNotifications={() => navigate('brouillons')}
+          notifs={notifEvents}
+          onOpenNotification={openDepuisJournal}
           brouillonOuvert={page === 'brouillons' && !!selectedId}
           panneauReplie={panneauReplie}
           onTogglePanneau={() => setPanneauReplie((v) => !v)}
@@ -275,7 +317,7 @@ export default function App() {
 
           {page === 'brouillons' && !selectedId && (
             <ContentListPage
-              titre="Contenus"
+              titre="Publications"
               sub="Vos creations pour les reseaux sociaux : carrousels, posts, videos, stories."
               brouillons={contenus}
               loading={loading}
@@ -284,12 +326,15 @@ export default function App() {
               onVueChange={setVue}
               onOpen={openBrouillon}
               onDelete={confirmDelete}
+              onDuplicate={handleDuplicate}
               onCreate={() => setCreationOpen(true)}
+              labelNouveau="Nouvelle publication"
               typesFiltrables={TYPES_CONTENUS}
               filtre={filtre}
               onFiltreChange={setFiltre}
+              aValider={aValiderContenus}
               emptyTitle="Pas encore de contenu."
-              emptySub="Creez votre premier contenu avec votre agent : il utilisera vos elements de marque."
+              emptySub="Creez votre premiere publication avec votre agent : il utilisera vos elements de marque."
             />
           )}
 
@@ -304,7 +349,9 @@ export default function App() {
               onVueChange={setVue}
               onOpen={openBrouillon}
               onDelete={confirmDelete}
+              onDuplicate={handleDuplicate}
               onCreate={() => setCreationOpen(true)}
+              labelNouveau="Nouveau document"
               typesNouveau={TYPES_DOCUMENTS}
               typesFiltrables={TYPES_DOCUMENTS}
               onCreateType={(type) => createDocument(type)}
@@ -357,6 +404,24 @@ export default function App() {
           onClose={() => setCreationOpen(false)}
           onPhrase={creerDepuisPhrase}
           onTemplate={creerDepuisTemplate}
+        />
+      )}
+
+      {suppressionId && (
+        <ConfirmModal
+          titre="Supprimer ce contenu ?"
+          description={
+            <>
+              <strong>{brouillons.find((b) => b.id === suppressionId)?.titre ?? 'Ce contenu'}</strong>{' '}
+              sera définitivement supprimé. Cette action est irréversible.
+            </>
+          }
+          onConfirm={() => {
+            const id = suppressionId;
+            setSuppressionId(null);
+            handleDelete(id);
+          }}
+          onClose={() => setSuppressionId(null)}
         />
       )}
     </div>

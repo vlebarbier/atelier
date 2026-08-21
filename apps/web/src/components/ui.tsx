@@ -13,8 +13,8 @@ export function Page({ children }: { children: ReactNode }) {
 
 interface PageHeaderProps {
   title: string;
-  /** Compteur discret a cote du titre (ex: nombre d'elements). */
-  count?: number;
+  /** Compteur discret a cote du titre (ex: nombre d'elements, ou "6 · 2 a valider"). */
+  count?: ReactNode;
   sub?: string;
   /** Actions a droite (boutons, menus). */
   actions?: ReactNode;

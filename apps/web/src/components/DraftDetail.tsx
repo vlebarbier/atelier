@@ -1,16 +1,17 @@
 import { toPng } from 'html-to-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash, X, ArrowsLeftRight,
-  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf, ImageSquare, MapPin
+  ArrowLeft, ArrowRight, Check, CaretLeft, CaretRight, CaretDown, CaretUp, Code, CheckCircle, Eye, FileCode, Trash, X, ArrowsLeftRight, DotsThreeVertical,
+  InstagramLogo, LinkedinLogo, FacebookLogo, XLogo, TiktokLogo, GoogleLogo, Stack, CalendarBlank, Sparkle, PaperPlaneTilt, VideoCamera, FileText, DownloadSimple, FilePdf, ImageSquare, MapPin, PencilSimple, Warning
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
-import type { BrouillonDetail, DiffData, MessageChat, ReseauEntry, Statut, VersionSource, Annotation } from '../api';
-import { deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseDiff, parseProgramme, reorderSlides, replaceSlides, restaurerVersion, slideUrl, updateBrouillon } from '../api';
+import type { BrouillonDetail, DecisionData, DiffData, MessageChat, ReseauEntry, Statut, VersionSource, Annotation } from '../api';
+import { deciderBrouillon, deleteBrouillon, envoyerMessage, envoyerVersPostiz, fetchBrouillon, fetchCharte, parseDecision, parseDiff, parseProgramme, reorderSlides, replaceSlides, restaurerVersion, slideUrl, updateBrouillon } from '../api';
 import { comparerSlides, nombreSlidesDiff, urlsAvantApres, type ZoneDiff } from '../diff';
 import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseCharte, type CharteData } from '../charte';
 import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate, relTime, type Creneau } from '../format';
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerFichier, telechargerHTML } from '../export';
+import { ConfirmModal } from './ConfirmModal';
 
 const RESEAU_ICONES: Record<string, Icon> = {
   instagram: InstagramLogo,
@@ -34,7 +35,7 @@ const RESEAU_CONTRAINTES: Record<string, { maxChars: number; maxHashtags: number
   gmb: { maxChars: 1500, maxHashtags: 0, maxImages: 10, format: 'Carré 1080×1080 (min 250×250)' }
 };
 
-type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source' | 'annotations';
+type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source' | 'annotations' | 'planif';
 
 /**
  * Tunnel de creation (SPEC-TUNNEL.md) : les 4 etapes visibles dans le header
@@ -46,6 +47,165 @@ const ETAPES_TUNNEL: { id: string; label: string }[] = [
   { id: 'valider', label: 'Valider' },
   { id: 'programmer', label: 'Programmer' }
 ];
+
+/**
+ * Modes contextuels de la vue detail (UX-RESEARCH.md §4, chantier A1) :
+ * la page se transforme selon l'etape du workflow. Le mode est DERIVE de
+ * l'etat reel du brouillon (statut + contenu), jamais stocke.
+ *   - creer     : brouillon vide (0 slide, 0 message) -> le chat domine
+ *   - reviser   : brouillon avec contenu -> la slide est le heros
+ *   - valider   : statut a-valider -> checklist + diff + decision
+ *   - programmer: statut valide/publie -> creneau + calendrier
+ * Les documents (pitch deck, flyer...) n'ont pas d'etape Programmer : un
+ * document valide retombe sur le mode valider.
+ */
+type ModeDetail = 'creer' | 'reviser' | 'valider' | 'programmer';
+
+function modeDetail(brouillon: BrouillonDetail): ModeDetail {
+  let conv: unknown[] = [];
+  try {
+    conv = JSON.parse(brouillon.conversation || '[]') as unknown[];
+  } catch {
+    conv = [];
+  }
+  const demande = conv.length > 0 || brouillon.slides.length > 0;
+  if (brouillon.statut === 'brouillon') return demande ? 'reviser' : 'creer';
+  if (brouillon.statut === 'a-valider') return 'valider';
+  return TYPES_DOCUMENTS.includes(brouillon.type) ? 'valider' : 'programmer';
+}
+
+/** Configuration du panneau droit par mode : onglets visibles, onglet par
+ *  defaut, sections affichees. « Une action primaire par mode, le reste en
+ *  progressive disclosure » (UX-RESEARCH.md §4). Le chat (onglet Agent) reste
+ *  accessible dans TOUS les modes : « le chat est le cœur, jamais caché » (§1). */
+const MODE_UI: Record<
+  ModeDetail,
+  { onglets: OngletPanneau[]; ongletDefaut: OngletPanneau | null; checklist: boolean; planif: boolean }
+> = {
+  // CRÉER : uniquement les outils de creation (chat agent + source).
+  creer: { onglets: ['agent', 'source'], ongletDefaut: 'agent', checklist: false, planif: false },
+  // RÉVISER : tous les onglets (dont les annotations A2), le chat en appui
+  // (la slide est le heros du stage). L'onglet initial est calcule a part
+  // (ongletDefautPour) : annotations quand il y a des slides.
+  reviser: { onglets: ['annotations', 'agent', 'reseaux', 'slides', 'source'], ongletDefaut: 'agent', checklist: true, planif: false },
+  // VALIDER : la checklist seule dans le panneau (le diff est dans le stage),
+  // le chat reste accessible via son onglet.
+  valider: { onglets: ['agent'], ongletDefaut: null, checklist: true, planif: false },
+  // PROGRAMMER (A4) : le calendrier integre domine (creneaux intelligents +
+  // apercu du post), les reseaux (legende) et slides restent en appui, le chat
+  // reste accessible via son onglet.
+  programmer: { onglets: ['planif', 'agent', 'reseaux', 'slides'], ongletDefaut: 'planif', checklist: false, planif: true }
+};
+
+/** Onglet initial d'un brouillon : le defaut de son mode courant, sauf en
+ *  revision ou les slides ouvrent sur les annotations (A2, feedback ancre au
+ *  visuel). Le chat reste accessible en onglet dans tous les modes. */
+function ongletDefautPour(b: BrouillonDetail): OngletPanneau {
+  const mode = modeDetail(b);
+  if (mode === 'reviser' && !TYPES_DOCUMENTS.includes(b.type) && b.slides.length > 0) return 'annotations';
+  const defaut = MODE_UI[mode].ongletDefaut;
+  if (defaut) return defaut;
+  return TYPES_DOCUMENTS.includes(b.type) ? 'slides' : 'agent';
+}
+
+/** Date locale au format YYYY-MM-DD (attendu par <input type="date"> et par le
+ *  champ `programme`). Utilisee par les cellules du mini-calendrier (A4). */
+function jourISO(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const j = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${j}`;
+}
+
+/** Onglets reseau (Instagram, LinkedIn...) partages entre l'onglet Reseaux du
+ *  panneau et le calendrier du mode PROGRAMMER (A4 : changer de reseau change
+ *  les creneaux proposes et l'apercu du post). */
+function ReseauTabs({ actif, onChange }: { actif: string; onChange: (r: string) => void }) {
+  return (
+    <div className="reseau-tabs">
+      {RESEAUX.map((r) => {
+        const Icon = RESEAU_ICONES[r] || InstagramLogo;
+        return (
+          <button
+            key={r}
+            className={r === actif ? 'active' : ''}
+            onClick={() => onChange(r)}
+            type="button"
+          >
+            <Icon size={14} weight="regular" />
+            <span>{RESEAUX_LABELS[r] || r}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Tunnel (SPEC-TUNNEL.md §3.4) : index de l'etape courante, DERIVE de l'etat
+ * reel (statut, contenu, programme), jamais stocke. Le statut prime (coherent
+ * avec modeDetail) ; le contenu ne departage que le stade brouillon.
+ *   - 0 Demander  : brouillon sans contenu (0 message, 0 slide)
+ *   - 1 Reviser   : brouillon avec contenu
+ *   - 2 Valider   : statut a-valider, ou valide sans programme
+ *   - 3 Programmer: programme pose, ou publie
+ */
+function wsIndex(brouillon: BrouillonDetail): number {
+  const statut = brouillon.statut;
+  if (statut === 'a-valider') return 2;
+  if (statut === 'valide') return brouillon.programme ? 3 : 2;
+  if (statut === 'publie') return 3;
+  let conv: unknown[] = [];
+  try {
+    conv = JSON.parse(brouillon.conversation || '[]') as unknown[];
+  } catch {
+    conv = [];
+  }
+  return conv.length > 0 || brouillon.slides.length > 0 ? 1 : 0;
+}
+
+/**
+ * Suggestions workflow (SPEC-TUNNEL.md §4) : LE bandeau qui porte la prochaine
+ * action, priorite S1 > S2 > S0. Une seule visible a la fois, fermable pour la
+ * session. Tout est derive, rien n'est stocke sauf les fermetures.
+ */
+type Suggestion = 'S0' | 'S1' | 'S2';
+
+function calculerSuggestion(b: BrouillonDetail, fermees: Set<string>): Suggestion | null {
+  let conv: unknown[] = [];
+  try {
+    conv = JSON.parse(b.conversation || '[]') as unknown[];
+  } catch {
+    conv = [];
+  }
+  const statut = b.statut;
+  const estDocument = TYPES_DOCUMENTS.includes(b.type);
+  if (statut === 'publie' || statut === 'a-valider') return null;
+  // S1 : checklist complete -> passer a A valider (jamais sur contenu vide).
+  if (statut === 'brouillon') {
+    let checklist: { checked: boolean }[] = [];
+    try {
+      checklist = JSON.parse(b.checklist || '[]') as { checked: boolean }[];
+    } catch {
+      checklist = [];
+    }
+    if (checklist.length > 0 && checklist.every((c) => c.checked) && b.slides.length > 0 && !fermees.has('S1')) return 'S1';
+  }
+  // S2 : contenu valide sans programmation -> proposer le creneau.
+  if (statut === 'valide' && !estDocument && !b.programme && !fermees.has('S2')) return 'S2';
+  // S0 : boucle Demander (contenu vide).
+  if (statut === 'brouillon' && conv.length === 0 && b.slides.length === 0 && !fermees.has('S0')) return 'S0';
+  return null;
+}
+
+/** Date + heure lisibles pour la trace de decision (« 12 août à 14:30 »). */
+function formatDecisionAt(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const d = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  const h = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `${d} à ${h}`;
+}
 
 function etapeEtat(statut: string, index: number): string {
   // Ordre des statuts : brouillon < a-valider < valide < publie.
@@ -64,8 +224,6 @@ interface DraftDetailProps {
   panneauReplie?: boolean;
 }
 
-const REVISION_DEBOUNCE_MS = 400;
-
 export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: DraftDetailProps) {
   const [brouillon, setBrouillon] = useState<BrouillonDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,13 +234,14 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [reseauActif, setReseauActif] = useState<string>('instagram');
   const [onglet, setOnglet] = useState<OngletPanneau>('agent');
   const [statutOpen, setStatutOpen] = useState(false);
-  const [typeOpen, setTypeOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
+  const [overflowOpen, setOverflowOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [planifOpen, setPlanifOpen] = useState(false);
+  // Decision maker/checker (UX A3) : en statut 'a-valider', deux actions claires.
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [decisionBusy, setDecisionBusy] = useState(false);
   const [planifDate, setPlanifDate] = useState('');
   const [planifHeure, setPlanifHeure] = useState('09:00');
-  const [planifReseau, setPlanifReseau] = useState('instagram');
   const [postizEnvoi, setPostizEnvoi] = useState(false);
   const [postizMsg, setPostizMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [conversation, setConversation] = useState<MessageChat[]>([]);
@@ -94,15 +253,15 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourceMsg, setSourceMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [rendering, setRendering] = useState(false);
-  const [notes, setNotes] = useState('');
   const [checklist, setChecklist] = useState<{ id: string; label: string; checked: boolean }[]>([]);
-  const [savedFlash, setSavedFlash] = useState(false);
   // Mode « Apercu publie » (SPEC-TUNNEL.md US-05) : la slide courante + la
   // legende assemblee du reseau actif, comme le post apparaitra publie.
   const [apercuPublie, setApercuPublie] = useState(false);
   // Pseudo de la marque pour l'en-tete de l'apercu (charte si dispo, sinon placeholder).
   const [charteNom, setCharteNom] = useState<string | null>(null);
-  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Suggestions fermees pour la session (SPEC-TUNNEL.md §4.6) : Set<string> de
+  // 'S0'|'S1'|'S2'. Pas de persistence localStorage au v1.
+  const [suggestionsFermees, setSuggestionsFermees] = useState<Set<string>>(new Set());
   // Diff visuel avant/apres (chantier 3) : mode, position du slider, zones calculees.
   const [modeDiff, setModeDiff] = useState(false);
   const [diffPos, setDiffPos] = useState(55);
@@ -120,6 +279,14 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [annotationTexte, setAnnotationTexte] = useState('');
   // Annotation selectionnee (depuis un marqueur ou la liste du panneau).
   const [annotationSel, setAnnotationSel] = useState<string | null>(null);
+  // Confirmation in-app (remplace window.confirm) : une seule modale, le type
+  // d'action determine titre, description et bouton. null = aucune modale.
+  const [confirmation, setConfirmation] = useState<
+    | { type: 'supprimer-brouillon' }
+    | { type: 'restaurer'; numero: number }
+    | { type: 'supprimer-slide'; index: number }
+    | null
+  >(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -127,7 +294,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     try {
       const data = await fetchBrouillon(id);
       setBrouillon(data);
-      setNotes(data.notes || '');
       try {
         setChecklist(JSON.parse(data.checklist || '[]'));
       } catch {
@@ -135,10 +301,10 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
       }
       setSlide(0);
       setReseauActif('instagram');
-      // Mode REVISER (UX-RESEARCH.md §4 mode 2) : des qu'il y a des slides a
-      // reviser, le panneau s'ouvre sur les annotations (le feedback est ancre
-      // au visuel), pas sur le chat. Le chat reste accessible en onglet.
-      setOnglet(TYPES_DOCUMENTS.includes(data.type) ? 'slides' : data.slides.length > 0 ? 'annotations' : 'agent');
+      // A1 : l'onglet initial vient du mode contextuel ; A2 : en revision avec
+      // des slides, le panneau s'ouvre sur les annotations (le feedback est
+      // ancre au visuel), pas sur le chat. Le chat reste accessible en onglet.
+      setOnglet(ongletDefautPour(data));
       setAgentEnTravail(false);
       try {
         setConversation(JSON.parse(data.conversation || '[]'));
@@ -163,6 +329,38 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   useEffect(() => {
     load();
   }, [load]);
+
+  // Mode contextuel (A1) : quand l'etape change (statut, contenu), on bascule
+  // sur l'onglet par defaut du mode si l'onglet courant n'y est plus. Sinon on
+  // respecte le choix du user (progressive disclosure, pas de saut force).
+  const mode = brouillon ? modeDetail(brouillon) : null;
+  const modeOnglets = mode ? MODE_UI[mode].onglets : null;
+  // Tunnel (SPEC-TUNNEL.md) : etape courante + suggestion active, tout derive.
+  const ws = brouillon ? wsIndex(brouillon) : -1;
+  const suggestionActive = brouillon ? calculerSuggestion(brouillon, suggestionsFermees) : null;
+  useEffect(() => {
+    if (!mode || !modeOnglets || modeOnglets.length === 0) return;
+    if (!modeOnglets.includes(onglet)) {
+      setOnglet(MODE_UI[mode].ongletDefaut ?? modeOnglets[0] ?? 'agent');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, brouillon?.statut, brouillon?.slides.length, brouillon?.type]);
+
+  // A4 : en mode PROGRAMMER sans programmation posee, le premier creneau du
+  // reseau actif est preselectionne (meme logique que la modale US-06, mais
+  // directement dans le calendrier du panneau). Changer de reseau re-propose
+  // les heures de pointe de ce reseau ; un creneau choisi manuellement n'est
+  // pas ecrase (l'effet ne se relance pas sur planifDate).
+  useEffect(() => {
+    if (mode !== 'programmer' || !brouillon) return;
+    if (parseProgramme(brouillon.programme)) return;
+    const defaut = (CRENEAUX_PAR_RESEAU[reseauActif] ?? [])[0];
+    if (defaut) {
+      setPlanifDate(prochainJour(defaut.jour));
+      setPlanifHeure(defaut.heure);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, reseauActif, brouillon?.programme]);
 
   // Pseudo de la marque pour l'en-tete de l'apercu publie : le nom de la charte
   // (ex. « Bordeluche ») si dispo, sinon placeholder generique (US-05).
@@ -217,35 +415,38 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     if (!brouillon || !planifDate) return;
     try {
       await updateBrouillon(id, {
-        programme: JSON.stringify({ date: planifDate, heure: planifHeure, reseau: planifReseau })
+        programme: JSON.stringify({ date: planifDate, heure: planifHeure, reseau: reseauActif })
       });
-      setPlanifOpen(false);
-      setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 2000);
+      await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de programmation');
     }
   }
 
-  /** Ouvre la modale de programmation : reseau actif preselectionne, suggestion
-   *  par defaut (premier creneau du reseau) appliquee d'office. Le user garde
-   *  la main : les chips proposent les heures de pointe, les champs restent
-   *  editables. */
-  function ouvrirPlanif() {
-    setPlanifReseau(reseauActif);
-    const creneaux = CRENEAUX_PAR_RESEAU[reseauActif] ?? [];
-    const defaut = creneaux[0];
-    if (defaut) {
-      setPlanifDate(prochainJour(defaut.jour));
-      setPlanifHeure(defaut.heure);
-    }
-    setPlanifOpen(true);
+  /** Ferme la suggestion courante pour la session (SPEC-TUNNEL §4.6). */
+  function fermerSuggestion(s: Suggestion) {
+    setSuggestionsFermees((prev) => new Set(prev).add(s));
   }
 
-  /** Applique un creneau choisi : date = prochaine occurrence du jour, heure =
-   *  celle du creneau (spec creneaux pertinents, US-06). */
-  function appliquerCreneau(c: Creneau) {
-    setPlanifDate(prochainJour(c.jour));
+  /** Action du CTA de la suggestion courante (SPEC-TUNNEL §4.2-4.4). */
+  function actionSuggestion(s: Suggestion) {
+    if (s === 'S0') {
+      setOnglet('agent');
+      const ta = document.querySelector<HTMLTextAreaElement>('.chat-input textarea');
+      ta?.focus();
+    } else if (s === 'S1') {
+      setStatut('a-valider');
+    } else if (s === 'S2') {
+      // A4 : la programmation se fait dans le calendrier du panneau (pas de modale).
+      setOnglet('planif');
+    }
+  }
+
+  /** Applique un creneau sur le jour exact d'une cellule du mini-calendrier
+   *  (date YYYY-MM-DD locale, pas la prochaine occurrence du jour de semaine :
+   *  la cellule EST l'occurrence affichee). */
+  function appliquerCreneauJour(c: Creneau, date: string) {
+    setPlanifDate(date);
     setPlanifHeure(c.heure);
   }
 
@@ -253,7 +454,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     if (!brouillon) return;
     try {
       await updateBrouillon(id, { programme: null });
-      setPlanifOpen(false);
+      await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur');
     }
@@ -279,7 +480,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   /** Export du livrable (F-44) : PNG (slide courante), HTML autonome ou apercu impression (PDF). */
   async function onExporter(mode: 'png' | 'html' | 'pdf') {
     if (!brouillon || exporting) return;
-    setExportOpen(false);
+    setOverflowOpen(false);
     // L'apercu s'ouvre SYNCHRONEMENT au clic pour garder le geste utilisateur
     // (sinon le bloqueur de popups le tue), puis recoit le HTML une fois pret.
     const win = mode === 'pdf' ? ouvrirApercuPDF() : null;
@@ -329,13 +530,14 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     }
   }
 
-  /** Restaure la source HTML depuis une version snapshot (chantier 5), avec
-   *  confirmation (jamais de restauration destructive sans confirmation).
-   *  La restauration = set_source + regenerer : l'API remet le contenu de la
-   *  version dans sourceHtml, on recharge puis on relance le rendu. */
-  async function onRestaurerVersion(numero: number) {
+  /** Ouvre la modale de confirmation de restauration. */
+  function demanderRestaurerVersion(numero: number) {
     if (!brouillon) return;
-    if (!window.confirm(`Restaurer la source depuis la version v${numero} ? Les slides seront régénérées depuis ce contenu.`)) return;
+    setConfirmation({ type: 'restaurer', numero });
+  }
+
+  /** Execute la restauration (appele par la modale apres confirmation). */
+  async function executerRestaurerVersion(numero: number) {
     setSourceBusy(true);
     setSourceMsg(null);
     try {
@@ -645,12 +847,36 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     await updateBrouillon(id, { statut });
   }
 
-  function onNotesChange(value: string) {
-    setNotes(value);
-    if (notesTimer.current) clearTimeout(notesTimer.current);
-    notesTimer.current = setTimeout(async () => {
-      await updateBrouillon(id, { notes: value });
-    }, REVISION_DEBOUNCE_MS);
+  /** UX A3 (maker/checker) : 'Approuver' → valide, tracee (qui, quand). */
+  async function onApprouver() {
+    if (!brouillon || decisionBusy) return;
+    setDecisionBusy(true);
+    try {
+      const res = await deciderBrouillon(id, { decision: 'approuver' });
+      setBrouillon({ ...brouillon, statut: res.statut as Statut, decision: res.decision });
+      setNoteOpen(false);
+      setNoteDraft('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur pendant la validation');
+    } finally {
+      setDecisionBusy(false);
+    }
+  }
+
+  /** UX A3 (maker/checker) : 'Demander des modifs' → brouillon, note obligatoire. */
+  async function onDemanderModifs() {
+    if (!brouillon || decisionBusy || !noteDraft.trim()) return;
+    setDecisionBusy(true);
+    try {
+      const res = await deciderBrouillon(id, { decision: 'demander-modifs', note: noteDraft.trim() });
+      setBrouillon({ ...brouillon, statut: res.statut as Statut, decision: res.decision });
+      setNoteOpen(false);
+      setNoteDraft('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur pendant la demande de modifications');
+    } finally {
+      setDecisionBusy(false);
+    }
   }
 
   async function saveReseau(reseau: string, patch: Partial<ReseauEntry>) {
@@ -659,8 +885,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     const next: ReseauEntry = { ...current, ...patch };
     setBrouillon({ ...brouillon, reseaux: { ...brouillon.reseaux, [reseau]: next } });
     await updateBrouillon(id, { reseaux: { [reseau]: next } });
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 2000);
   }
 
   const CHECKLIST_DEFAUT: { id: string; label: string }[] = [
@@ -674,8 +898,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     const next = checklist.map((c) => (c.id === id ? { ...c, checked: !c.checked } : c));
     setChecklist(next);
     updateBrouillon(id, { checklist: JSON.stringify(next) });
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 2000);
   }
 
   function ensureChecklist() {
@@ -702,9 +924,15 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
     }
   }
 
-  async function supprimerSlide(index: number) {
+  /** Ouvre la modale de confirmation de suppression de slide. */
+  function demanderSupprimerSlide(index: number) {
     if (!brouillon) return;
-    if (!window.confirm(`Supprimer la slide ${index + 1} ?`)) return;
+    setConfirmation({ type: 'supprimer-slide', index });
+  }
+
+  /** Execute la suppression de slide (appele par la modale apres confirmation). */
+  async function executerSupprimerSlide(index: number) {
+    if (!brouillon) return;
     const next = brouillon.slides.filter((_, i) => i !== index);
     setBrouillon({ ...brouillon, slides: next });
     setSlide((s) => Math.min(s, next.length - 1));
@@ -777,6 +1005,9 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
 
   const currentReseau = brouillon.reseaux[reseauActif] || { caption: '', hashtags: '', statut: 'brouillon' };
   const estDocument = TYPES_DOCUMENTS.includes(brouillon.type);
+  // Documents (pitch deck, flyer...) : pas d'etape Programmer (SPEC-TUNNEL §3.4).
+  const etapesTunnel = estDocument ? ETAPES_TUNNEL.slice(0, 3) : ETAPES_TUNNEL;
+  const decision = parseDecision(brouillon.decision);
   // Pseudo affiche dans l'apercu publie : « @bordeluche » si la charte porte un
   // nom de marque, sinon placeholder generique (US-05).
   const pseudo = charteNom ? `@${slugifier(charteNom)}` : '@votremarque';
@@ -785,9 +1016,16 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const nbHashtags = (currentReseau.hashtags || '').split(/\s+/).filter((h) => h.startsWith('#')).length;
   const currentSlideFichier = brouillon.slides[slide];
   const estVideoSlide = Boolean(currentSlideFichier && (currentSlideFichier.endsWith('.mp4') || currentSlideFichier.endsWith('.webm')));
+  // A4 : les 7 prochains jours du mini-calendrier du mode PROGRAMMER (aujourd'hui
+  // inclus). Les creneaux conseilles du reseau actif s'affichent sur leur jour.
+  const prochainsJours: Date[] = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d;
+  });
 
   return (
-    <div id="detail" className="detail-shell">
+    <div id="detail" className={`detail-shell detail--${mode ?? ''}`} data-mode={mode ?? ''}>
       <header className="detail-bar">
         <div className="l">
           <button className="back" type="button" onClick={onClose}>
@@ -797,80 +1035,136 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           <span className="title" title={brouillon.titre}>{brouillon.titre}</span>
         </div>
         <div className="tunnel-steps" aria-label="Progression du workflow">
-          {ETAPES_TUNNEL.map((etape, i) => {
-            const etat = etapeEtat(brouillon.statut, i);
+          {etapesTunnel.map((etape, i) => {
+            // wsIndex derive (SPEC-TUNNEL §3.4) : etape faite < ws, courante = ws.
+            const etat = i < ws ? 'done' : i === ws ? 'current' : 'todo';
             return (
               <div key={etape.id} className={`tunnel-step ${etat}`} title={etape.label}>
-                <span className="tunnel-step-dot" />
+                {etat === 'done' ? (
+                  <Check size={10} weight="bold" className="tunnel-step-check" />
+                ) : (
+                  <span className="tunnel-step-dot" />
+                )}
                 <span className="tunnel-step-label">{etape.label}</span>
-                {i < ETAPES_TUNNEL.length - 1 && <span className="tunnel-step-line" />}
+                {i < etapesTunnel.length - 1 && <span className="tunnel-step-line" />}
               </div>
             );
           })}
         </div>
         <div className="r">
           <div className="statut-control">
-            <button
-              type="button"
-              className={`statut-btn on--${brouillon.statut}`}
-              onClick={() => setStatutOpen((o) => !o)}
-              aria-haspopup="listbox"
-              aria-expanded={statutOpen}
-            >
-              <span className={`dot dot--${brouillon.statut}`} />
-              <span className="statut-label">{STATUT_LABELS[brouillon.statut] ?? brouillon.statut}</span>
-              <CaretDown size={12} className="statut-caret" />
-            </button>
-            {statutOpen && (
-              <div className="statut-menu" role="listbox">
-                <div className="statut-menu-label">Changer le statut</div>
-                {STATUTS_ORDRE.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    role="option"
-                    aria-selected={brouillon.statut === s}
-                    className={brouillon.statut === s ? 'on' : ''}
-                    onClick={() => {
-                      setStatut(s as Statut);
-                      setStatutOpen(false);
-                    }}
-                  >
-                    <span className={`dot dot--${s}`} />
-                    {STATUT_LABELS[s]}
-                    {brouillon.statut === s && <Check size={12} className="statut-check" />}
-                  </button>
-                ))}
+            {brouillon.statut === 'a-valider' ? (
+              <div className="decide-group">
+                <button
+                  type="button"
+                  className="ghost decide-rework"
+                  onClick={() => {
+                    setNoteDraft('');
+                    setNoteOpen((o) => !o);
+                  }}
+                  disabled={decisionBusy}
+                  aria-haspopup="dialog"
+                  aria-expanded={noteOpen}
+                >
+                  <PencilSimple size={13} /> Demander des modifs
+                </button>
+                <button
+                  type="button"
+                  className="primary decide-ok"
+                  onClick={onApprouver}
+                  disabled={decisionBusy}
+                >
+                  <Check size={13} weight="bold" /> Approuver
+                </button>
+                {noteOpen && (
+                  <div className="decide-note" role="dialog" aria-label="Demander des modifications">
+                    <div className="decide-note-label">Note pour l'agent (obligatoire)</div>
+                    <textarea
+                      autoFocus
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      placeholder="Expliquez ce qui doit changer..."
+                      rows={3}
+                    />
+                    <div className="decide-note-actions">
+                      <button type="button" className="ghost" onClick={() => setNoteOpen(false)} disabled={decisionBusy}>
+                        Annuler
+                      </button>
+                      <button
+                        type="button"
+                        className="primary"
+                        onClick={onDemanderModifs}
+                        disabled={!noteDraft.trim() || decisionBusy}
+                      >
+                        {decisionBusy ? 'Envoi...' : 'Confirmer la demande'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={`statut-btn on--${brouillon.statut}`}
+                  onClick={() => setStatutOpen((o) => !o)}
+                  aria-haspopup="listbox"
+                  aria-expanded={statutOpen}
+                >
+                  <span className={`dot dot--${brouillon.statut}`} />
+                  <span className="statut-label">{STATUT_LABELS[brouillon.statut] ?? brouillon.statut}</span>
+                  <CaretDown size={12} className="statut-caret" />
+                </button>
+                {statutOpen && (
+                  <div className="statut-menu" role="listbox">
+                    <div className="statut-menu-label">Changer le statut</div>
+                    {STATUTS_ORDRE.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        role="option"
+                        aria-selected={brouillon.statut === s}
+                        className={brouillon.statut === s ? 'on' : ''}
+                        onClick={() => {
+                          setStatut(s as Statut);
+                          setStatutOpen(false);
+                        }}
+                      >
+                        <span className={`dot dot--${s}`} />
+                        {STATUT_LABELS[s]}
+                        {brouillon.statut === s && <Check size={12} className="statut-check" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
-          <div className="type-select">
+          <div className="overflow-control">
             <button
               type="button"
-              className="type-btn"
-              onClick={() => setTypeOpen((o) => !o)}
-              aria-haspopup="listbox"
-              aria-expanded={typeOpen}
-              title="Type de contenu"
+              className="more-btn"
+              onClick={() => setOverflowOpen((o) => !o)}
+              aria-haspopup="menu"
+              aria-expanded={overflowOpen}
+              title="Plus d'actions"
             >
-              {brouillon.type === 'video' ? <VideoCamera size={13} /> : <Stack size={13} />}
-              <span className="type-label">{TYPE_LABELS[brouillon.type] ?? 'Carrousel'}</span>
-              <CaretDown size={12} className="statut-caret" />
+              <DotsThreeVertical size={16} weight="bold" />
             </button>
-            {typeOpen && (
-              <div className="statut-menu" role="listbox">
+            {overflowOpen && (
+              <div className="statut-menu more-menu" role="menu">
                 <div className="statut-menu-label">Type de contenu</div>
                 {TYPES_CONTENUS.map((t) => (
                   <button
                     key={t}
                     type="button"
-                    role="option"
+                    role="menuitem"
                     aria-selected={brouillon.type === t}
                     className={brouillon.type === t ? 'on' : ''}
                     onClick={() => {
                       setBrouillon({ ...brouillon, type: t });
                       updateBrouillon(id, { type: t });
-                      setTypeOpen(false);
+                      setOverflowOpen(false);
                     }}
                   >
                     {t === 'video' ? <VideoCamera size={13} /> : <Stack size={13} />}
@@ -884,13 +1178,13 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   <button
                     key={t}
                     type="button"
-                    role="option"
+                    role="menuitem"
                     aria-selected={brouillon.type === t}
                     className={brouillon.type === t ? 'on' : ''}
                     onClick={() => {
                       setBrouillon({ ...brouillon, type: t });
                       updateBrouillon(id, { type: t });
-                      setTypeOpen(false);
+                      setOverflowOpen(false);
                     }}
                   >
                     <FileText size={13} />
@@ -898,25 +1192,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     {brouillon.type === t && <Check size={12} className="statut-check" />}
                   </button>
                 ))}
-              </div>
-            )}
-          </div>
-          <div className="export-control">
-            <button
-              type="button"
-              className="export-btn"
-              onClick={() => setExportOpen((o) => !o)}
-              aria-haspopup="menu"
-              aria-expanded={exportOpen}
-              disabled={exporting}
-              title="Exporter le livrable (PNG, HTML autonome ou PDF)"
-            >
-              <DownloadSimple size={13} />
-              <span>{exporting ? 'Export...' : 'Exporter'}</span>
-              <CaretDown size={12} className="statut-caret" />
-            </button>
-            {exportOpen && (
-              <div className="statut-menu export-menu" role="menu">
+                <div className="statut-menu-sep" />
                 <div className="statut-menu-label">Exporter le livrable</div>
                 <button
                   type="button"
@@ -945,21 +1221,21 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     <span className="mi-s">Slides + légendes, tout-en-un</span>
                   </span>
                 </button>
+                <div className="statut-menu-sep" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="more-delete"
+                  onClick={() => {
+                    setOverflowOpen(false);
+                    setConfirmation({ type: 'supprimer-brouillon' });
+                  }}
+                >
+                  <Trash size={14} /> Supprimer
+                </button>
               </div>
             )}
           </div>
-          <button
-            type="button"
-            className={`delete`}
-            onClick={() => {
-              if (window.confirm('Supprimer ce brouillon ? Cette action est definitive.')) {
-                onDelete();
-              }
-            }}
-            title="Supprimer le brouillon"
-          >
-            <Trash size={13} /> Supprimer
-          </button>
         </div>
       </header>
 
@@ -1204,27 +1480,83 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 ))}
               </div>
             </>
+          ) : mode === 'creer' ? (
+            <div className="stage-empty-guide">
+              <div className="empty-guide-mark"><Sparkle size={22} weight="regular" /></div>
+              <h3>Le contenu est vide</h3>
+              <p>
+                Demandez un premier jet a votre agent dans le chat, ou deposez la
+                source HTML de votre document dans l'onglet Source.
+              </p>
+              <div className="empty-guide-actions">
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    setOnglet('agent');
+                    const ta = document.querySelector<HTMLTextAreaElement>('.chat-input textarea');
+                    ta?.focus();
+                  }}
+                >
+                  <Sparkle size={13} /> Demander a l'agent
+                </button>
+                <button type="button" className="ghost" onClick={() => setOnglet('source')}>
+                  <Code size={13} /> Deposer la source
+                </button>
+              </div>
+            </div>
           ) : (
             <p className="no-slides">Aucune slide.</p>
           )}
         </div>
 
         <aside className={`side-panel${panneauReplie ? ' is-replie' : ''}`}>
-          <div className="sp-section">
-            <div className="sp-label">
-              <span>Notes de révision</span>
-              <span className={`saved${savedFlash ? ' show' : ''}`}>
-                <Check size={11} weight="bold" /> Enregistré
+          {suggestionActive && (
+            <div className="suggestion-band" role="status">
+              <span className="suggestion-ico">
+                {suggestionActive === 'S1' ? <CheckCircle size={13} /> : <Sparkle size={13} />}
               </span>
+              <span className="suggestion-texte">
+                {suggestionActive === 'S0'
+                  ? 'Le contenu est vide. Demandez un premier jet à votre agent.'
+                  : suggestionActive === 'S1'
+                    ? 'Checklist complète. Le contenu est prêt à valider.'
+                    : 'Contenu validé. Il ne manque que la programmation.'}
+              </span>
+              <button
+                type="button"
+                className="primary suggestion-cta"
+                onClick={() => actionSuggestion(suggestionActive)}
+              >
+                {suggestionActive === 'S0' ? 'Demander à l\'agent' : suggestionActive === 'S1' ? 'Passer à À valider' : 'Programmer'}
+              </button>
+              <button
+                type="button"
+                className="suggestion-close"
+                onClick={() => fermerSuggestion(suggestionActive)}
+                aria-label="Fermer la suggestion"
+                title="Fermer"
+              >
+                <X size={12} />
+              </button>
             </div>
-            <textarea
-              className="sp-textarea"
-              placeholder="Notes de révision"
-              value={notes}
-              onChange={(e) => onNotesChange(e.target.value)}
-            />
-          </div>
-
+          )}
+          {decision && (
+            <div className={`decision-trace ${decision.decision}`}>
+              {decision.decision === 'approuver' ? <CheckCircle size={14} weight="bold" /> : <Warning size={14} weight="bold" />}
+              <div className="decision-trace-txt">
+                <span className="decision-trace-t">
+                  {decision.decision === 'approuver' ? 'Approuvé' : 'Modifications demandées'}
+                </span>
+                <span className="decision-trace-s">
+                  {decision.decision === 'approuver'
+                    ? `${decision.par === 'user' ? 'par vous' : `par ${decision.par}`} · ${formatDecisionAt(decision.at)}`
+                    : `${decision.note || 'Sans précision'} · ${formatDecisionAt(decision.at)}`}
+                </span>
+              </div>
+            </div>
+          )}
+          {mode && MODE_UI[mode].checklist && (
           <div className="sp-section">
             <div className="sp-label">
               <span>Checklist de validation</span>
@@ -1259,29 +1591,168 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 </button>
               )}
           </div>
+          )}
 
+          {(!mode || modeOnglets === null || modeOnglets.length > 0) && (
           <div className="sp-section">
             <div className="sp-label">Édition du contenu</div>
             <div className="panel-tabs">
+              {(!modeOnglets || modeOnglets.includes('planif')) && (
+              <button type="button" className={onglet === 'planif' ? 'on' : ''} onClick={() => setOnglet('planif')}>
+                <CalendarBlank size={12} /> Calendrier
+              </button>
+              )}
+              {(!modeOnglets || modeOnglets.includes('annotations')) && (
               <button type="button" className={onglet === 'annotations' ? 'on' : ''} onClick={() => setOnglet('annotations')}>
                 <MapPin size={12} /> Annotations
                 {annotations.length > 0 && <span className="panel-tab-count">{annotations.length}</span>}
               </button>
+              )}
+              {(!modeOnglets || modeOnglets.includes('agent')) && (
               <button type="button" className={onglet === 'agent' ? 'on' : ''} onClick={() => setOnglet('agent')}>
                 <Sparkle size={12} /> Agent
               </button>
+              )}
+              {(!modeOnglets || modeOnglets.includes('reseaux')) && (
               <button type="button" className={onglet === 'reseaux' ? 'on' : ''} onClick={() => setOnglet('reseaux')}>
                 <ArrowRight size={12} /> Réseaux
               </button>
+              )}
+              {(!modeOnglets || modeOnglets.includes('slides')) && (
               <button type="button" className={onglet === 'slides' ? 'on' : ''} onClick={() => setOnglet('slides')}>
                 <Stack size={12} /> Slides
               </button>
+              )}
+              {(!modeOnglets || modeOnglets.includes('source')) && (
               <button type="button" className={onglet === 'source' ? 'on' : ''} onClick={() => setOnglet('source')}>
                 <Code size={12} /> Source
               </button>
+              )}
             </div>
 
-            {onglet === 'annotations' ? (
+            {onglet === 'planif' ? (
+              <div className="planif-panel">
+                {(() => {
+                  const prog = parseProgramme(brouillon.programme);
+                  return prog ? (
+                    <>
+                      <div className="planif-fait">
+                        <CheckCircle size={13} />
+                        Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{' '}
+                        {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
+                      </div>
+                      <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
+                        Annuler la programmation
+                      </button>
+                      <div className="planif-cal-hint">
+                        Choisissez un autre créneau ci-dessous : la programmation sera mise à jour.
+                      </div>
+                    </>
+                  ) : null;
+                })()}
+
+                <ReseauTabs actif={reseauActif} onChange={setReseauActif} />
+
+                <div className="planif-cal">
+                  <div className="sp-label">
+                    <span>Créneaux conseillés</span>
+                  </div>
+                  <div className="cal-week">
+                    {prochainsJours.map((d, i) => {
+                      const iso = jourISO(d);
+                      const creneauxJour = (CRENEAUX_PAR_RESEAU[reseauActif] ?? []).filter((c) => c.jour === d.getDay());
+                      return (
+                        <div key={iso} className={`cal-day${i === 0 ? ' today' : ''}`}>
+                          <span className="cal-day-name">{JOURS_COURTS[d.getDay()] ?? ''}</span>
+                          <span className="cal-day-num">{d.getDate()}</span>
+                          <div className="cal-day-chips">
+                            {creneauxJour.map((c, j) => {
+                              const actif = planifDate === iso && planifHeure === c.heure;
+                              return (
+                                <button
+                                  key={`${iso}-${c.heure}-${j}`}
+                                  type="button"
+                                  className={`cal-chip${actif ? ' on' : ''}`}
+                                  title={`${JOURS_COURTS[c.jour] ?? ''} ${c.fenetre}`}
+                                  aria-pressed={actif}
+                                  onClick={() => appliquerCreneauJour(c, iso)}
+                                >
+                                  {c.heure}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="planif-cal-hint">
+                    Heures de pointe pour {RESEAUX_LABELS[reseauActif] ?? reseauActif}. Cliquez un créneau, ou ajustez date et heure librement.
+                  </div>
+                </div>
+
+                <div className="planif-fields">
+                  <label className="planif-field">
+                    <span>Date</span>
+                    <input type="date" value={planifDate} onChange={(e) => setPlanifDate(e.target.value)} />
+                  </label>
+                  <label className="planif-field">
+                    <span>Heure</span>
+                    <input type="time" value={planifHeure} onChange={(e) => setPlanifHeure(e.target.value)} />
+                  </label>
+                </div>
+
+                <div className="planif-post-wrap">
+                  <div className="sp-label">
+                    <span>Aperçu du post</span>
+                  </div>
+                  <div className="planif-post">
+                    <div className="planif-post-media">
+                      {currentSlideFichier ? (
+                        estVideoSlide ? (
+                          <VideoCamera size={18} weight="regular" />
+                        ) : (
+                          <img src={slideUrl(brouillon.id, currentSlideFichier)} alt="" />
+                        )
+                      ) : (
+                        <Stack size={18} weight="regular" />
+                      )}
+                    </div>
+                    <div className="planif-post-body">
+                      <div className="planif-post-head">
+                        {(() => {
+                          const Icon = RESEAU_ICONES[reseauActif] || InstagramLogo;
+                          return <Icon size={12} weight="regular" />;
+                        })()}
+                        <span className="planif-post-reseau">{RESEAUX_LABELS[reseauActif] ?? reseauActif}</span>
+                        <span className="planif-post-pseudo">{pseudo}</span>
+                      </div>
+                      {(currentReseau.caption || '').trim() !== '' ? (
+                        <p className="planif-post-caption">{currentReseau.caption}</p>
+                      ) : (
+                        <p className="planif-post-vide">Aucune légende pour ce réseau. Onglet Réseaux pour l'écrire.</p>
+                      )}
+                      {(currentReseau.hashtags || '').trim() !== '' && (
+                        <p className="planif-post-hashtags">{currentReseau.hashtags}</p>
+                      )}
+                      <div className={`planif-post-count${(currentReseau.caption || '').length > contraintes.maxChars ? ' over' : ''}`}>
+                        {(currentReseau.caption || '').length} / {contraintes.maxChars} caractères
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  className="primary planif-btn"
+                  type="button"
+                  onClick={onProgrammer}
+                  disabled={!planifDate}
+                >
+                  <CalendarBlank size={14} weight="bold" />
+                  {parseProgramme(brouillon.programme) ? 'Mettre à jour' : 'Programmer'}
+                </button>
+              </div>
+            ) : onglet === 'annotations' ? (
               <div className="annot-panel">
                 <div className="annot-panel-note">
                   <MapPin size={13} />
@@ -1454,7 +1925,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                           <button
                             type="button"
                             className="ghost"
-                            onClick={() => onRestaurerVersion(v.numero)}
+                            onClick={() => demanderRestaurerVersion(v.numero)}
                             disabled={sourceBusy || rendering}
                             title={`Restaurer la source depuis v${v.numero}`}
                           >
@@ -1497,7 +1968,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                       <button
                         type="button"
                         className="ghost danger"
-                        onClick={(e) => { e.stopPropagation(); supprimerSlide(i); }}
+                        onClick={(e) => { e.stopPropagation(); demanderSupprimerSlide(i); }}
                         title="Supprimer"
                       >
                         <Trash size={12} />
@@ -1517,22 +1988,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               </div>
             ) : (
               <>
-                <div className="reseau-tabs">
-                  {RESEAUX.map((r) => {
-                    const Icon = RESEAU_ICONES[r] || InstagramLogo;
-                    return (
-                      <button
-                        key={r}
-                        className={r === reseauActif ? 'active' : ''}
-                        onClick={() => setReseauActif(r)}
-                        type="button"
-                      >
-                        <Icon size={14} weight="regular" />
-                        <span>{RESEAUX_LABELS[r] || r}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <ReseauTabs actif={reseauActif} onChange={setReseauActif} />
                 <div className="format-reco">
                   <Stack size={14} />
                   <div className="format-reco-body">
@@ -1611,37 +2067,33 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               </>
             )}
           </div>
+          )}
 
+          {mode && (estDocument && mode !== 'creer' ? (
           <div className="sp-section planif-section">
-            {estDocument ? (
-              <div className="planif-nodoc">
-                <CheckCircle size={13} /> Livrable de communication : pas de programmation réseau
-              </div>
-            ) : brouillon.programme ? (
-              (() => {
-                const prog = parseProgramme(brouillon.programme);
-                return prog ? (
-                  <>
-                    <div className="planif-fait">
-                      <CheckCircle size={13} />
-                      Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
-                      {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
-                    </div>
-                    <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
-                      Annuler la programmation
-                    </button>
-                  </>
-                ) : null;
-              })()
-            ) : (
-              <>
-                <button className="primary planif-btn" type="button" onClick={ouvrirPlanif}>
-                  <CalendarBlank size={14} weight="bold" /> Programmer dans le calendrier
-                </button>
-                <div className="planif-hint">Quand le contenu est prêt, planifiez sa publication.</div>
-              </>
-            )}
+            <div className="planif-nodoc">
+              <CheckCircle size={13} /> Livrable de communication : pas de programmation réseau
+            </div>
           </div>
+          ) : !estDocument && brouillon.programme && mode !== 'programmer' ? (
+          <div className="sp-section planif-section">
+            {(() => {
+              const prog = parseProgramme(brouillon.programme);
+              return prog ? (
+                <>
+                  <div className="planif-fait">
+                    <CheckCircle size={13} />
+                    Programme le <strong>{formatDate(prog.date ? `${prog.date}T12:00:00` : null)}</strong> a{" "}
+                    {prog.heure} sur {RESEAUX_LABELS[prog.reseau ?? ''] ?? prog.reseau}
+                  </div>
+                  <button className="ghost planif-annuler" type="button" onClick={onAnnulerProgramme}>
+                    Annuler la programmation
+                  </button>
+                </>
+              ) : null;
+            })()}
+          </div>
+          ) : null)}
 
           {!estDocument && brouillon.statut === 'valide' && (
             <div className="sp-section postiz-section">
@@ -1666,80 +2118,45 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
         </aside>
       </div>
 
-      {planifOpen && (
-        <div className="modal-overlay modal-overlay-in" onClick={() => setPlanifOpen(false)}>
-          <div className="modal modal-panel-in" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>Programmer la publication</h3>
-              <button className="modal-x" type="button" onClick={() => setPlanifOpen(false)} aria-label="Fermer">
-                X
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="field">
-                <label htmlFor="p-reseau">Réseau</label>
-                <select
-                  id="p-reseau"
-                  value={planifReseau}
-                  onChange={(e) => {
-                    const r = e.target.value;
-                    setPlanifReseau(r);
-                    // La suggestion par defaut suit le reseau : premier creneau
-                    // de sa table d'heures de pointe (US-06).
-                    const defaut = (CRENEAUX_PAR_RESEAU[r] ?? [])[0];
-                    if (defaut) {
-                      setPlanifDate(prochainJour(defaut.jour));
-                      setPlanifHeure(defaut.heure);
-                    }
-                  }}
-                >
-                  {RESEAUX.map((r) => (
-                    <option key={r} value={r}>{RESEAUX_LABELS[r] || r}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="creneaux-section">
-                <label className="creneaux-label">Créneaux conseillés</label>
-                <div className="creneaux-row">
-                  {(CRENEAUX_PAR_RESEAU[planifReseau] ?? []).map((c, i) => {
-                    const jour = c.jour;
-                    const dateChip = prochainJour(jour);
-                    const actif = planifDate === dateChip && planifHeure === c.heure;
-                    return (
-                      <button
-                        key={`${jour}-${c.heure}-${i}`}
-                        type="button"
-                        className={`creneau-chip${actif ? ' on' : ''}`}
-                        title={`${JOURS_COURTS[jour] ?? ''} ${c.fenetre}`}
-                        aria-pressed={actif}
-                        onClick={() => appliquerCreneau(c)}
-                      >
-                        {JOURS_COURTS[jour] ?? ''} {c.heure}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="creneaux-hint">Heures de pointe pour {RESEAUX_LABELS[planifReseau] ?? planifReseau}. Cliquez pour pré-remplir, ou saisissez librement.</div>
-              </div>
-              <div className="field">
-                <label htmlFor="p-date">Date</label>
-                <input id="p-date" type="date" value={planifDate} onChange={(e) => setPlanifDate(e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="p-heure">Heure</label>
-                <input id="p-heure" type="time" value={planifHeure} onChange={(e) => setPlanifHeure(e.target.value)} />
-              </div>
-            </div>
-            <div className="modal-foot">
-              <button className="ghost" type="button" onClick={() => setPlanifOpen(false)}>
-                Annuler
-              </button>
-              <button className="primary" type="button" onClick={onProgrammer} disabled={!planifDate}>
-                <CalendarBlank size={13} weight="bold" /> Programmer
-              </button>
-            </div>
-          </div>
-        </div>
+      {confirmation && (
+        <ConfirmModal
+          titre={
+            confirmation.type === 'restaurer'
+              ? `Restaurer la version v${confirmation.numero} ?`
+              : confirmation.type === 'supprimer-slide'
+                ? `Supprimer la slide ${confirmation.index + 1} ?`
+                : 'Supprimer ce brouillon ?'
+          }
+          description={
+            confirmation.type === 'restaurer' ? (
+              <>
+                Les slides seront régénérées depuis ce contenu. La version v{confirmation.numero}{' '}
+                remplace la source actuelle.
+              </>
+            ) : confirmation.type === 'supprimer-slide' ? (
+              <>
+                La slide {confirmation.index + 1} de <strong>{brouillon?.titre ?? 'ce brouillon'}</strong>{' '}
+                sera définitivement supprimée.
+              </>
+            ) : (
+              <>
+                <strong>{brouillon?.titre ?? 'Ce brouillon'}</strong> sera définitivement supprimé, ainsi
+                que ses slides. Cette action est irréversible.
+              </>
+            )
+          }
+          labelConfirmer={
+            confirmation.type === 'restaurer' ? 'Restaurer' : 'Supprimer'
+          }
+          danger={confirmation.type !== 'restaurer'}
+          onConfirm={() => {
+            if (confirmation.type === 'restaurer') void executerRestaurerVersion(confirmation.numero);
+            else if (confirmation.type === 'supprimer-slide') void executerSupprimerSlide(confirmation.index);
+            else onDelete();
+            setConfirmation(null);
+          }}
+          onClose={() => setConfirmation(null)}
+        />
       )}
     </div>
   );

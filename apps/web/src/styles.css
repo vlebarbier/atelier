@@ -167,10 +167,10 @@ button.ghost.danger:hover { background: var(--color-status-err-soft); border-col
 .sidebar.collapsed .nav-footer button { justify-content: center; padding-left: 0; padding-right: 0; }
 
 /* Icônes : alignement systématique */
-button, .badge, .cmdk-hint, .nslides, .agent-badge, .reseau-tabs button, .saved {
+button, .badge, .cmdk-hint, .badge-type, .agent-badge, .reseau-tabs button, .saved {
   display: inline-flex; align-items: center; gap: 6px;
 }
-.cmdk-hint svg, .view-toggle svg, .card .cover .nslides svg, .list-row .info .meta svg {
+.cmdk-hint svg, .view-toggle svg, .list-row .info .meta svg {
   flex-shrink: 0;
 }
 @keyframes atelier-spin { to { transform: rotate(360deg); } }
@@ -285,7 +285,7 @@ main {
 .toolbar-quiet button.on { color: var(--color-ink-primary); border-bottom-color: var(--color-accent-base); font-weight: 500; }
 .toolbar-quiet .count { margin-left: auto; font-size: 11.5px; color: var(--color-ink-tertiary); }
 .toolbar button.on[data-f="a-valider"]   { background: var(--color-status-warn-soft); color: var(--color-status-warn); border-color: transparent; font-weight: 600; }
-.toolbar button.on[data-f="valide"]      { background: var(--color-status-ok-soft); color: var(--color-status-ok); border-color: transparent; font-weight: 600; }
+.toolbar button.on[data-f="valide"]      { background: var(--color-status-validated-soft); color: var(--color-status-validated); border-color: transparent; font-weight: 600; }
 .toolbar button.on[data-f="publie"]      { background: var(--color-status-ok); color: #04140B; border-color: transparent; font-weight: 600; }
 
 /* Surcharge pour les filtres silencieux (spécificité attribut > classe simple) */
@@ -314,14 +314,12 @@ main {
 .card .cover { aspect-ratio: 1 / 1; background: var(--color-bg-level-2); position: relative; overflow: hidden; }
 .card .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .card .cover .cover-empty { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 26px; opacity: 0.35; }
-.card .cover .nslides {
-  position: absolute; bottom: 10px; right: 10px;
-  background: color-mix(in srgb, var(--color-bg-deepest) 65%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: var(--color-ink-primary);
-  border: 1px solid var(--color-line-hover);
-  border-radius: var(--radius-btn); padding: 4px 10px; font-size: 11px; font-weight: 600;
+.card .cover .badge-type {
+  position: absolute; top: 10px; right: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: var(--radius-btn); padding: 3px 9px; font-size: 10.5px; font-weight: 700;
+  white-space: nowrap;
 }
 .card .body { padding: 14px 15px 15px; }
 .card .body .titre {
@@ -338,8 +336,45 @@ main {
 .badge { font-size: 10.5px; font-weight: 600; letter-spacing: 0.01em; padding: 4px 11px; border-radius: var(--radius-btn); }
 .badge--brouillon { background: var(--color-status-neutral); color: var(--color-ink-secondary); }
 .badge--a-valider  { background: var(--color-status-warn-soft); color: var(--color-status-warn); }
-.badge--valide     { background: var(--color-status-ok-soft); color: var(--color-status-ok); }
+.badge--valide     { background: var(--color-status-validated-soft); color: var(--color-status-validated); }
 .badge--publie     { background: var(--color-status-ok); color: #04140B; }
+
+/* ── Badges de type + reseaux (ecran Publications, maquette validée) ── */
+.badge-type-liste {
+  display: inline-flex;
+  font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-btn);
+  background: rgba(0, 0, 0, 0.55); color: #fff; white-space: nowrap; vertical-align: middle;
+  margin-left: 8px;
+}
+[data-theme='light'] .badge-type-liste { background: rgba(28, 28, 26, 0.08); color: var(--color-ink-secondary); }
+
+.nets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.net {
+  font-size: 10px; font-weight: 600; padding: 3px 8px 3px 6px; border-radius: 5px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.net svg { width: 11px; height: 11px; flex-shrink: 0; }
+.net-glyph { font-size: 9px; line-height: 1; }
+.net-ig { background: rgba(225, 48, 108, 0.16); color: #F06292; }
+.net-li { background: rgba(10, 102, 194, 0.16); color: #5B9BD5; }
+.net-fb { background: rgba(24, 119, 242, 0.16); color: #6FA8F2; }
+.net-x  { background: var(--color-bg-level-2); color: var(--color-ink-secondary); }
+
+/* Actions au survol (dupliquer / supprimer), opaques au hover seulement. */
+.pub-actions {
+  position: absolute; top: 8px; left: 10px; display: flex; gap: 5px;
+  opacity: 0; transition: opacity var(--motion-duration-fast) var(--motion-ease);
+  z-index: 2;
+}
+.card:hover .pub-actions, .list-row:hover .pub-actions { opacity: 1; }
+.pub-actions .mini, .row-actions .mini {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+.pub-actions .mini:hover, .row-actions .mini:hover { background: var(--color-accent-base); color: var(--color-accent-on-accent); }
+.row-actions .mini.danger:hover { background: var(--color-status-err); color: #fff; }
+.meta-dot { color: var(--color-ink-tertiary); }
 
 /* ── Vue liste (placeholder Phase 1) ────────────────────────────── */
 .list-placeholder { padding: var(--spacing-7) var(--spacing-3); text-align: center; color: var(--color-ink-tertiary); font-size: var(--font-size-base); }
@@ -421,11 +456,13 @@ main {
 .statut-group button .dot { width: 5px; height: 5px; border-radius: 50%; }
 .statut-group button .dot--brouillon { background: var(--color-ink-tertiary); }
 .statut-group button .dot--a-valider { background: var(--color-status-warn); }
-.statut-group button .dot--valide, .statut-group button .dot--publie { background: var(--color-status-ok); }
+.statut-group button .dot--valide { background: var(--color-status-validated); }
+.statut-group button .dot--publie { background: var(--color-status-ok); }
 .statut-group button:hover { background: color-mix(in srgb, var(--color-ink-primary) 6%, transparent); transform: none; }
 .statut-group button.on { background: rgba(255, 255, 255, 0.09); color: var(--color-ink-primary); font-weight: 500; }
 .statut-group button.on--a-valider { background: var(--color-status-warn-soft); color: var(--color-status-warn); }
-.statut-group button.on--valide, .statut-group button.on--publie { background: var(--color-status-ok-soft); color: var(--color-status-ok); }
+.statut-group button.on--valide { background: var(--color-status-validated-soft); color: var(--color-status-validated); }
+.statut-group button.on--publie { background: var(--color-status-ok-soft); color: var(--color-status-ok); }
 
 .src-toggle {
   border: 1px solid var(--color-line-default); background: transparent; color: var(--color-ink-tertiary);
@@ -434,30 +471,24 @@ main {
 }
 .src-toggle:hover { color: var(--color-ink-primary); }
 .src-toggle.on { border-color: var(--color-accent-base); color: var(--color-accent-base); }
-.detail-bar .delete {
-  border: none; background: transparent; color: var(--color-ink-tertiary);
-  padding: 5px 8px; font-size: 11.5px; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 5px; border-radius: 6px;
-}
-.detail-bar .delete:hover { color: var(--color-status-err); background: var(--color-status-err-soft); }
 
-/* ── Export du livrable (F-44) ──────────────────────────────────────── */
-.export-control { position: relative; }
-.export-btn {
+/* ── Menu « Plus d'actions » du detail (type, export, suppression) ──── */
+.overflow-control { position: relative; }
+.more-btn {
   border: 1px solid var(--color-line-default); background: transparent;
-  color: var(--color-ink-secondary); padding: 6px 11px; font-size: 11.5px;
+  color: var(--color-ink-secondary); width: 30px; height: 30px;
   border-radius: var(--radius-input); cursor: pointer;
-  display: inline-flex; align-items: center; gap: 7px; font-weight: 500;
+  display: inline-flex; align-items: center; justify-content: center;
 }
-.export-btn:hover { border-color: var(--color-line-hover); color: var(--color-ink-primary); }
-.export-btn:disabled { opacity: 0.55; cursor: default; }
-.export-btn .statut-caret { opacity: 0.6; }
-.export-menu { min-width: 240px; }
-.export-menu button { gap: 10px; }
-.export-menu button:disabled { opacity: 0.55; cursor: default; }
-.export-menu .mi { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.export-menu .mi-t { font-size: 12.5px; color: inherit; font-weight: 500; }
-.export-menu .mi-s { font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.35; }
+.more-btn:hover { border-color: var(--color-line-hover); color: var(--color-ink-primary); }
+.more-menu { min-width: 240px; }
+.more-menu button { gap: 10px; }
+.more-menu button:disabled { opacity: 0.55; cursor: default; }
+.more-menu .mi { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.more-menu .mi-t { font-size: 12.5px; color: inherit; font-weight: 500; }
+.more-menu .mi-s { font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.35; }
+.more-menu .more-delete { color: var(--color-status-err); }
+.more-menu .more-delete:hover { color: var(--color-status-err); background: var(--color-status-err-soft); }
 
 .detail-body {
   display: flex; flex: 1; min-height: 0; gap: 0;
@@ -668,7 +699,7 @@ main {
 .detail-stage .thumbs img.active { border-color: var(--color-accent-base); opacity: 1; }
 .no-slides { color: var(--color-ink-tertiary); font-size: var(--font-size-base); text-align: center; }
 
-/* Le panneau droit : notes, checklist, legendes — etroit et silencieux */
+/* Le panneau droit (checklist, edition du contenu, planification) : etroit et silencieux */
 .side-panel {
   width: 330px; flex-shrink: 0;
   background: var(--color-bg-level-1);
@@ -690,16 +721,6 @@ main {
   display: flex; align-items: center; justify-content: space-between;
 }
 .sp-label .chip { font-size: 10px; letter-spacing: 0.04em; border: 1px solid var(--color-line-default); border-radius: 4px; padding: 2px 6px; color: var(--color-ink-secondary); text-transform: none; }
-.sp-label .saved { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--color-status-ok); text-transform: none; letter-spacing: 0; opacity: 0; transition: opacity var(--motion-duration-fast) var(--motion-ease); }
-.sp-label .saved.show { opacity: 1; }
-.sp-textarea {
-  width: 100%; background: var(--color-bg-level-2); border: 1px solid var(--color-line-default);
-  border-radius: 8px; padding: 10px 12px; color: var(--color-ink-primary);
-  font-family: var(--font-family-ui); font-size: 12px; line-height: 1.6;
-  resize: vertical; min-height: 72px;
-}
-.sp-textarea::placeholder { color: var(--color-ink-tertiary); }
-.sp-textarea:focus { border-color: var(--color-accent-base); outline: none; }
 
 .reseau-statut {
   display: inline-flex; gap: 2px; padding: 2px;
@@ -715,11 +736,13 @@ main {
 .reseau-statut button .dot { width: 5px; height: 5px; border-radius: 50%; }
 .reseau-statut button .dot--brouillon { background: var(--color-ink-tertiary); }
 .reseau-statut button .dot--a-valider { background: var(--color-status-warn); }
-.reseau-statut button .dot--valide, .reseau-statut button .dot--publie { background: var(--color-status-ok); }
+.reseau-statut button .dot--valide { background: var(--color-status-validated); }
+.reseau-statut button .dot--publie { background: var(--color-status-ok); }
 .reseau-statut button:hover { background: color-mix(in srgb, var(--color-ink-primary) 6%, transparent); transform: none; }
 .reseau-statut button.on--brouillon { background: var(--color-status-neutral); color: var(--color-ink-primary); font-weight: 600; }
 .reseau-statut button.on--a-valider { background: var(--color-status-warn-soft); color: var(--color-status-warn); font-weight: 600; }
-.reseau-statut button.on--valide, .reseau-statut button.on--publie { background: var(--color-status-ok-soft); color: var(--color-status-ok); font-weight: 600; }
+.reseau-statut button.on--valide { background: var(--color-status-validated-soft); color: var(--color-status-validated); font-weight: 600; }
+.reseau-statut button.on--publie { background: var(--color-status-ok-soft); color: var(--color-status-ok); font-weight: 600; }
 
 @media (max-width: 1100px) {
   .detail-body { flex-direction: column; }
@@ -851,7 +874,7 @@ main {
 }
 .calendar-item.badge--brouillon { background: var(--color-status-neutral); color: var(--color-ink-secondary); }
 .calendar-item.badge--a-valider { background: var(--color-status-warn-soft); color: var(--color-status-warn); }
-.calendar-item.badge--valide { background: var(--color-status-ok-soft); color: var(--color-status-ok); }
+.calendar-item.badge--valide { background: var(--color-status-validated-soft); color: var(--color-status-validated); }
 .calendar-item.badge--publie { background: var(--color-status-ok); color: #04140B; }
 .calendar-more { font-size: 10px; color: var(--color-ink-tertiary); }
 
@@ -1476,7 +1499,8 @@ main {
 .statut-btn .dot { width: 6px; height: 6px; border-radius: 50%; }
 .statut-btn .statut-caret { opacity: 0.6; }
 .statut-btn.on--a-valider { border-color: var(--color-status-warn); color: var(--color-status-warn); background: var(--color-status-warn-soft); }
-.statut-btn.on--valide, .statut-btn.on--publie { border-color: var(--color-status-ok); color: var(--color-status-ok); background: var(--color-status-ok-soft); }
+.statut-btn.on--valide { border-color: var(--color-status-validated); color: var(--color-status-validated); background: var(--color-status-validated-soft); }
+.statut-btn.on--publie { border-color: var(--color-status-ok); color: var(--color-status-ok); background: var(--color-status-ok-soft); }
 .statut-btn.on--brouillon { background: var(--color-status-neutral); color: var(--color-ink-primary); }
 .statut-menu {
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
@@ -1498,8 +1522,45 @@ main {
 .statut-menu button .statut-check { margin-left: auto; }
 .dot--brouillon { background: var(--color-ink-tertiary); }
 .dot--a-valider { background: var(--color-status-warn); }
-.dot--valide, .dot--publie { background: var(--color-status-ok); }
+.dot--valide { background: var(--color-status-validated); }
+.dot--publie { background: var(--color-status-ok); }
 .statut-btn .dot, .statut-menu button .dot, .dot.status-pop { animation: statusPop 250ms var(--motion-ease) backwards; }
+
+/* ── Decision maker/checker (UX A3) : Approuver / Demander des modifs ── */
+.decide-group { display: inline-flex; gap: 6px; align-items: center; }
+.decide-group button { height: 30px; }
+.decide-ok { background: var(--color-status-ok); border-color: var(--color-status-ok); color: #050505; }
+.decide-ok:hover { background: color-mix(in srgb, var(--color-status-ok) 88%, #000); border-color: var(--color-status-ok); }
+.decide-note {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 40;
+  background: var(--color-bg-level-3); border: 1px solid var(--color-line-default);
+  border-radius: 10px; box-shadow: var(--color-shadow-lg);
+  padding: 10px; width: 280px;
+  display: flex; flex-direction: column; gap: 8px;
+  animation: fadeUp var(--motion-duration-fast) var(--motion-ease) backwards;
+}
+.decide-note-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-ink-tertiary); }
+.decide-note textarea {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 64px;
+  background: var(--color-bg-level-1); border: 1px solid var(--color-line-default);
+  border-radius: 8px; color: var(--color-ink-primary); padding: 8px;
+  font-family: var(--font-family-ui); font-size: 12.5px; line-height: 1.5;
+}
+.decide-note-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.decide-note-actions button { height: 28px; }
+
+/* Trace de la decision (qui, quand) affichee dans le panneau droit. */
+.decision-trace {
+  display: flex; gap: 8px; align-items: flex-start;
+  border: 1px solid var(--color-line-default); border-radius: 10px;
+  padding: 9px 10px; margin-bottom: 10px; font-size: 12px;
+}
+.decision-trace.approuver { border-color: color-mix(in srgb, var(--color-status-ok) 45%, transparent); background: var(--color-status-ok-soft); color: var(--color-status-ok); }
+.decision-trace.demander-modifs { border-color: color-mix(in srgb, var(--color-status-warn) 45%, transparent); background: var(--color-status-warn-soft); color: var(--color-status-warn); }
+.decision-trace svg { flex-shrink: 0; margin-top: 1px; }
+.decision-trace-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.decision-trace-t { font-weight: 600; }
+.decision-trace-s { font-size: 11.5px; opacity: 0.85; line-height: 1.45; overflow-wrap: anywhere; }
 
 /* ── Onglets du panneau ─────────────────────────────────────────────── */
 .panel-tabs { display: flex; gap: 2px; background: var(--color-bg-level-2); border: 1px solid var(--color-line-default); border-radius: 8px; padding: 2px; }
@@ -1593,16 +1654,6 @@ main {
 .postiz-msg.err { background: color-mix(in srgb, var(--color-status-err) 10%, transparent); color: var(--color-status-err); }
 .postiz-hint { font-size: 10.5px; color: var(--color-ink-tertiary); text-align: center; }
 
-/* ── Selecteur de type de contenu ───────────────────────────────────── */
-.type-select { position: relative; }
-.type-btn {
-  border: 1px solid var(--color-line-default); background: transparent;
-  color: var(--color-ink-secondary); padding: 6px 11px; font-size: 11.5px;
-  border-radius: var(--radius-input); cursor: pointer;
-  display: inline-flex; align-items: center; gap: 7px; font-weight: 500;
-}
-.type-btn:hover { border-color: var(--color-line-hover); color: var(--color-ink-primary); }
-
 /* ── Modal ──────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
@@ -1632,6 +1683,30 @@ main {
 .modal .field input:focus, .modal .field select:focus { border-color: var(--color-accent-base); outline: none; }
 .modal .field select { cursor: pointer; }
 
+/* ── Confirmation (remplace window.confirm) ────────────────────────── */
+button.danger {
+  background: var(--color-status-err);
+  border-color: var(--color-status-err);
+  color: var(--color-accent-on-accent);
+  font-weight: 600;
+}
+button.danger:hover {
+  background: var(--color-status-err);
+  border-color: var(--color-status-err);
+  color: var(--color-accent-on-accent);
+  filter: brightness(1.08);
+}
+.confirm-modal { width: min(400px, calc(100vw - 32px)); }
+.confirm-titre { display: inline-flex; align-items: center; gap: 7px; }
+.confirm-warn { color: var(--color-status-err); flex-shrink: 0; }
+.confirm-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-ink-secondary);
+}
+.confirm-desc strong { color: var(--color-ink-primary); font-weight: 600; }
+
 /* ── Programmation faite ────────────────────────────────────────────── */
 .planif-fait {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -1643,23 +1718,71 @@ main {
 .planif-fait strong { color: var(--color-ink-primary); font-weight: 600; }
 .planif-annuler { width: 100%; justify-content: center; font-size: 11.5px; }
 
-/* Creneaux conseilles (heures de pointe) dans la modale Programmer (US-06). */
-.creneaux-section { display: flex; flex-direction: column; gap: 8px; }
-.creneaux-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-ink-tertiary); }
-.creneaux-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.creneau-chip {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 5px 10px; border-radius: 999px; cursor: pointer;
+/* ── Mode PROGRAMMER (A4) : calendrier integre au panneau ─────────────── */
+/* Le panneau devient un calendrier : creneaux intelligents (CRENEAUX_PAR_RESEAU)
+ * affiches sur leur jour dans la semaine, apercu du post, action primaire
+ * Programmer. DA monochrome : actif = ink-primary 9% + accent, jamais de statut. */
+.planif-panel { display: flex; flex-direction: column; gap: 12px; }
+.planif-cal { display: flex; flex-direction: column; gap: 8px; }
+.planif-cal-hint { font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.5; }
+.cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px 2px 5px; min-width: 0;
+  border: 1px solid var(--color-line-default); border-radius: 8px;
+}
+.cal-day.today { border-color: color-mix(in srgb, var(--color-ink-primary) 30%, transparent); }
+.cal-day-name { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-ink-tertiary); }
+.cal-day-num { font-size: 12px; font-weight: 600; color: var(--color-ink-primary); line-height: 1.1; }
+.cal-day.today .cal-day-num { color: var(--color-accent-base); }
+.cal-day-chips { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+.cal-chip {
+  width: 100%; text-align: center; font-size: 9px; padding: 2px 0; border-radius: 5px;
   background: transparent; border: 1px solid var(--color-line-default);
-  color: var(--color-ink-secondary); font-size: 11.5px; font-family: var(--font-family-ui);
+  color: var(--color-ink-secondary); font-family: var(--font-family-ui); cursor: pointer;
   transition: border-color var(--motion-duration-fast) var(--motion-ease), color var(--motion-duration-fast) var(--motion-ease), background var(--motion-duration-fast) var(--motion-ease);
 }
-.creneau-chip:hover { background: var(--color-bg-level-3); color: var(--color-ink-primary); }
-.creneau-chip.on {
+.cal-chip:hover { background: var(--color-bg-level-3); color: var(--color-ink-primary); }
+.cal-chip.on {
   background: color-mix(in srgb, var(--color-ink-primary) 9%, transparent);
   border-color: var(--color-accent-base); color: var(--color-ink-primary); font-weight: 600;
 }
-.creneaux-hint { font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.5; }
+.planif-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.planif-field { display: flex; flex-direction: column; gap: 4px; }
+.planif-field span {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--color-ink-tertiary);
+}
+.planif-field input {
+  width: 100%; background: var(--color-bg-level-3); border: 1px solid var(--color-line-default);
+  border-radius: 8px; padding: 7px 9px; color: var(--color-ink-primary);
+  font-family: var(--font-family-ui); font-size: 12px;
+}
+.planif-field input:focus { border-color: var(--color-accent-base); outline: none; }
+.planif-post-wrap { display: flex; flex-direction: column; gap: 6px; }
+.planif-post {
+  display: flex; gap: 10px; padding: 10px; border-radius: 12px;
+  background: var(--color-bg-level-2); border: 1px solid var(--color-line-default);
+}
+.planif-post-media {
+  width: 50px; height: 50px; border-radius: 8px; overflow: hidden; flex-shrink: 0;
+  background: var(--color-bg-level-3); border: 1px solid var(--color-line-default);
+  display: flex; align-items: center; justify-content: center; color: var(--color-ink-tertiary);
+}
+.planif-post-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.planif-post-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.planif-post-head { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--color-ink-secondary); }
+.planif-post-head svg { flex-shrink: 0; }
+.planif-post-reseau { white-space: nowrap; }
+.planif-post-pseudo { margin-left: auto; color: var(--color-ink-tertiary); font-size: 10px; }
+.planif-post-caption {
+  margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--color-ink-primary);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.planif-post-vide { margin: 0; font-size: 10.5px; color: var(--color-ink-tertiary); line-height: 1.4; }
+.planif-post-hashtags { margin: 0; font-size: 10.5px; color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.planif-post-count { font-size: 10px; color: var(--color-ink-tertiary); }
+.planif-post-count.over { color: var(--color-status-err); font-weight: 600; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -1753,6 +1876,34 @@ main {
 }
 .type-filter select:hover { border-color: var(--color-line-hover); }
 .type-filter select:focus { outline: none; border-color: var(--color-accent-base); }
+
+/* ── Filtres séparés de l'ecran Publications (maquette validée 13/08) ── */
+.filtres { display: flex; gap: 8px; align-items: center; margin: 2px 0 4px; flex-wrap: wrap; }
+.filtre-pills { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pill {
+  padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--color-line-strong); background: var(--color-bg-level-1); color: var(--color-ink-secondary);
+  transition: background var(--motion-duration-fast) var(--motion-ease), color var(--motion-duration-fast) var(--motion-ease), border-color var(--motion-duration-fast) var(--motion-ease);
+}
+.pill:hover { color: var(--color-ink-primary); }
+.pill.on {
+  border-color: var(--color-accent-base); background: var(--color-accent-soft); color: var(--color-accent-base);
+}
+.filtre-sep { width: 1px; height: 18px; background: var(--color-line-strong); margin: 0 4px; flex-shrink: 0; }
+.filtre-type .select,
+.liste-tools .select {
+  appearance: none; padding: 5px 30px 5px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--color-line-strong); background: var(--color-bg-level-1); color: var(--color-ink-secondary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  font-family: var(--font-family-ui);
+}
+.filtre-type .select:hover, .liste-tools .select:hover { color: var(--color-ink-primary); }
+.filtre-type .select:focus, .liste-tools .select:focus { outline: none; border-color: var(--color-accent-base); }
+.liste-tools { display: flex; gap: 8px; align-items: center; }
+.filtres .spacer { flex: 1; }
+.liste-tools .select { border-radius: 9px; }
 
 /* ═══════════════════════════════════════════════════════════════════════
    ANIMATIONS ATELIER : spec Apollon (t_429a4bef)
@@ -1988,6 +2139,52 @@ main {
   padding: 0 3px;
 }
 
+/* ── Cloche : dropdown des notifications (MVP 1.5, prototype audit-notifs) ─ */
+.notif-root { position: relative; }
+.notif-pop {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 80;
+  width: 340px; max-height: min(60vh, 460px); overflow-y: auto;
+  background: var(--color-bg-level-3);
+  border: 1px solid var(--color-line-default); border-radius: 12px;
+  box-shadow: var(--color-shadow-lg), 0 0 0 1px color-mix(in srgb, var(--color-ink-primary) 2%, transparent);
+  padding: 6px;
+}
+.notif-head {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--color-ink-tertiary);
+  padding: 8px 10px 6px;
+}
+.notif-section {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--color-ink-tertiary);
+  padding: 10px 10px 4px;
+}
+.notif-group + .notif-group .notif-section { border-top: 1px solid var(--color-line-default); padding-top: 12px; }
+.notif-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  width: 100%; text-align: left;
+  padding: 9px 10px; border: none; border-radius: 9px;
+  background: transparent; color: var(--color-ink-primary);
+  cursor: pointer;
+  transition: background var(--motion-duration-fast) var(--motion-ease);
+}
+.notif-item:hover { background: var(--color-bg-level-2); }
+.n-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 999px;
+  flex-shrink: 0; margin-top: 1px;
+}
+.n-ok { background: color-mix(in srgb, var(--color-status-ok) 16%, transparent); color: var(--color-status-ok); }
+.n-warn { background: color-mix(in srgb, var(--color-status-warn) 14%, transparent); color: var(--color-status-warn); }
+.n-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.n-title {
+  font-size: 13px; font-weight: 500; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.n-title b { font-weight: 700; }
+.n-meta { font-size: 12px; color: var(--color-ink-secondary); }
+.notif-empty { padding: 14px 10px; font-size: 13px; color: var(--color-ink-tertiary); }
+
 /* ═══════════════════════════════════════════════════════════════════════
    THEME MANUEL — toggle sombre/clair (barre du haut)
    Les tokens sont dark-first (tokens.css) avec un fallback light via
@@ -2051,6 +2248,8 @@ main {
 }
 
 /* ── Tunnel de creation : stepper du workflow (SPEC-TUNNEL.md US-03) ── */
+/* Monochrome (zero couleur de statut) : le check blanc marque l'etape faite,
+ * le point plein la courante, le point vide l'etape a venir. */
 .tunnel-steps {
   display: flex; align-items: center; gap: 8px;
   margin-left: auto; margin-right: 12px;
@@ -2060,19 +2259,38 @@ main {
 }
 .tunnel-step { display: inline-flex; align-items: center; gap: 5px; }
 .tunnel-step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-ink-tertiary); opacity: 0.5; }
+.tunnel-step-check { color: var(--color-ink-secondary); flex-shrink: 0; }
 .tunnel-step-label { font-size: 10.5px; color: var(--color-ink-tertiary); white-space: nowrap; }
 .tunnel-step-line { width: 12px; height: 1px; background: var(--color-line-hover); margin: 0 2px; }
-.tunnel-step.done .tunnel-step-dot { background: var(--color-status-ok); opacity: 1; }
 .tunnel-step.done .tunnel-step-label { color: var(--color-ink-secondary); }
-.tunnel-step.done .tunnel-step-line { background: var(--color-status-ok); opacity: 0.5; }
+.tunnel-step.done .tunnel-step-line { background: var(--color-line-default); }
 .tunnel-step.current .tunnel-step-dot {
-  background: var(--color-accent-base); opacity: 1;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-base) 18%, transparent);
+  background: var(--color-ink-primary); opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ink-primary) 14%, transparent);
 }
 .tunnel-step.current .tunnel-step-label { color: var(--color-ink-primary); font-weight: 600; }
+.tunnel-step.todo .tunnel-step-dot { background: transparent; border: 1px solid var(--color-line-hover); opacity: 1; }
 
 /* Invitation "Passer a A valider" (US-04) : la checklist complete declenche le geste suivant */
 .tunnel-next { margin-top: 10px; width: 100%; justify-content: center; }
+
+/* ── Suggestion workflow (SPEC-TUNNEL.md §4) : bandeau de la prochaine action ── */
+.suggestion-band {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 12px; margin-bottom: 10px;
+  border: 1px solid var(--color-line-default); border-radius: 12px;
+  background: var(--color-bg-level-2);
+  animation: fadeUp var(--motion-duration-medium) var(--motion-ease) backwards;
+}
+.suggestion-ico { color: var(--color-ink-secondary); flex-shrink: 0; margin-top: 1px; }
+.suggestion-texte { flex: 1; font-size: 12.5px; line-height: 1.5; color: var(--color-ink-secondary); }
+.suggestion-cta { flex-shrink: 0; padding: 4px 10px; font-size: 11.5px; height: auto; }
+.suggestion-close {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; padding: 0; border-radius: 6px;
+  color: var(--color-ink-tertiary); background: transparent; border: none;
+}
+.suggestion-close:hover { color: var(--color-ink-primary); background: var(--color-bg-level-3); }
 
 /* ── Blog : editeur d'article + listing (type 'article') ─────────────── */
 .article-editor .detail-bar { border-bottom: 1px solid var(--color-line-default); background: var(--color-bg-level-1); padding: 12px 18px; }
@@ -2226,3 +2444,37 @@ main {
   border: 1px solid var(--color-line-hover);
   color: var(--color-ink-primary);
 }
+
+/* ── Modes contextuels de la vue detail (A1, UX-RESEARCH.md §4) ────── */
+/* La page se transforme selon l'etape : une action primaire par mode, le
+ * reste en progressive disclosure. Les classes detail--<mode> sont posees
+ * sur .detail-shell par DraftDetail (data-mode aussi, pour les tests). */
+
+/* Mode CREER : le chat domine, l'apercu guide vers la premiere action. */
+.stage-empty-guide {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px; text-align: center; max-width: 380px;
+  padding: 28px 16px; border-radius: 12px;
+  animation: fadeUp var(--motion-duration-medium) var(--motion-ease) backwards;
+}
+.stage-empty-guide .empty-guide-mark { margin-bottom: 12px; }
+.stage-empty-guide h3 {
+  font-size: 14px; font-weight: 600; color: var(--color-ink-primary); margin: 0 0 4px;
+}
+.stage-empty-guide p {
+  font-size: 12.5px; line-height: 1.6; color: var(--color-ink-secondary);
+  margin: 0 0 14px;
+}
+.stage-empty-guide .empty-guide-actions { display: flex; gap: 8px; margin-bottom: 0; }
+
+/* Mode VALIDER : le statut est mis en avant (la decision est en cours). */
+.detail--valider .statut-btn.on--a-valider {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-status-warn) 22%, transparent);
+}
+/* Le panneau ne garde que la checklist et le chat : les onglets d'edition
+ * (reseaux/slides/source) sont masques par le JSX (MODE_UI.valider.onglets). */
+
+/* Mode PROGRAMMER : le creneau est la zone dominante du panneau. */
+/* Mode PROGRAMMER (A4) : le calendrier est dans le panneau (onglet Calendrier),
+ * plus de section planif en bas de panneau ni de modale. */
+

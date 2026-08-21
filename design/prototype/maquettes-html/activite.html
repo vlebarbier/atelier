@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Activité IA</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .act-layout { display: grid; grid-template-columns: minmax(0,1fr) 380px; gap: 0; min-height: calc(100vh - 110px); }
+  .act-list { padding: 20px 24px; border-right: 1px solid var(--line); }
+  .act-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 11px; border: 1px solid transparent; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+  .act-card:hover { background: var(--surface-2); }
+  .act-card.on { background: var(--surface-2); border-color: var(--accent); }
+  .act-card .who { width: 26px; height: 26px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .act-card .chev { color: var(--ink-3); font-size: 12px; }
+  .act-detail { padding: 20px 22px; overflow-y: auto; background: var(--surface); }
+  .act-detail .d-title { font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+  .act-detail .d-meta { font-size: 11.5px; color: var(--ink-3); margin-bottom: 14px; }
+  .act-detail .d-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); margin: 14px 0 8px; }
+  .act-detail .d-box { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+  .act-detail .d-box b { color: var(--ink); }
+  .act-detail .shot { border-radius: 10px; border: 1px solid var(--line); overflow: hidden; background: var(--surface-2); }
+  .act-detail .shot .bar { height: 40px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 6px; padding: 0 12px; }
+  .act-detail .shot .bar .d { width: 8px; height: 8px; border-radius: 50%; }
+  .act-detail .shot .mini { padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .act-detail .shot .mini .mbar { height: 7px; border-radius: 4px; background: #3F3F46; }
+  .act-detail .empty { color: var(--ink-3); font-size: 12.5px; text-align: center; padding: 60px 20px; }
+  .act-detail .empty .big { font-size: 26px; margin-bottom: 10px; opacity: 0.5; }
+</style>
+</head>
+<body class="theme-dark" data-page="activite">
+
+<div class="act-layout">
+  <div class="act-list">
+    <div class="liste-head" style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <h2 style="font-size:20px;font-weight:700">Activité IA</h2>
+      <span class="badge-count"><span class="n">47 actions</span><span class="attention">aujourd'hui</span></span>
+    </div>
+    <div style="font-size:12.5px;color:var(--ink-2);margin:8px 0 18px">Journal des actions des agents — cliquez sur une action pour voir ce qui a été fait.</div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+
+      <div class="act-card" data-id="h-slides">
+        <div class="who" style="background:rgba(245,166,35,0.14);color:var(--st-a-valider)">H</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--ink)"><b>Héphaïstos</b> a généré 9 slides</div>
+          <div style="font-size:11.5px;color:var(--ink-3)">Carrousel Bordeluche · il y a 2 h</div>
+        </div>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="act-card" data-id="a-charte">
+        <div class="who">A</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--ink)"><b>Athéna</b> a validé la conformité charte</div>
+          <div style="font-size:11.5px;color:var(--ink-3)">Carrousel Bordeluche · il y a 2 h</div>
+        </div>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="act-card" data-id="ap-legende">
+        <div class="who">Ap</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--ink)"><b>Apollon</b> a rédigé la légende Instagram</div>
+          <div style="font-size:11.5px;color:var(--ink-3)">Carrousel Bordeluche · il y a 3 h</div>
+        </div>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="act-card" data-id="m-mot">
+        <div class="who">M</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--ink)"><b>Minerve</b> a détecté 1 mot interdit</div>
+          <div style="font-size:11.5px;color:var(--ink-3)">Rentabilité · il y a 5 h</div>
+        </div>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="act-card" data-id="h-html">
+        <div class="who" style="background:rgba(245,166,35,0.14);color:var(--st-a-valider)">H</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--ink)"><b>Héphaïstos</b> a modifié le HTML de la slide 3</div>
+          <div style="font-size:11.5px;color:var(--ink-3)">Carrousel Bordeluche · il y a 4 h</div>
+        </div>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="act-card" data-id="at-expo">
+        <div class="who">At</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--ink)"><b>Athéna</b> a exporté le PDF de présentation</div>
+          <div style="font-size:11.5px;color:var(--ink-3)">Pitch deck Gambetta · il y a 6 h</div>
+        </div>
+        <span class="chev">›</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Panneau de détail : infos + capture de ce qui a été fait -->
+  <div class="act-detail" id="actDetail">
+    <div class="empty">
+      <div class="big">👈</div>
+      Cliquez sur une action du journal pour voir
+      <b style="color:var(--ink)">ce que l'agent a fait</b> : résumé, diff et capture.
+    </div>
+  </div>
+</div>
+
+<script src="assets/proto.js"></script>
+<script>
+  var DETAILS = {
+    'h-slides': {
+      title: 'Héphaïstos a généré 9 slides',
+      meta: 'Carrousel « Pourquoi Bordeluche existe » · il y a 2 h · 1 min 42 s',
+      body: 'Génération du carrousel à partir de la source HTML et de la charte : <b>9 slides</b> (hook, problème, 3 logements, solution, CTA). Format 4:5, DA noire, typo Cormorant + Jost, logo présent sur chaque slide.',
+      shot: true
+    },
+    'a-charte': {
+      title: 'Athéna a validé la conformité charte',
+      meta: 'Carrousel « Pourquoi Bordeluche existe » · il y a 2 h · 4 s',
+      body: 'Vérification des tokens : fonds <b>#050505/#0A0A0A</b>, accent blanc, statuts ambre/vert, typos (Cormorant Garamond display · Jost UI). <b>Résultat : conforme</b> — aucun écart détecté.',
+      shot: false
+    },
+    'ap-legende': {
+      title: 'Apollon a rédigé la légende Instagram',
+      meta: 'Carrousel « Pourquoi Bordeluche existe » · il y a 3 h · 8 s',
+      body: 'Légende storytelling (188/2200) : « J\'ai vécu ce que vivent les propriétaires. 3 logements, 9 slides, une seule promesse : vos revenus sans la charge mentale. » + 4 hashtags (#Bordeaux #Conciergerie #InvestissementLocatif #Airbnb).',
+      shot: false
+    },
+    'm-mot': {
+      title: 'Minerve a détecté 1 mot interdit',
+      meta: 'Rentabilité · il y a 5 h · 2 s',
+      body: 'Le mot <b style="color:var(--st-a-valider)">« optimal »</b> (interdit par la brand voice) apparaît dans la légende LinkedIn. <b>Action suggérée</b> : remplacer par « ajusté à vos objectifs » — proposition envoyée au chat.',
+      shot: false
+    },
+    'h-html': {
+      title: 'Héphaïstos a modifié le HTML de la slide 3',
+      meta: 'Carrousel « Pourquoi Bordeluche existe » · il y a 4 h · 12 s',
+      body: 'Slide 3 (Mûriers) : titre raccourci de « La Maison des Mûriers, un salon lumineux qui donne envie d\'y rester » → <b>« La Maison des Mûriers, salon lumineux »</b>. Fond conservé, contraste vérifié.',
+      diff: true,
+      shot: false
+    },
+    'at-expo': {
+      title: 'Athéna a exporté le PDF de présentation',
+      meta: 'Pitch deck Gambetta · il y a 6 h · 3 s',
+      body: 'Export PDF 12 pages à partir du HTML autonome : couverture, sommaire, 9 slides, annexes. <b>Fichier</b> : pitch-gambetta-v2.pdf (4,2 Mo) — disponible dans la bibliothèque.',
+      shot: false
+    }
+  };
+
+  var detail = document.getElementById('actDetail');
+  function render(id) {
+    var d = DETAILS[id];
+    if (!d) return;
+    document.querySelectorAll('.act-card').forEach(function (c) { c.classList.toggle('on', c.dataset.id === id); });
+    var shot = '';
+    if (d.shot) {
+      shot = '<div class="d-label">Capture</div>' +
+        '<div class="shot">' +
+          '<div class="bar"><span class="d" style="background:#F87171"></span><span class="d" style="background:#F5A623"></span><span class="d" style="background:#34D399"></span></div>' +
+          '<div class="mini">' +
+            '<div style="width:150px;height:90px;border-radius:8px;background:linear-gradient(160deg,#F1EFEA,#E7E3D9);display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:13px;color:#2A2420;text-align:center;padding:8px">La Maison des Mûriers, salon lumineux.</div>' +
+            '<div style="font-size:10.5px;color:var(--ink-3)">Slide 3/9 · rendu réel</div>' +
+          '</div>' +
+        '</div>';
+    }
+    var diff = '';
+    if (d.diff) {
+      diff = '<div class="d-label">Diff avant / après</div>' +
+        '<div class="d-box" style="font-size:12px">' +
+          '<div style="color:var(--ink-3);font-size:10.5px;margin-bottom:4px">AVANT</div>' +
+          '<div style="text-decoration:line-through;opacity:0.7">La Maison des Mûriers, un salon lumineux qui donne envie d\'y rester</div>' +
+          '<div style="color:var(--ink-3);font-size:10.5px;margin:8px 0 4px">APRÈS</div>' +
+          '<div style="color:var(--st-valide)">La Maison des Mûriers, salon lumineux</div>' +
+        '</div>';
+    }
+    detail.innerHTML =
+      '<div class="d-title">' + d.title + '</div>' +
+      '<div class="d-meta">' + d.meta + '</div>' +
+      '<div class="d-label">Ce qui a été fait</div>' +
+      '<div class="d-box">' + d.body + '</div>' +
+      diff + shot +
+      '<div class="d-label">Aller au contenu</div>' +
+      '<a class="btn primary" href="detail.html?mode=reviser" style="text-decoration:none;text-align:center;width:100%">Ouvrir le brouillon →</a>';
+  }
+  document.querySelectorAll('.act-card').forEach(function (c) {
+    c.addEventListener('click', function () { render(c.dataset.id); });
+  });
+</script>
+</body>
+</html>
