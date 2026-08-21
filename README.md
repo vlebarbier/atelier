@@ -6,6 +6,15 @@ Atelier est le lieu de travail entre l'agent qui produit (Hermes, Claude Code, C
 
 > **Ceci est une version early-stage** — issue d'un usage réel chez une conciergerie Airbnb (Bordeluche). Le code est fonctionnel mais en cours de refonte produit.
 
+## Documents de référence
+
+- [`AGENTS.md`](AGENTS.md) — instructions pour les agents IA (**à lire en premier**)
+- [`docs/PRODUCT.md`](docs/PRODUCT.md) — vérité produit (JTBD, contraintes, non-goals)
+- [`docs/DESIGN.md`](docs/DESIGN.md) — source de vérité visuelle (tokens, typo, anti-patterns)
+- [`docs/ROADMAP-MVP.md`](docs/ROADMAP-MVP.md) — état réel du code + roadmap 3 phases
+- [`docs/PRIORISATION.md`](docs/PRIORISATION.md) — RICE des 55 features + chemin critique
+- [`docs/INDEX.md`](docs/INDEX.md) — index complet de la documentation
+
 ## Ce qu'il fait
 
 | Capacité | Description |
@@ -35,7 +44,7 @@ npm run test:e2e -w apps/web   # visual regression (golden images DA)
 npm run test:e2e:update -w apps/web  # régénérer les golden images
 ```
 
-> La base SQLite est seedée automatiquement depuis le prototype (brouillons + slides copiés au premier démarrage).
+> Le seed depuis le prototype est **opt-in** (`API_BROUILLONS_SEED_DIR`) — en usage normal, les brouillons arrivent via la boucle agent MCP.
 
 ## Architecture (monorepo npm workspaces)
 
@@ -46,9 +55,10 @@ Atelier/
 │   │                   #   légendes par réseau, ⌘K, Calendrier, Charte, Activité IA)
 │   └── api/            # API Hono + SQLite (better-sqlite3) + Drizzle + Zod
 ├── packages/
+│   ├── mcp/            # Serveur MCP (15 outils) — la colonne vertébrale
 │   ├── tokens/         # Design tokens (Style Dictionary) → dist/tokens.css + tokens.json
 │   └── render/         # Pipeline de rendu HTML → PNG (Playwright)
-├── docs/               # DESIGN.md (DA), PRODUCT.md, positionnement, recommandations
+├── docs/               # PRODUCT.md, DESIGN.md, ROADMAP, specs — voir docs/INDEX.md
 └── archive/            # Anciens fichiers prototype (dashboard single-file, MCP Python)
 ```
 
@@ -56,7 +66,7 @@ Atelier/
 
 - **Web** : React 19, TypeScript strict, Vite, @phosphor-icons/react (icônes), design tokens @atelier/tokens
 - **API** : Hono, better-sqlite3, Drizzle ORM, Zod (validation)
-- **DA** : « Linear du contenu social » — dark-first, accent doré #E8C97A, Plus Jakarta Sans, hairlines alpha
+- **DA** : voir [`docs/DESIGN.md`](docs/DESIGN.md) (source de vérité) — « atelier éditorial chaud », dark-first, accent terracotta, Fraunces + Plus Jakarta Sans, hairlines teintées
 - **Visual regression** : Playwright snapshots (golden images dark + light) — toute dérive DA fait échouer les tests
 
 ## Outils MCP exposés
@@ -78,7 +88,13 @@ Atelier/
 | `lister_ressources` / `lire_ressource` / `deposer_ressource` | Bibliothèque (mémoire de la marque) |
 | `lire_journal` | Journal des actions agents |
 
-**La boucle agent réelle** : `creer_brouillon` (demande initiale) → `set_source` (HTML) → `deposer_slides` (visuels via l'API) → `set_legende` → `repondre_brouillon`. La production passe par cette boucle MCP ; le seed depuis un dossier local n'existe plus (opt-in `API_BROUILLONS_SEED_DIR` pour migration ponctuelle).
+**La boucle agent réelle** : `creer_brouillon` (demande initiale) → `set_source` (HTML) → `deposer_slides` (visuels via l'API) → `set_legende` → `repondre_brouillon`. La production passe par cette boucle MCP ; le seed depuis un dossier local est opt-in (`API_BROUILLONS_SEED_DIR`, migration ponctuelle).
+
+## État
+
+**MVP 1.1 livré** (15/08/2026) : boucle agent réelle de bout en bout (`creer_brouillon` + `deposer_slides` MCP), seed prototype désactivé par défaut. **MVP 1.5** : notifications (dropdown cloche : à valider + publiés récents).
+
+Reste en phase 1 (voir [`docs/ROADMAP-MVP.md`](docs/ROADMAP-MVP.md)) : page post publié + métriques (1.2), rétraction en barres du DraftDetail (1.3), annotations ①② en mode Réviser (1.4).
 
 ## Philosophie
 
