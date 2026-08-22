@@ -81,18 +81,21 @@ export function CreationModal({ onClose, onPhrase, onTemplate }: CreationModalPr
 
               <div className="creation-sep">— ou choisis un template —</div>
               <div className="creation-templates">
-                {TEMPLATES_CREATION.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className="creation-template"
-                    onClick={() => setTemplateActif(t)}
-                  >
-                    <span className="creation-template-emoji">{t.emoji ?? '✦'}</span>
-                    <span className="creation-template-nom">{t.nom}</span>
-                    <span className="creation-template-desc">{t.description}</span>
-                  </button>
-                ))}
+                {TEMPLATES_CREATION.map((t) => {
+                  const Ico = t.icone ?? Sparkle;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className="creation-template"
+                      onClick={() => setTemplateActif(t)}
+                    >
+                      <Ico size={18} className="creation-template-ico" />
+                      <span className="creation-template-nom">{t.nom}</span>
+                      <span className="creation-template-desc">{t.description}</span>
+                    </button>
+                  );
+                })}
               </div>
             </>
           )}
