@@ -1,106 +1,109 @@
 # DESIGN.md — Atelier
 
-> Direction artistique du produit **Atelier**. Générée 09/08/2026 (impeccable + high-end-visual-design).
-> **Remplacer l'ancienne DA Bordeluche** (bordeaux/ivoire/gold, Cormorant/Jost) — anti-référence.
+> Direction artistique du produit **Atelier**. Réécrite le 22/08/2026 sur la base du prototype validé
+> (`design/prototype/`) et de la session design du 21-22/08 (direction « noir chaud & doré »).
+> Remplace la version terracotta du 09/08, jamais implémentée.
+> **Anti-référence** : l'ancienne DA Bordeluche (bordeaux/ivoire, Cormorant/Jost) reste celle du
+> **contenu client** (slides, documents) — jamais celle du produit.
 
 ## Positionnement visuel
 
-**« L'atelier éditorial chaud »** — un outil de création qui se sent comme un atelier d'artisan premium, pas comme un dashboard SaaS froid.
+**« L'écrin noir, le contenu héros. »** Atelier est un outil **Operate** dark-first : l'interface
+s'efface (noir chaud, hairlines teintées, une seule couleur signature), et le contenu du client
+garde sa propre charte à l'écran (la slide ivoire Bordeluche reste ivoire dans l'app sombre).
+Le produit est l'écrin, jamais le décor.
 
-- Archetype : **Editorial Luxury** (high-end-visual-design)
-  - Crèmes chauds / espresso profond, grain de papier subtil
-  - Serif à contraste élevé pour les titres massifs
-  - Lignes fines (hairlines), double-bezel sur les cartes
-- Mode produit : **Operate** (dashboard) — scanabilité, cohérence, détails premium ; l'expression vit dans les détails, pas dans le décor
+- Sombre = mode primaire, chaud et premium (pas le noir bleuté façon Linear/Vercel)
+- Clair = blanc cassé net et lumineux (pas crème), dessiné à la main — pas une inversion
+- L'expression vit dans les détails : hairlines, double-bezel, micro-motions
 
 ## Palette
 
-| Token | Clair | Sombre | Usage |
-|---|---|---|---|
-| `--paper` | `#FBF9F6` (crème) | `#121110` (espresso) | Fond principal |
-| `--surface` | `#FFFFFF` | `#1B1A18` | Cartes, panneaux |
-| `--surface-2` | `#F4F1EA` | `#262422` | Surfaces secondaires, hover |
-| `--ink` | `#211D19` (espresso) | `#F2EFE9` (crème clair) | Texte principal |
-| `--ink-2` | `#6B6459` | `#A89F91` | Texte secondaire |
-| `--ink-3` | `#9A9184` | `#6E675C` | Texte tertiaire |
-| `--line` | `#E7E1D6` | `#34312C` | Hairlines (bordures fines) |
-| `--line-2` | `#D5CCBB` | `#4A463F` | Hairlines fortes, focus |
-| `--accent` | `#C2410C` (terracotta) | `#F97316` (terracotta clair) | Actions, focus, sélection |
-| `--accent-hover` | `#9A3412` | `#FB923C` | Hover |
-| `--accent-soft` | `#FBEBD9` | `#3A2415` | Fonds accent doux (badges) |
-| `--ok` | `#4D7C0F` | `#A3C97F` | Validé |
-| `--warn` | `#B45309` | `#E9B96C` | À valider |
-| `--err` | `#B91C1C` | `#F08787` | Erreur |
+Source canonique : `packages/tokens/tokens.json` (build → `dist/tokens.css`). Ne jamais hardcoder.
 
-### Règles couleur (high-end-visual-design)
-- **Jamais de bordures `1px solid gray`** — uniquement des hairlines teintées (`--line`)
-- **Jamais d'ombres dures** (`shadow-md` générique) — ombres diffuses, très douces, 3 couches max
-- **Jamais de dégradés décoratifs** — accent plat terracotta uniquement
-- Sélection/focus = accent terracotta, jamais de bleu système
+| Token | Sombre | Clair | Usage |
+|---|---|---|---|
+| `bg.deepest` | `#100E0C` | `#FAFAF9` | Fond le plus profond (chat, zones en retrait) |
+| `bg.level-1` | `#141210` | `#FFFFFF` | Fond principal |
+| `bg.level-2` | `#1C1916` | `#F2F2F0` | Surfaces, nav active |
+| `bg.level-3` | `#26221E` | `#E9E9E5` | Cartes, popovers |
+| `ink.primary` | `#F2EEE7` | `#1C1C1A` | Texte principal |
+| `ink.secondary` | `#A89F92` | `#5A5A55` | Texte secondaire (seuil WCAG AA) |
+| `ink.tertiary` | `#6E675C` | `rgba(28,28,26,.52)` | Texte tertiaire |
+| `line.*` | `rgba(240,232,218,.09/.15/.22)` | `rgba(28,28,26,.10/.18/.26)` | Hairlines **teintées chaudes**, jamais gris neutre |
+| `accent.base` | `#E8C97A` | `#E8C97A` | **Doré unifié** (décision 13/08) : CTA primaires, stepper actif, marque |
+| `accent.on-accent` | `#0A0A0A` | `#1C1C1A` | Texte sombre sur le doré |
+| `status.warn` | `#D9A441` | `#D97706` | **À valider** — réservé à ce statut |
+| `status.validated` | `#4A8FD4` | `#2563A8` | **Validée** — BLEU, distinct de Publiée |
+| `status.ok` | `#4CAF7D` | `#16A34A` | **Publiée** + confirmations ✓ + CTA final |
+| `status.err` | `#FF5252` | `#DC2626` | Erreur, suppression |
+| `status.neutral` | teinte chaude alpha | alpha | **Brouillon** |
+
+### Règles couleur
+- Le doré est la **seule couleur signature** : CTA primaire, stepper actif, logo, sparkle agent. Jamais sur un statut.
+- Statuts = 4 couleurs réservées (gris / ambre / bleu / vert). « Validée » et « Publiée » ne se confondent jamais.
+- Ombres diffuses uniquement (3 couches max) ; pas de dégradés décoratifs dans le produit
+  (les dégradés vivent dans le contenu client : covers, slides).
 
 ## Typographie
 
 | Rôle | Police | Notes |
 |---|---|---|
-| Display (titres, marque) | **Fraunces** (serif, axes optiques) | `opsz 72-144`, graisse 500-600, italique occasionnel |
-| UI (interface) | **Plus Jakarta Sans** (ou Geist) | graisses 400/500/600, lisible en corps 13-14px |
-| Mono (éventuel) | Geist Mono | jamais indispensable |
+| Display (titres produit, marque, docs) | **Fraunces** | graisses 400-600, italique occasionnel pour l'accent éditorial |
+| UI (tout le reste) | **Plus Jakarta Sans** | 400/500/600/700, base 13px |
 
-**Inter est BANNI** (remplacé : Plus Jakarta Sans). Cormorant/Jost BANNIS (DA Bordeluche).
+**Bannies** : Inter, Roboto, Arial, Open Sans, Helvetica. **Cormorant/Jost bannies du produit**
+(elles restent la voix du contenu client Bordeluche, pas de l'outil).
 
-Échelle : 12 / 13 / 14 / 16 / 20 / 28 / 40. Titres de dashboard en Fraunces 28, jamais plus grand que nécessaire (Operate).
+## Icônes — Phosphor
+
+- **`@phosphor-icons/react`, stroke regular 1.8, `currentColor`** — 16px (nav, boutons) / 20px (actions de page)
+- **Inactif = regular, ink.secondary · Actif = même glyphe en `fill` + doré** — la graisse fait ressortir, pas une couleur de plus
+- `duotone` réservé aux moments vedettes (avatar agent ✦, états vides)
+- **Zéro émoji dans l'UI produit** — un émoji ne suit ni la couleur ni l'épaisseur du système
+- Logos réseaux (Instagram, LinkedIn, X) = **marques SVG officielles**, pas des icônes UI : couleurs de marque conservées
 
 ## Architecture visuelle
 
-### Double-bezel (cartes, panneaux)
-```
-┌─ shell (fond surface-2, hairline --line, padding 1-2px, radius 18px)
-│  ┌─ core (fond surface, highlight interne inset, radius 14px)
-│  │   contenu
-│  └─
-└─
-```
+### Shell
+- Sidebar 220px (rétractable 52px) en 3 groupes : **Travail** (Publications, Documents, Blog, Calendrier) / **Marque** (Bibliothèque, Charte) / **Agents** (Activité IA, Intégrations)
+- Topbar 52px : repli à gauche ; recherche, notifications, thème à droite
 
-### Boutons
-- Pilule (radius full), padding généreux
-- Primary : fond accent terracotta, texte blanc/crème
-- Secondaire : fond surface, hairline
-- Icône dans cercle imbriqué si flèche (button-in-button)
-- Hover : `transform: scale(0.98)`, transition cubic-bezier
+### Vue détail = 3 colonnes (structure validée du prototype)
+- **Contenu** (la slide / le document, charte client intacte) · **Chat agent** (le fil de travail) · **Rail contextuel** selon le mode
+- Rétraction cumulative des colonnes en barres de 44px
+- Stepper **Créer → Réviser → Programmer** : fait = ✓ vert, en cours = doré, à venir = gris
+- Une action primaire par mode (le rail la porte) ; « rien n'est publié sans validation »
 
-### Motion
-- **Toutes** les transitions : `cubic-bezier(0.32, 0.72, 0, 1)` (ou similaire mass-spring) — jamais `linear`/`ease-in-out`
-- Entrées : fade-up doux avec blur (`translateY 16px + blur 8px → 0`, 700ms)
-- Stagger léger sur les listes (delay 40ms par item, max 5)
-- Animations uniquement `transform` + `opacity` (jamais top/left/width/height)
-- `backdrop-blur` réservé aux éléments fixed/sticky (nav, modales)
-
-### Grain / texture
-- Overlay film-grain subtil : pseudo-élément `fixed`, `pointer-events: none`, `opacity: 0.03`, z-index bas — **jamais** sur un conteneur scrollable
-
-### Layout
-- Sidebar fine (240px) : navigation, marque Fraunces
-- Zone principale : grille de projets (asymétrique autorisée : un grand + plusieurs petits)
-- Espace blanc généreux (py-24+ équivalent), densité moyenne
-- Mobile : collapse colonne unique, `min-h-100dvh` jamais `h-screen`
+### Composants
+- **Double-bezel** sur les slides et cartes principales : coquille `radius.shell` 18px / cœur `radius.card` 12px
+- Boutons **pilules** (`radius.btn` 999px) : primaire = doré + texte sombre, secondaire = surface + hairline
+- **Motion** : `cubic-bezier(0.32, 0.72, 0, 1)` partout, 150-250ms, `transform` + `opacity` uniquement
 
 ## États
 
 | Statut | Badge |
 |---|---|
-| brouillon | surface-2, texte ink-2 |
-| à-valider | accent-soft, texte accent |
-| validé | ok-soft, texte ok |
-| publié | ok, texte blanc |
+| brouillon | `status.neutral`, texte ink.secondary |
+| à valider | `status.warn-soft`, texte ambre |
+| validée | `status.validated-soft`, texte bleu |
+| publiée | `status.ok-soft`, texte vert |
 
 ## Anti-patterns absolus (checklist pré-livraison)
 
-- [ ] Aucune police bannie (Inter, Roboto, Arial, Open Sans, Helvetica, Cormorant, Jost)
-- [ ] Aucune bordure 1px gris neutre — hairlines teintées seulement
+- [ ] Aucune police bannie (Inter, Roboto, Arial, Open Sans, Helvetica ; Cormorant/Jost hors contenu client)
+- [ ] Aucune bordure gris neutre — hairlines teintées chaudes seulement
 - [ ] Aucune ombre dure — diffusion douce seulement
 - [ ] Aucune transition linear/ease-in-out — cubic-bezier partout
 - [ ] Aucune animation de layout (transform/opacity only)
-- [ ] Aucun backdrop-blur sur conteneur scrollable
-- [ ] Double-bezel sur les cartes principales
-- [ ] Mode sombre natif (prefers-color-scheme)
-- [ ] Accent unique terracotta
+- [ ] Aucun émoji en guise d'icône — Phosphor partout
+- [ ] Le doré jamais sur un statut ; Validée (bleu) ≠ Publiée (vert)
+- [ ] Le contenu client n'est jamais re-stylé aux couleurs du produit
+- [ ] Mode clair = blanc cassé dessiné à la main, pas une inversion du sombre
+
+## Références
+
+- `design/prototype/` — les 27 maquettes validées : **source de vérité visuelle** pendant le portage
+- `docs/design/AUDIT-PROTOTYPE.md` — les 10 chantiers d'amélioration identifiés sur le prototype
+- `docs/specs/SPEC-PORTAGE-PROTOTYPE.md` — mapping écran par écran vers l'app React
+- `packages/tokens/tokens.json` — valeurs canoniques (tests : `packages/tokens/tokens.test.mjs`)
