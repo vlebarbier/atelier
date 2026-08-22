@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Sparkle, ArrowRight } from '@phosphor-icons/react';
+import { X, Sparkle, ArrowRight, Plus } from '@phosphor-icons/react';
 import { TEMPLATES_CREATION, type TemplateCreation } from '../format';
 
 interface CreationModalProps {
@@ -12,7 +12,7 @@ interface CreationModalProps {
 
 /**
  * Porte d'entree « Nouvelle creation » (SPEC-CREATION.md §2) : phrase libre
- * OU grille de templates. Cree un brouillon avec conversation pre-remplie —
+ * OU grille de templates. Crée un brouillon avec conversation pré-remplie
  * l'agent propose un premier jet, les slides apparaissent via le polling.
  */
 export function CreationModal({ onClose, onPhrase, onTemplate }: CreationModalProps) {
@@ -79,7 +79,7 @@ export function CreationModal({ onClose, onPhrase, onTemplate }: CreationModalPr
                 </button>
               </div>
 
-              <div className="creation-sep">— ou choisis un template —</div>
+              <div className="creation-sep"><span className="creation-sep-glyph" aria-hidden="true">/</span> ou choisis un template <span className="creation-sep-glyph" aria-hidden="true">/</span></div>
               <div className="creation-templates">
                 {TEMPLATES_CREATION.map((t) => {
                   const Ico = t.icone ?? Sparkle;
