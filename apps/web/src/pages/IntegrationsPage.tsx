@@ -104,22 +104,29 @@ export function IntegrationsPage() {
 
   const API_URL = import.meta.env.VITE_API_URL || 'https://atelier-api-three.vercel.app';
 
+  // Configs portables : le serveur MCP est un processus stdio lance par l'agent
+  // sur SA machine (Mac, instance cloud...). Prerequis identique partout :
+  // cloner le repo et builder le package MCP. ATELIER_API_URL pointe sur la
+  // prod ; ATELIER_DATA_DIR n'est utile qu'en mode tout-local (SQLite).
   const CONFIG_HERMES = `# ~/.hermes/config.yaml
+# Prerequis (sur la machine qui heberge l'agent : Mac, instance cloud...) :
+#   git clone https://github.com/vlebarbier/atelier.git && cd atelier
+#   npm install && npm run build -w packages/mcp
 mcp:
   servers:
     atelier:
       command: node
-      args: ["/Users/victorlebarbier/Atelier/packages/mcp/dist/index.js"]
+      args: ["$HOME/atelier/packages/mcp/dist/index.js"]
       env:
-        ATELIER_API_URL: "${API_URL}"
-        ATELIER_DATA_DIR: "/Users/victorlebarbier/Atelier/apps/api/data/brouillons"`;
+        ATELIER_API_URL: "${API_URL}"`;
 
   const CONFIG_CLAUDE = `# ~/.claude.json (ou config MCP de Claude Code)
+# Prerequis : repo clone + npm run build -w packages/mcp (voir bloc Hermes)
 {
   "mcpServers": {
     "atelier": {
       "command": "node",
-      "args": ["/Users/victorlebarbier/Atelier/packages/mcp/dist/index.js"],
+      "args": ["$HOME/atelier/packages/mcp/dist/index.js"],
       "env": {
         "ATELIER_API_URL": "${API_URL}"
       }
@@ -128,9 +135,10 @@ mcp:
 }`;
 
   const CONFIG_CODEX = `# ~/.codex/config.toml
+# Prerequis : repo clone + npm run build -w packages/mcp (voir bloc Hermes)
 [mcp_servers.atelier]
 command = "node"
-args = ["/Users/victorlebarbier/Atelier/packages/mcp/dist/index.js"]
+args = ["$HOME/atelier/packages/mcp/dist/index.js"]
 env = { ATELIER_API_URL = "${API_URL}" }`;
 
   function copier(id: CopieId, texte: string) {
@@ -259,8 +267,10 @@ env = { ATELIER_API_URL = "${API_URL}" }`;
           </div>
           <pre className="integ-code"><code>{CONFIG_HERMES}</code></pre>
           <p className="integ-note">
-            <TerminalWindow size={12} /> Ajoutez ce bloc a votre configuration MCP, puis redemarrez Hermes. Les
-            outils Atelier (lire_brouillon, get_charte, deposer_ressource, repondre_brouillon...) apparaissent dans le chat.
+            <TerminalWindow size={12} /> Le MCP est lance par l'agent sur sa propre machine : cette config marche
+            sur votre Mac comme sur une instance cloud. Ajoutez le bloc a votre configuration MCP, puis redemarrez
+            Hermes. Les outils Atelier (lire_brouillon, get_charte, deposer_ressource, repondre_brouillon...)
+            apparaissent dans le chat.
           </p>
         </div>
       </PageSection>
