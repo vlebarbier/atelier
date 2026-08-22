@@ -41,7 +41,16 @@ export default function App() {
   const [vue, setVue] = useState<Vue>(() =>
     localStorage.getItem('atelier.vue.defaut') === 'liste' ? 'liste' : 'grille'
   );
-  const [filtre, setFiltre] = useState<Statut | 'tous'>('tous');
+  // Filtre de statut : preference de consultation persistee (atelier.filtre.defaut),
+  // partagee par les pages Contenus et Documents (meme composant).
+  const FILTRES_STATUT: ReadonlyArray<Statut | 'tous'> = ['tous', 'brouillon', 'a-valider', 'valide', 'publie'];
+  const [filtre, setFiltre] = useState<Statut | 'tous'>(() => {
+    const saved = localStorage.getItem('atelier.filtre.defaut');
+    return (FILTRES_STATUT as readonly string[]).includes(saved ?? '') ? (saved as Statut | 'tous') : 'tous';
+  });
+  useEffect(() => {
+    localStorage.setItem('atelier.filtre.defaut', filtre);
+  }, [filtre]);
   const [brouillons, setBrouillons] = useState<Brouillon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
