@@ -1,0 +1,82 @@
+/* apps/web/src/da-v3.css
+   Couche DA v3 (22/08/2026) — importée APRÈS styles.css dans main.tsx.
+   La cascade CSS fait gagner ces valeurs : elles remplacent les deux blocs
+   manuels `:root[data-theme=...]` de styles.css, restés sur l'ancienne DA
+   (noir neutre + accent ambre #B45309 en clair, contraire a la decision du
+   13/08 : dore #E8C97A unifie).
+
+   Valeurs = packages/tokens/tokens.json (source unique de verite).
+   Suivi : supprimer les deux blocs manuels devenus morts dans styles.css.
+*/
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg-deepest: #100E0C;
+  --color-bg-level-1: #141210;
+  --color-bg-level-2: #1C1916;
+  --color-bg-level-3: #26221E;
+  --color-ink-primary: #F2EEE7;
+  --color-ink-secondary: #A89F92;
+  --color-ink-tertiary: #6E675C;
+  --color-line-default: rgba(240, 232, 218, 0.09);
+  --color-line-hover: rgba(240, 232, 218, 0.15);
+  --color-line-strong: rgba(240, 232, 218, 0.22);
+  --color-accent-base: #E8C97A;
+  --color-accent-hover: #F0D88F;
+  --color-accent-soft: rgba(232, 201, 122, 0.12);
+  --color-accent-on-accent: #0A0A0A;
+  --color-status-warn: #D9A441;
+  --color-status-warn-soft: rgba(217, 164, 65, 0.12);
+  --color-status-ok: #4CAF7D;
+  --color-status-ok-soft: rgba(76, 175, 125, 0.12);
+  --color-status-validated: #4A8FD4;
+  --color-status-validated-soft: rgba(74, 143, 212, 0.12);
+  --color-status-err: #FF5252;
+  --color-status-err-soft: rgba(255, 82, 82, 0.14);
+  --color-status-neutral: rgba(240, 232, 218, 0.09);
+  --color-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --color-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --color-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-bg-deepest: #FAFAF9;
+  --color-bg-level-1: #FFFFFF;
+  --color-bg-level-2: #F2F2F0;
+  --color-bg-level-3: #E9E9E5;
+  --color-ink-primary: #1C1C1A;
+  --color-ink-secondary: #5A5A55;
+  --color-ink-tertiary: rgba(28, 28, 26, 0.52);
+  --color-line-default: rgba(28, 28, 26, 0.10);
+  --color-line-hover: rgba(28, 28, 26, 0.18);
+  --color-line-strong: rgba(28, 28, 26, 0.26);
+  /* Dore UNIFIE dark+light (decision Victor 13/08) : fini l'ambre #B45309.
+     Texte sombre sur le dore pour le contraste. */
+  --color-accent-base: #E8C97A;
+  --color-accent-hover: #D1AC52;
+  --color-accent-soft: rgba(232, 201, 122, 0.18);
+  --color-accent-on-accent: #1C1C1A;
+  --color-status-warn: #D97706;
+  --color-status-warn-soft: rgba(217, 164, 65, 0.15);
+  --color-status-ok: #16A34A;
+  --color-status-ok-soft: rgba(22, 163, 74, 0.12);
+  --color-status-validated: #2563A8;
+  --color-status-validated-soft: rgba(37, 99, 168, 0.12);
+  --color-status-err: #DC2626;
+  --color-status-err-soft: rgba(220, 38, 38, 0.10);
+  --color-status-neutral: rgba(28, 28, 26, 0.06);
+  --color-shadow-sm: 0 1px 3px rgba(23, 22, 20, 0.08), 0 1px 2px rgba(23, 22, 20, 0.04);
+  --color-shadow-md: 0 4px 16px rgba(23, 22, 20, 0.10), 0 2px 4px rgba(23, 22, 20, 0.06);
+  --color-shadow-lg: 0 12px 40px rgba(23, 22, 20, 0.12), 0 4px 12px rgba(23, 22, 20, 0.06);
+}
+
+/* Titres produit en Fraunces (token font.family.display) : marque + titres
+   de page. Le reste de l'UI reste en Plus Jakarta Sans. */
+.brand .name,
+.ph-title,
+.calendar-title,
+.empty-guide h3,
+.brand-editor-head h2 {
+  font-family: var(--font-family-display);
+}
