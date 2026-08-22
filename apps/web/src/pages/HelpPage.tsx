@@ -28,8 +28,15 @@ const FAQ: { question: string; reponses: string[] }[] = [
     question: 'Pourquoi l\'agent ne répond pas dans le chat ?',
     reponses: [
       'Le chat ne fonctionne que si votre agent est connecte a Atelier (MCP ou API). Ouvrez la page Integrations et verifiez que la configuration est en place ; la page Parametres affiche l\'etat du systeme.',
-      'L\'agent est un acteur externe (Hermes, Claude Code, Codex) : il ne tourne pas en continu. Envoyez votre message, puis lancez votre agent de votre cote : il lira la conversation (lire_brouillon) et repondra.',
+      'Si le worker asynchrone est actif (voir ci-dessous), l\'agent repond seul en quelques minutes. Sinon, l\'agent est un acteur externe (Hermes, Claude Code, Codex) qui ne tourne pas en continu : envoyez votre message, puis lancez votre agent de votre cote — il lira la conversation et repondra.',
       'Les reponses apparaissent toutes les 8 secondes (rafraichissement automatique du chat). Si rien n\'apparait, verifiez que le serveur MCP est demarre et que l\'API repond (bouton Tester dans Parametres).'
+    ]
+  },
+  {
+    question: 'Mon agent peut-il répondre tout seul, sans que je le lance ?',
+    reponses: [
+      'Oui, avec le worker asynchrone : une tache planifiee sur votre machine surveille les conversations en attente et reveille l\'agent quand un message arrive. La reponse apparait dans le chat en quelques minutes, sans intervention de votre part.',
+      'Le worker ne publie et ne valide jamais rien : il prepare le contenu et repond, vous gardez la validation. Toutes ses actions sont tracees dans la page Activite IA.'
     ]
   },
   {
@@ -71,9 +78,9 @@ export function HelpPage() {
             <div>
               <strong>Deposez ou creez un contenu</strong>
               <p>
-                Lancez une nouvelle creation depuis la page Contenus, ou deposez un brouillon produit
-                par votre agent. La Bibliotheque fournit les elements de marque, la Charte graphique
-                l'identite.
+                Lancez une nouvelle creation depuis la page Publications (ou Documents), ou deposez
+                un brouillon produit par votre agent. La Bibliotheque fournit les elements de marque,
+                la Charte graphique l'identite.
               </p>
             </div>
           </li>
