@@ -166,7 +166,7 @@ export function SettingsPage() {
         <div className="pref-row">
           <div className="pref-label">
             <strong>Vue par defaut</strong>
-            <span>Grille ou liste dense pour la page Contenus.</span>
+            <span>Grille ou liste dense pour les pages Publications et Documents.</span>
           </div>
           <div className="pref-control">
             <select
