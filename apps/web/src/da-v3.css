@@ -80,3 +80,12 @@
 .brand-editor-head h2 {
   font-family: var(--font-family-display);
 }
+
+/* Calendrier : numeros de jours et libelles releves vers ink.secondary
+   (seuil WCAG AA — critique du 21/08). */
+.calendar-daynum,
+.calendar-head-cell,
+.calendar-more,
+.calendar-week-dow {
+  color: var(--color-ink-secondary);
+}
