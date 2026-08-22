@@ -51,7 +51,8 @@ Les SPEC décrivent le **cible**, pas l'existant : vérifier le code avant de s'
 - `SPEC-PORTAGE-PROTOTYPE.md` — pont prototype HTML → app React, écran par écran
 - `SPEC-ROTATION-ANGLES.md`
 - `SPEC-VALIDATION-ESTHETIQUE.md` — validation « est-ce beau »
-- `SPEC-VIDEO-REMOTION.md` *(via PR #96)* — sortie vidéo Remotion
+- `SPEC-VIDEO-REMOTION.md` — sortie vidéo Remotion
+- `SPEC-WORKER-ASYNCHRONE.md` — worker asynchrone : l'agent surveille les conversations et répond seul (cron + monitor)
 
 ## Hors docs/
 
