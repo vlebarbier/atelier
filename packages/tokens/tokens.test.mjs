@@ -10,10 +10,10 @@ describe('tokens sources', () => {
   const raw = readFileSync(path.join(root, 'tokens.json'), 'utf8');
   const tokens = JSON.parse(raw);
 
-  it('conserve des fonds noirs (dark) et un mode clair adouci (light)', () => {
-    expect(tokens.color.bg.deepest.$value).toBe('#050505');
-    expect(tokens.color.bg['level-1'].$value).toBe('#0A0A0A');
-    expect(tokens.color.bg.deepest.$extensions.light).toBe('#F6F6F4');
+  it('conserve des fonds noir chaud (dark) et un mode clair blanchi (light)', () => {
+    expect(tokens.color.bg.deepest.$value).toBe('#100E0C');
+    expect(tokens.color.bg['level-1'].$value).toBe('#141210');
+    expect(tokens.color.bg.deepest.$extensions.light).toBe('#FAFAF9');
     expect(tokens.color.bg['level-1'].$extensions.light).toBe('#FFFFFF');
   });
 
@@ -36,12 +36,14 @@ describe('tokens sources', () => {
     expect(tokens.color.status.err.$value).toBe('#FF5252');
   });
 
-  it('utilise Plus Jakarta Sans comme unique famille de police', () => {
+  it('utilise Plus Jakarta Sans en UI et Fraunces en display', () => {
     expect(tokens.font.family.ui.$value).toContain('Plus Jakarta Sans');
+    expect(tokens.font.family.display.$value).toContain('Fraunces');
   });
 
-  it('definit des hairlines alpha (jamais de gris plein)', () => {
+  it('definit des hairlines alpha teintees (jamais de gris plein)', () => {
     expect(tokens.color.line.default.$value).toMatch(/^rgba\(/);
+    expect(tokens.color.line.default.$value).toContain('240, 232, 218');
   });
 });
 
@@ -55,11 +57,13 @@ describe('build Style Dictionary', () => {
 
     const css = readFileSync(cssPath, 'utf8');
     expect(css).toContain('--color-accent-base: #E8C97A');
+    expect(css).toContain('--color-bg-level-1: #141210');
     expect(css).toContain('@media (prefers-color-scheme: light)');
 
     const built = JSON.parse(readFileSync(jsonPath, 'utf8'));
     expect(built['color.accent.base'].dark).toBe('#E8C97A');
     expect(built['color.accent.base'].light).toBe('#E8C97A');
     expect(built['color.status.validated'].dark).toBe('#4A8FD4');
+    expect(built['font.family.display'].dark).toContain('Fraunces');
   });
 });
