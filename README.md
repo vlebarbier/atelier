@@ -2,20 +2,29 @@
 
 **L'atelier de production, révision et validation du contenu créé avec des agents IA.**
 
-Atelier est le lieu de travail entre l'agent qui produit (Hermes, Claude Code, Codex…) et la publication (Postiz, plateformes). Pensé pour les solopreneurs, les community managers freelances et les petites agences.
+Atelier est la mémoire de la marque et le complément de l'agent : l'identité (charte, ton) et les contenus (photos, pages, archives) y vivent une fois pour toutes, l'agent les lit pour produire conforme, et l'humain valide tout avant publication.
 
-> **Ceci est une version early-stage** — issue d'un usage réel chez une conciergerie Airbnb (Bordeluche). Le code est fonctionnel mais en cours de refonte produit.
+> **MVP livré, en usage réel** — né chez une conciergerie (Bordeluche), pensé pour les créateurs agent-first (Hermes, Claude Code, Codex).
+
+## Documentation produit
+
+La vision, la feuille de route, le journal des décisions, le marché et le design system vivent dans Notion : espace **Projet — Atelier** (référence lisible, tenue au fil de l'eau). Ce repo garde le détail technique : **[docs/INDEX.md](docs/INDEX.md)** est le point d'entrée (specs dans `docs/specs/`, design dans `docs/design/`).
 
 ## Ce qu'il fait
 
 | Capacité | Description |
 |---|---|
-| **Brouillons multi-format** | Carrousels, posts, stories, articles de blog — chaque projet a ses slides, notes, statut |
-| **Visualisation** | Grille, liste, plein écran, navigation clavier, filtres par statut |
+| **Brouillons multi-format** | Carrousels, posts, stories, vidéos, articles de blog — chaque projet a ses slides, notes, statut |
+| **Visualisation** | Grille, liste, détail 3 colonnes, navigation clavier, filtres persistants |
 | **Légendes par réseau** | Caption + hashtags + statut dédiés pour Instagram, LinkedIn, Facebook, X, TikTok |
 | **Workflow de validation** | brouillon → à valider → validé → publié — **jamais publié sans validation humaine** |
-| **Charte graphique** | Upload de la direction artistique (couleurs, polices, logos) → injectée dans le rendu et les agents |
+| **Révision avancée** | Notes par slide/réseau, checklist, annotations au pixel, diff avant/après, aperçu publié |
+| **Charte graphique** | Import CSS → tokens, éditeur, export — injectée dans les instructions agents (MCP `get_charte`) |
+| **Bibliothèque** | Photos, pages, documents : la mémoire de la marque, lisible par l'agent |
 | **Agents IA** | Serveur MCP : n'importe quel agent peut lire/écrire les brouillons |
+| **Worker asynchrone** | L'agent surveille les conversations en attente et répond seul (cron + monitor, sans jamais valider ni publier) |
+| **Calendrier** | Planification par jour, glisser-déposer, créneaux conseillés |
+| **Blog** | Articles créés avec la charte, publiés vers le CMS (Sanity) |
 | **Publication** | Intégration Postiz (draft d'abord, publication manuelle) |
 
 ## Démarrage rapide (local)
@@ -45,18 +54,20 @@ Atelier/
 │   ├── web/            # Dashboard React 19 + TS + Vite (grille, liste, détail,
 │   │                   #   légendes par réseau, ⌘K, Calendrier, Charte, Activité IA)
 │   └── api/            # API Hono + SQLite (better-sqlite3) + Drizzle + Zod
+│                       #   (Neon Postgres en prod)
 ├── packages/
 │   ├── tokens/         # Design tokens (Style Dictionary) → dist/tokens.css + tokens.json
 │   └── render/         # Pipeline de rendu HTML → PNG (Playwright)
-├── docs/               # DESIGN.md (DA), PRODUCT.md, positionnement, recommandations
-└── archive/            # Anciens fichiers prototype (dashboard single-file, MCP Python)
+├── docs/               # INDEX.md (point d'entrée), specs/, design/, references/
+├── design/             # prototype/ (27 maquettes validées), captures/, mockups/
+└── scripts/qa/         # Boîte à outils de captures Playwright
 ```
 
 ## Stack
 
 - **Web** : React 19, TypeScript strict, Vite, @phosphor-icons/react (icônes), design tokens @atelier/tokens
-- **API** : Hono, better-sqlite3, Drizzle ORM, Zod (validation)
-- **DA** : « Linear du contenu social » — dark-first, accent doré #E8C97A, Plus Jakarta Sans, hairlines alpha
+- **API** : Hono, better-sqlite3, Drizzle ORM, Zod (validation) ; Neon Postgres en prod
+- **DA v3** : « l'écrin noir, le contenu héros » — noir chaud #141210, accent doré unique #E8C97A, Plus Jakarta Sans + Fraunces (titres), hairlines teintées
 - **Visual regression** : Playwright snapshots (golden images dark + light) — toute dérive DA fait échouer les tests
 
 ## Outils MCP exposés
@@ -86,6 +97,7 @@ Atelier/
 - **L'agent est un citoyen de première classe** : le MCP server est la colonne vertébrale
 - **La validation humaine est inaliénable** : le workflow brouillon → validation est natif
 - **La charte du client est une donnée d'entrée** : pas un sticker posé après coup
+- **On rend, on ne génère pas** : la génération d'images reste chez les agents et FAL
 
 ## Licence
 
@@ -93,11 +105,25 @@ MIT — voir [LICENSE](LICENSE).
 
 ## Roadmap
 
+Livrées :
+
 - [x] Dashboard (grille/liste/détail, légendes par réseau, statuts)
-- [x] Serveur MCP (contenu + visuels + Postiz)
+- [x] Serveur MCP (contenu + visuels + charte + bibliothèque + Postiz)
 - [x] Pipeline de rendu HTML → PNG
-- [ ] Upload charte graphique + injection templates
-- [ ] Adaptation automatique par réseau (ratio, format)
-- [ ] Génération d'images respectant la charte (FAL)
-- [ ] Articles de blog
-- [ ] Multi-utilisateurs / version cloud
+- [x] Charte graphique : import CSS, éditeur, export, instructions agents
+- [x] Bibliothèque de contenus (mémoire de la marque)
+- [x] Calendrier + draft Postiz
+- [x] Articles de blog (CMS Sanity)
+- [x] Worker asynchrone (l'agent répond seul)
+
+Prochaines étapes (ordre recommandé, détail dans l'issue #107 et `docs/PRIORISATION.md`) :
+
+- [ ] Score d'authenticité anti-AI-slop (#93)
+- [ ] Carrousel validé → vidéo animée (#88)
+- [ ] Lien de révision partagé sans compte (#90)
+- [ ] Boucle idées Hermes → brouillon prérempli (#94)
+- [ ] Injection de la charte dans le rendu + badge de conformité (#3)
+- [ ] Adaptation automatique par réseau (ratio, format) (#4)
+- [ ] Multi-utilisateurs / version cloud — après preuve d'usage
+
+Hors périmètre acté : génération d'images, publication automatique, auth avant preuve d'usage, IA conversationnelle dans l'outil.
