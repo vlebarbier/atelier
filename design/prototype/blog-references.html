@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Références blog</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .ref { padding: 22px 26px; max-width: 1000px; }
+  .ref-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .ref-head h2 { font-size: 20px; font-weight: 700; }
+  .ref-head .spacer { flex: 1; }
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-top: 16px; }
+  .ref-card { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .ref-card .rc-t { font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .ref-card .rc-d { font-size: 12px; color: var(--ink-2); line-height: 1.6; flex: 1; }
+  .ref-card .rc-foot { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ink-3); }
+  .ref-card .rc-ico { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .ref-card.chargé { border-color: rgba(52,211,153,0.35); }
+  .kw { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: 11px; color: var(--ink-2); }
+  .kw .pos { color: var(--st-valide); font-weight: 700; }
+  .kw .vol { color: var(--ink-3); }
+  .kw-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+  .scan-bar { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin-top: 18px; }
+  .scan-bar .s-ico { width: 34px; height: 34px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .scan-bar .s-t { font-size: 13px; font-weight: 600; }
+  .scan-bar .s-d { font-size: 11.5px; color: var(--ink-3); }
+  .scan-bar .spacer { flex: 1; }
+  .notice { font-size: 11.5px; color: var(--ink-3); line-height: 1.6; margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface); }
+</style>
+</head>
+<body class="theme-dark" data-page="blog">
+
+  <div class="ref">
+    <div class="ref-head">
+      <h2>Références du blog</h2>
+      <span class="spacer"></span>
+      <button class="btn sm">+ Nouvel article</button>
+    </div>
+    <div style="font-size:12.5px;color:var(--ink-2);margin-top:6px">Le cahier des charges que l'agent charge <b>avant chaque article</b> : règles, ton, direction artistique, mots-clés ciblés.
+    <a href="references-onboarding.html" style="color:var(--accent);text-decoration:underline;margin-left:6px">Première fois ? Configurer mes références →</a></div>
+
+    <!-- Scan du blog existant : la base avant d'écrire -->
+    <div class="scan-bar">
+      <span class="s-ico">🕐</span>
+      <div>
+        <div class="s-t">Scan du blog existant — <b style="color:var(--st-valide)">à jour (08:00)</b></div>
+        <div class="s-d">27 articles · 24 slugs vérifiés · 3 sujets déjà traités détectés — l'agent les évitera (cannibalisation)</div>
+      </div>
+      <span class="spacer"></span>
+      <span class="itag itag-ok">auto 1×/jour</span>
+      <button class="btn sm primary">Scanner maintenant</button>
+    </div>
+
+    <div class="ref-grid">
+
+      <!-- Règles de rédaction -->
+      <div class="ref-card chargé">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(232,201,122,0.14);color:var(--accent)">📝</span> Règles de rédaction</div>
+        <div class="rc-d">Structure H2/H3 (1 H2 / 300-500 mots), tableaux avec thead/tbody sans style inline, callouts (info/tip/warning), 2 liens internes minimum avec slugs vérifiés, checklist pré-publication complète.</div>
+        <div class="rc-foot"><span style="color:var(--st-valide)">● chargé par l'agent</span><span>· BLOG_RULES.md · 261 lignes</span></div>
+        <button class="btn sm">Voir le fichier</button>
+      </div>
+
+      <!-- Ton de voix -->
+      <div class="ref-card chargé">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(52,211,153,0.12);color:var(--st-valide)">🎙️</span> Ton de voix</div>
+        <div class="rc-d">Direct et factuel. Chiffres précis, pas de superlatifs. Zéro jargon IA (« il est crucial de », « en conclusion »). Zéro frenglish. Accents corrects. Exemples bordelais (Bordeaux Métropole / Gironde).</div>
+        <div class="rc-foot"><span style="color:var(--st-valide)">● chargé par l'agent</span><span>· brand-voice.md</span></div>
+        <button class="btn sm">Voir le fichier</button>
+      </div>
+
+      <!-- Direction artistique images -->
+      <div class="ref-card chargé">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(240,246,252,0.1);color:#9AC0E8">🖼️</span> DA images de couverture</div>
+        <div class="rc-d">Photographie éditoriale premium, Bordeaux 18e — pierre calcaire miel, lumière atlantique ambrée, quais Garonne. Zéro personne au premier plan, zéro écran. Palette ivoire/ambre/or.</div>
+        <div class="rc-foot"><span style="color:var(--st-valide)">● chargé par l'agent</span><span>· DA_BLOG.md · Fal.ai Recraft v3</span></div>
+        <button class="btn sm">Voir le fichier</button>
+      </div>
+
+      <!-- Mots-clés GSC -->
+      <div class="ref-card chargé">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(245,166,35,0.12);color:var(--st-a-valider)">🔎</span> Mots-clés ciblés (GSC)</div>
+        <div class="rc-d" style="margin-bottom:6px">Requêtes et positions actuelles — l'agent vise et maîtrise les écarts :</div>
+        <div class="kw-wrap">
+          <span class="kw"><span>conciergerie airbnb bordeaux</span><span class="pos">3</span><span class="vol">· 720/m</span></span>
+          <span class="kw"><span>loi le meur 2026</span><span class="pos">5</span><span class="vol">· 480/m</span></span>
+          <span class="kw"><span>90 nuits bordeaux</span><span class="pos">8</span><span class="vol">· 310/m</span></span>
+          <span class="kw"><span>réglementation airbnb bordeaux</span><span class="pos">12</span><span class="vol">· 260/m</span></span>
+          <span class="kw"><span>lmnb vs micro-bic</span><span class="pos">14</span><span class="vol">· 190/m</span></span>
+          <span class="kw"><span>fiscalité location courte durée</span><span class="pos">19</span><span class="vol">· 150/m</span></span>
+        </div>
+        <div class="rc-foot" style="margin-top:4px"><span style="color:var(--st-valide)">● GSC connecté</span><span>· mise à jour 1×/jour</span></div>
+        <button class="btn sm">Voir la requête détaillée</button>
+      </div>
+
+      <!-- Sujets traités (anti-cannibalisation) -->
+      <div class="ref-card">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(179,38,30,0.1);color:#E07A72">🚫</span> Sujets déjà traités</div>
+        <div class="rc-d">Détectés par le scan du blog — à ne pas re-couvrir : réglementation Bordeaux 2026, loi Le Meur, plafond 90 nuits, fiscalité LCD, droits de commercialité, comparatif LCD/LLD, choix conciergerie, KPIs/RevPAR, guide tarification dynamique (PriceLabs).</div>
+        <div class="rc-foot"><span style="color:var(--st-a-valider)">● 9 sujets verrouillés</span><span>· scan auto 1×/jour</span></div>
+        <button class="btn sm">Voir les slugs</button>
+      </div>
+
+      <!-- Prochaine opportunité -->
+      <div class="ref-card" style="border-color:rgba(52,211,153,0.45)">
+        <div class="rc-t"><span class="rc-ico" style="background:rgba(52,211,153,0.12);color:var(--st-valide)">✨</span> Prochaine opportunité</div>
+        <div class="rc-d">Écart GSC : <b>« conciergerie airbnb pessac »</b> — position 23, 120 recherches/mois, 0 article dédié. Page commune déjà en place, un article pilier local convertirait.</div>
+        <div class="rc-foot"><span style="color:var(--st-valide)">● suggéré par l'agent</span><span>· prêt à rédiger</span></div>
+        <button class="btn sm primary">Créer l'article →</button>
+      </div>
+
+    </div>
+
+    <div class="notice">
+      <b>Comment ça marche :</b> avant chaque création d'article, l'agent charge automatiquement les 3 fichiers de référence (règles, ton, DA), consulte le scan du blog (sujets verrouillés + slugs existants) et la liste des mots-clés GSC ciblés. Il choisit ensuite la meilleure opportunité (écart position/volume sans article dédié) — tout est tracé dans l'activité IA.
+    </div>
+
+    <!-- Amélioration continue : les références vivent avec les résultats -->
+    <div class="scan-bar" style="border-color:rgba(52,211,153,0.35); margin-top:14px">
+      <span class="s-ico" style="background:rgba(52,211,153,0.12);color:var(--st-valide)">🔄</span>
+      <div>
+        <div class="s-t">Amélioration continue — <b style="color:var(--st-a-valider)">1 mise à jour proposée</b></div>
+        <div class="s-d">Basée sur les 28 derniers contenus : « les hooks chiffrés performent (+22 % d'engagement) » — le ton s'enrichit.</div>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn sm">Voir la proposition</button>
+      <button class="btn sm primary">Appliquer en v2</button>
+    </div>
+    <p style="font-size:11.5px;color:var(--ink-3);margin-top:8px">Chaque contenu publié alimente les références : l'agent mesure (GSC + engagement), propose une mise à jour, vous validez → le fichier passe en v2 et guide le contenu suivant.</p>
+  </div>
+
+  <script src="assets/proto.js"></script>
+</body>
+</html>

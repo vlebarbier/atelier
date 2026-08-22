@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Première configuration des références</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .ob { padding: 22px 26px; max-width: 960px; }
+  .ob-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .ob-head h2 { font-size: 20px; font-weight: 700; }
+  .ob-sub { font-size: 12.5px; color: var(--ink-2); margin: 8px 0 20px; max-width: 640px; line-height: 1.6; }
+  .step-num { display: flex; align-items: center; gap: 10px; margin: 24px 0 12px; }
+  .step-num .n { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .step-num h3 { font-size: 14px; font-weight: 700; }
+  .cards3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; }
+  .pick { background: var(--surface); border: 1.5px solid var(--line); border-radius: 13px; padding: 16px; cursor: pointer; transition: border-color 0.15s; }
+  .pick:hover { border-color: var(--accent); }
+  .pick.on { border-color: var(--accent); background: var(--accent-soft); }
+  .pick .p-ico { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; margin-bottom: 10px; }
+  .pick .p-t { font-size: 13.5px; font-weight: 700; margin-bottom: 5px; }
+  .pick .p-d { font-size: 12px; color: var(--ink-2); line-height: 1.55; }
+  .pick .p-tag { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; margin-top: 8px; color: var(--ink-2); }
+  .q-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .q-item { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); font-size: 12.5px; color: var(--ink-2); }
+  .q-item .q { flex: 1; }
+  .q-item .st { font-size: 10.5px; color: var(--st-valide); font-weight: 600; }
+  .q-item .st.todo { color: var(--st-a-valider); }
+  .q-item .st.todo::before { content: '○ '; }
+  .file-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); margin-bottom: 8px; }
+  .file-row .f-ico { width: 28px; height: 28px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .file-row .f-name { font-size: 12.5px; font-weight: 600; flex: 1; }
+  .file-row .f-stat { font-size: 11px; color: var(--ink-3); }
+  .loop-card { background: var(--surface); border: 1px solid rgba(52,211,153,0.35); border-radius: 13px; padding: 16px; margin-top: 12px; }
+  .loop-card .l-t { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .loop-step { display: flex; gap: 10px; font-size: 12px; color: var(--ink-2); padding: 6px 0; line-height: 1.5; }
+  .loop-step .n { width: 18px; height: 18px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .cta-row { display: flex; gap: 10px; margin-top: 18px; }
+</style>
+</head>
+<body class="theme-dark" data-page="blog">
+
+  <div class="ob">
+    <div class="ob-head">
+      <h2>Bienvenue dans les références</h2>
+      <span class="spacer"></span>
+      <a class="btn sm ghost" href="blog-references.html">J'ai déjà tout configuré →</a>
+    </div>
+    <div class="ob-sub">
+      L'agent a besoin de connaître votre marque pour créer des articles, des documents et des publications qui vous ressemblent :
+      le <b>ton</b>, les <b>règles de rédaction</b>, la <b>direction artistique</b> des images et les <b>mots-clés</b> à viser.
+      Rien n'existe encore — trois façons de démarrer, ou de commencer simplement.
+    </div>
+
+    <!-- Étape 1 : choisir comment créer les références -->
+    <div class="step-num"><span class="n">1</span><h3>Comment créer vos références ?</h3></div>
+    <div class="cards3">
+      <div class="pick on">
+        <div class="p-ico" style="background:rgba(52,211,153,0.12);color:var(--st-valide)">🛠️</div>
+        <div class="p-t">Créer avec l'agent</div>
+        <div class="p-d">Répondez à un court questionnaire (ton, couleurs, exemples) — l'agent rédige les fichiers de référence pour vous.</div>
+        <span class="p-tag">Recommandé pour démarrer</span>
+      </div>
+      <div class="pick">
+        <div class="p-ico" style="background:rgba(240,246,252,0.1);color:#9AC0E8">🔍</div>
+        <div class="p-t">Scanner mon site</div>
+        <div class="p-d">Vous avez déjà un site ou des contenus ? L'agent analyse les pages, les couleurs, le ton et en déduit la charte.</div>
+        <span class="p-tag">Zéro saisie</span>
+      </div>
+      <div class="pick">
+        <div class="p-ico" style="background:rgba(232,201,122,0.14);color:var(--accent)">📂</div>
+        <div class="p-t">Importer mes fichiers</div>
+        <div class="p-d">Vous avez déjà une charte ou des règles (md, pdf, doc) ? Déposez-les, l'agent les structure.</div>
+        <span class="p-tag">Si vous en avez</span>
+      </div>
+    </div>
+
+    <!-- Étape 2 : le questionnaire (si création guidée) -->
+    <div class="step-num"><span class="n">2</span><h3>Le questionnaire — 5 minutes, l'agent s'occupe du reste</h3></div>
+    <div class="q-list">
+      <div class="q-item"><span class="q">Quel est le ton de votre marque ? (expert, chaleureux, corporate…)</span><span class="st">✓ répondu</span></div>
+      <div class="q-item"><span class="q">Vos 2-3 couleurs principales + une accent</span><span class="st">✓ répondu</span></div>
+      <div class="q-item"><span class="q">Quels mots éviter absolument ?</span><span class="st todo">en attente</span></div>
+      <div class="q-item"><span class="q">Un exemple de contenu que vous aimez (texte ou image)</span><span class="st todo">en attente</span></div>
+      <div class="q-item"><span class="q">Votre secteur et vos clients types</span><span class="st todo">en attente</span></div>
+    </div>
+    <p style="font-size:11.5px;color:var(--ink-3);margin-top:8px">Répondez à votre rythme — l'agent génère les fichiers dès les 2 premières réponses, puis les enrichit.</p>
+
+    <!-- Étape 3 : les fichiers créés et stockés dans Atelier -->
+    <div class="step-num"><span class="n">3</span><h3>Vos fichiers de référence — créés, stockés, versionnés</h3></div>
+    <div class="file-row">
+      <span class="f-ico">📝</span><span class="f-name">regles-redaction.md</span><span class="f-stat" style="color:var(--st-valide)">✓ généré par l'agent · v1</span>
+    </div>
+    <div class="file-row">
+      <span class="f-ico">🎙️</span><span class="f-name">ton-de-voix.md</span><span class="f-stat" style="color:var(--st-valide)">✓ généré par l'agent · v1</span>
+    </div>
+    <div class="file-row">
+      <span class="f-ico">🖼️</span><span class="f-name">da-images.md</span><span class="f-stat" style="color:var(--st-valide)">✓ généré par l'agent · v1</span>
+    </div>
+    <div class="file-row">
+      <span class="f-ico">🔎</span><span class="f-name">mots-cles-gsc.md</span><span class="f-stat" style="color:var(--st-a-valider)">⏳ en attente</span><button class="btn sm" style="flex-shrink:0">Connecter GSC</button>
+    </div>
+    <p style="font-size:11.5px;color:var(--ink-3);margin-top:8px">Chaque fichier est <b>stocké dans Atelier</b> (espace marque), <b>versionné</b> (v1, v2…) et <b>modifiable à tout moment</b>.</p>
+
+    <!-- Amélioration continue -->
+    <div class="step-num"><span class="n">4</span><h3>Et ensuite : la boucle d'amélioration continue</h3></div>
+    <div class="loop-card">
+      <div class="l-t">🔄 Vos références vivent avec vos résultats</div>
+      <div class="loop-step"><span class="n">1</span><span>Vous publiez un article ou un post via Atelier</span></div>
+      <div class="loop-step"><span class="n">2</span><span>L'agent mesure la performance (GSC, engagement, portée)</span></div>
+      <div class="loop-step"><span class="n">3</span><span>Il <b>propose une mise à jour</b> des références : « le ton marche · les prompts d'images "avant/après" performent · ce mot-clé convertit »</span></div>
+      <div class="loop-step"><span class="n">4</span><span>Vous validez — le fichier passe en v2, et l'agent s'en sert pour le prochain contenu</span></div>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn primary" href="blog-references.html" style="text-decoration:none">Commencer le questionnaire →</a>
+      <a class="btn" href="blog-references.html" style="text-decoration:none">Scanner mon site à la place</a>
+    </div>
+  </div>
+
+  <script src="assets/proto.js"></script>
+</body>
+</html>

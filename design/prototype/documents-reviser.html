@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Document — Réviser</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  /* Mêmes propriétés que publications/blog : chat au centre, panneau droit contextuel,
+     rétraction en barre. Adapté aux documents (PDF, présentation). */
+  body[data-mode] .only-mode { display: none; }
+  body[data-mode="creer"] .only-creer,
+  body[data-mode="reviser"] .only-reviser,
+  body[data-mode="programmer"] .only-programmer { display: block; }
+  body[data-mode="creer"] .only-creer.creer-rail,
+  body[data-mode="reviser"] .only-reviser.reviser-rail,
+  body[data-mode="programmer"] .only-programmer.programme-rail { display: flex; }
+
+  .detail-body { display: grid; grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.5fr) minmax(300px, 1fr); min-height: calc(100vh - 110px); transition: grid-template-columns 0.22s ease; }
+  body.fold-doc .detail-body { grid-template-columns: 44px minmax(0, 1.6fr) minmax(300px, 1fr); }
+  body.fold-chat .detail-body { grid-template-columns: minmax(340px, 1fr) 44px minmax(300px, 1fr); }
+  body.fold-rail .detail-body { grid-template-columns: minmax(340px, 1fr) minmax(0, 1.5fr) 44px; }
+  body.fold-doc.fold-chat .detail-body { grid-template-columns: 44px 44px minmax(300px, 1fr); }
+  body.fold-doc.fold-rail .detail-body { grid-template-columns: 44px minmax(0, 1.6fr) 44px; }
+  body.fold-chat.fold-rail .detail-body { grid-template-columns: minmax(340px, 1fr) 44px 44px; }
+  body.fold-doc.fold-chat.fold-rail .detail-body { grid-template-columns: 44px 44px 44px; }
+  body.fold-doc .doc-col > *:not(.col-toggle):not(.fold-label),
+  body.fold-chat .chat-panel > *:not(.col-toggle):not(.fold-label),
+  body.fold-rail .side-col > *:not(.col-toggle):not(.fold-label) { display: none !important; }
+  body.fold-doc .doc-col,
+  body.fold-chat .chat-panel,
+  body.fold-rail .side-col { padding: 10px 0; align-items: flex-start; justify-content: flex-start; background: var(--surface); cursor: pointer; }
+  body.fold-doc .doc-col .col-toggle,
+  body.fold-chat .chat-panel .col-toggle,
+  body.fold-rail .side-col .col-toggle { position: static; margin: 0 auto; }
+  .fold-label { display: none; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-top: 10px; }
+  body.fold-doc .doc-col .fold-label,
+  body.fold-chat .chat-panel .fold-label,
+  body.fold-rail .side-col .fold-label { display: block; }
+
+  .detail-tools { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .detail-tools .title { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .detail-tools .spacer { flex: 1; }
+  .col-toggle { position: absolute; top: 12px; right: 10px; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; z-index: 5; }
+  .col-toggle.rail { right: auto; left: 10px; }
+  .col-toggle.doc-col { left: 10px; right: auto; }
+
+  /* Document (colonne gauche) : page A4 */
+  .doc-col { display: flex; flex-direction: column; background: var(--bg-2); border-right: 1px solid var(--line); padding: 22px 24px; gap: 10px; position: relative; overflow-y: auto; }
+  .doc-page { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 26px 30px; min-height: 420px; display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; color: var(--ink-2); line-height: 1.65; }
+  .doc-page .d-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+  .doc-page .d-head .logo { font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+  .doc-page .d-head .num { font-size: 11px; color: var(--ink-3); }
+  .doc-page h3 { font-family: Georgia, serif; font-size: 19px; font-weight: 500; color: var(--ink); letter-spacing: -0.01em; }
+  .doc-page p { margin-bottom: 8px; }
+  .doc-page .table { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 6px 0; }
+  .doc-page .table .tr { display: grid; grid-template-columns: 1fr 1fr; padding: 7px 10px; font-size: 11.5px; }
+  .doc-page .table .tr:not(:last-child) { border-bottom: 1px solid var(--line); }
+  .doc-page .table .tr.h { background: var(--surface-2); font-weight: 600; color: var(--ink); }
+  /* Modifications marquées : surbrillance en mode RÉVISER, vert validé en PROGRAMMER */
+  .doc-page mark { background: transparent; color: inherit; padding: 1px 3px; border-radius: 4px; }
+  body[data-mode="creer"] .doc-page mark { background: transparent; }
+  body[data-mode="reviser"] .doc-page mark { background: rgba(245,166,35,0.16); border-bottom: 1.5px dashed var(--st-a-valider); }
+  body[data-mode="reviser"] .doc-page mark.rv { position: relative; }
+  body[data-mode="reviser"] .doc-page mark.rv::after { content: attr(data-n); position: absolute; top: -9px; left: -9px; width: 15px; height: 15px; border-radius: 50%; background: var(--st-a-valider); color: #1a1200; font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  body[data-mode="programmer"] .doc-page mark { background: rgba(52,211,153,0.14); border-bottom: 1.5px solid var(--st-valide); }
+  .badge-ok { display: none; }
+  body[data-mode="programmer"] .doc-page .badge-ok { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: var(--st-valide); background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); padding: 2px 8px; border-radius: 999px; }
+
+  .chat-panel { display: flex; flex-direction: column; background: var(--bg-2); border-right: 1px solid var(--line); position: relative; }
+  .chat-thread { flex: 1; padding: 18px; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+  .chat-inputbar { display: flex; gap: 8px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--surface); }
+  .chat-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
+  .chat-head .avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--accent); }
+  .chat-head .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--st-valide); display: inline-block; }
+
+  .creer-rail, .reviser-rail, .programme-rail { background: var(--surface); flex-direction: column; padding: 16px; gap: 14px; overflow-y: auto; position: relative; }
+  .p-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+  .checklist { display: flex; flex-direction: column; gap: 8px; }
+  .check-item { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ink-2); }
+  .check-item .cb { width: 16px; height: 16px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface-2); flex-shrink: 0; }
+  .check-item.on .cb { background: var(--st-valide); border-color: var(--st-valide); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #04140B; }
+  .check-item.on { color: var(--ink); }
+  .rail-actions { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+  .btn-ok { background: var(--st-valide); color: #04140B; border: none; font-weight: 700; padding: 10px; width: 100%; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .btn-cta { background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; padding: 10px; width: 100%; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .field { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--ink); width: 100%; }
+  .field:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .anno-item { display: flex; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); font-size: 12.5px; color: var(--ink-2); }
+  .anno-item .pin { color: var(--st-a-valider); font-weight: 700; flex-shrink: 0; }
+  .sum-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 5px 0; }
+  .sum-row .k { color: var(--ink-3); }
+  .sum-row .v { font-weight: 600; }
+</style>
+</head>
+<body class="theme-dark" data-page="documents" data-mode="reviser">
+
+  <div class="detail-tools">
+    <span class="title">Document — « Devis conciergerie — Les Mûriers »</span>
+    <span class="spacer"></span>
+    <span id="proto-stepper"></span>
+    <span class="statut st-brouillon" id="proto-statut"><span class="dot"></span>Brouillon</span>
+    <a class="btn sm" href="#" onclick="return false">Exporter</a>
+  </div>
+
+  <div class="detail-body">
+
+    <!-- Colonne gauche : le document (page A4) -->
+    <div class="doc-col" data-col="doc">
+      <button class="col-toggle doc-col" data-fold="doc" data-split="split" title="Replier le document">⤢</button>
+      <div class="fold-label">Document</div>
+      <div class="doc-page">
+        <div class="d-head"><span class="logo">bordeluche</span><span class="num">Page 1/2</span></div>
+        <h3>Devis de conciergerie — Les Mûriers <span class="badge-ok">✓ validé</span></h3>
+        <p><b>Client :</b> M. et Mme Leclair · Bègles</p>
+        <p><b>Logement :</b> Maison 72 m², 3 chambres — Terres Neuves</p>
+        <div class="table">
+          <div class="tr h"><span>Prestation</span><span>Montant</span></div>
+          <div class="tr"><span>Gestion complète (25 % TTC)</span><span>25 % des revenus</span></div>
+          <div class="tr"><span>Assurance LCD Passpass Cover</span><span>Incluse</span></div>
+          <div class="tr"><mark class="rv" data-n="1"><span>Mission gouvernante trimestrielle</span><span>Incluse</span></mark></div>
+          <div class="tr"><span>Shooting photo</span><span>450 € HT</span></div>
+        </div>
+        <p><b>Engagement :</b> 6 mois minimum, résiliable à 30 jours.</p>
+      </div>
+    </div>
+
+    <!-- Colonne centre : le chat -->
+    <div class="chat-panel" style="position:relative" data-col="chat">
+      <button class="col-toggle chat" data-fold="chat" data-split="split" title="Replier le chat">⤢</button>
+      <div class="fold-label">Chat</div>
+      <div class="chat-head"><span class="avatar">✦</span> Agent · Atelier <span class="status-dot"></span> <span style="color:var(--ink-3)">en ligne</span></div>
+      <div class="chat-thread">
+        <div class="msg agent">
+          <div class="who">Agent</div>
+          <span class="chip">document</span> J'ai rédigé le devis à partir de la fiche logement : prestations, montants, engagement.
+        </div>
+        <div class="msg user"><div class="who">Vous</div>Ajoute une ligne pour la mission gouvernante trimestrielle.</div>
+        <div class="msg agent">
+          <div class="who">Agent</div>
+          <span class="chip">✓</span> Fait — la mission gouvernante est ajoutée (incluse dans les 25 %). Le document passe en <b>à valider</b>.
+          <div class="tool"><span class="ok">✓</span> 2 pages</div>
+          <div class="tool"><span class="ok">✓</span> Tarifs + engagement</div>
+        </div>
+      </div>
+      <div class="chat-inputbar">
+        <input class="field" placeholder="Demander une modification… (le chat modifie le document)">
+        <button class="btn primary">Envoyer</button>
+      </div>
+    </div>
+
+    <!-- Colonne droite : contextuelle -->
+    <!-- CRÉER : vérifications + livrable -->
+    <div class="creer-rail only-mode only-creer side-col" data-col="rail">
+      <button class="col-toggle rail" data-fold="rail" data-split="split" title="Replier le panneau">⤢</button>
+      <div class="fold-label">Panneau</div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">Vérifications</div>
+        <div class="checklist">
+          <div class="check-item on"><span class="cb">✓</span>Tarifs conformes au modèle</div>
+          <div class="check-item on"><span class="cb">✓</span>Engagement + résiliation inclus</div>
+          <div class="check-item on"><span class="cb">✓</span>Coordonnées du client</div>
+          <div class="check-item"><span class="cb"></span>Numéro de devis</div>
+        </div>
+      </div>
+      <div>
+        <div class="p-label" style="margin-bottom:6px">Livrable</div>
+        <div class="checklist">
+          <div class="check-item on"><span class="cb">✓</span>PDF 2 pages</div>
+          <div class="check-item on"><span class="cb">✓</span>HTML autonome</div>
+        </div>
+      </div>
+      <div class="rail-actions">
+        <a class="btn primary" href="documents-reviser.html" style="text-decoration:none;text-align:center">Passer à la révision →</a>
+      </div>
+    </div>
+
+    <!-- RÉVISER : annotations + décision -->
+    <div class="reviser-rail only-mode only-reviser side-col" data-col="rail">
+      <button class="col-toggle rail" data-fold="rail" data-split="split" title="Replier le panneau">⤢</button>
+      <div class="fold-label">Panneau</div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">Révision de l'agent (2)</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="anno-item"><span class="pin">①</span><span>Ligne « mission gouvernante » ajoutée au tableau.</span></div>
+          <div class="anno-item"><span class="pin">②</span><span>Section engagement reformulée — plus concise.</span></div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--ink-3)">Un doute ? Demande une modification dans le chat.</p>
+      <div class="rail-actions">
+        <a class="btn-ok" href="documents-programmer.html" style="text-decoration:none;text-align:center">✓ Tout est bon — Finaliser</a>
+      </div>
+    </div>
+
+    <!-- PROGRAMMER : finalisation (export + partage) -->
+    <div class="programme-rail only-mode only-programmer side-col" data-col="rail">
+      <button class="col-toggle rail" data-fold="rail" data-split="split" title="Replier le panneau">⤢</button>
+      <div class="fold-label">Panneau</div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">Résumé</div>
+        <div class="sum-row"><span class="k">Format</span><span class="v">PDF + HTML</span></div>
+        <div class="sum-row"><span class="k">Pages</span><span class="v">2</span></div>
+        <div class="sum-row"><span class="k">Client</span><span class="v">M. Leclair</span></div>
+      </div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">Destination</div>
+        <div class="checklist">
+          <div class="check-item on"><span class="cb">✓</span>Bibliothèque Atelier</div>
+          <div class="check-item on"><span class="cb">✓</span>Email au client (victor@bordeluche.com)</div>
+        </div>
+      </div>
+      <div class="rail-actions">
+        <a class="btn-cta" href="#" onclick="return false" style="text-decoration:none;text-align:center">✓ Finaliser et envoyer</a>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="assets/proto.js"></script>
+  <script>
+    var mode = document.body.getAttribute('data-mode');
+    var statut = document.getElementById('proto-statut');
+    if (statut) {
+      if (mode === 'reviser') { statut.className = 'statut st-a-valider'; statut.innerHTML = '<span class="dot"></span>À valider'; }
+      else if (mode === 'programmer') { statut.className = 'statut st-valide'; statut.innerHTML = '<span class="dot"></span>Validé'; }
+    }
+    document.querySelectorAll('.col-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        document.body.classList.toggle('fold-' + btn.getAttribute('data-fold'));
+      });
+    });
+    document.querySelectorAll('.doc-col, .chat-panel, .side-col').forEach(function (col) {
+      col.addEventListener('click', function () {
+        var f = 'fold-' + col.getAttribute('data-col');
+        if (document.body.classList.contains(f)) document.body.classList.remove(f);
+      });
+    });
+  </script>
+</body>
+</html>

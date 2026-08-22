@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Post publié</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .pp { padding: 22px 26px; max-width: 900px; }
+  .pp-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .pp-head h2 { font-size: 20px; font-weight: 700; }
+  .pp-head .spacer { flex: 1; }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .metric { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .metric .m-v { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .metric .m-l { font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+  .metric .m-d { font-size: 11px; margin-top: 4px; }
+  .up { color: var(--st-valide); }
+  .down { color: var(--st-a-valider); }
+  .pp-body { display: grid; grid-template-columns: 280px 1fr; gap: 18px; }
+  .pp-visual { border-radius: 12px; border: 1px solid var(--line); overflow: hidden; background: var(--surface); }
+  .pp-visual .head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .pp-visual .head .av { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg,#F58529,#DD2A7B,#8134AF); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; }
+  .pp-visual .head .u { font-size: 12px; font-weight: 600; }
+  .pp-visual .head .t { font-size: 10px; color: var(--ink-3); }
+  .pp-visual .img { height: 240px; background: linear-gradient(160deg,#F1EFEA,#E7E3D9); display: flex; align-items: center; justify-content: center; color: #2A2420; font-family: Georgia,serif; font-size: 15px; text-align: center; padding: 20px; }
+  .pp-visual .cap { padding: 10px 12px; font-size: 11.5px; color: var(--ink-2); line-height: 1.5; border-top: 1px solid var(--line); }
+  .pp-info { display: flex; flex-direction: column; gap: 14px; }
+  .pp-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .pp-card .pc-t { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 8px; }
+  .pp-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 5px 0; }
+  .pp-row .k { color: var(--ink-3); }
+  .pp-row .v { font-weight: 600; }
+  .pp-cta { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 12.5px; }
+  .pp-cta:hover { text-decoration: underline; }
+</style>
+</head>
+<body class="theme-dark" data-page="publications">
+
+  <div class="pp">
+    <a href="publications.html" style="font-size:12px;color:var(--ink-3);text-decoration:none">← Retour aux publications</a>
+    <div class="pp-head" style="margin-top:10px">
+      <h2>Duplex Gambetta — avant/après</h2>
+      <span class="statut st-publie"><span class="dot"></span>Publiée</span>
+      <span class="spacer"></span>
+      <a class="btn sm" href="https://instagram.com" target="_blank">↗ Ouvrir sur Instagram</a>
+    </div>
+
+    <!-- Métriques réelles remontées par l'intégration -->
+    <div class="metrics">
+      <div class="metric"><div class="m-v">2 148</div><div class="m-l">Portée</div><div class="m-d up">▲ +18 % vs moyenne</div></div>
+      <div class="metric"><div class="m-v">312</div><div class="m-l">J'aime</div><div class="m-d up">▲ 4,2 % engagement</div></div>
+      <div class="metric"><div class="m-v">24</div><div class="m-l">Commentaires</div><div class="m-d">· 3 réponses de la marque</div></div>
+      <div class="metric"><div class="m-v">41</div><div class="m-l">Sauvegardes</div><div class="m-d up">▲ 12 % vs moyenne</div></div>
+      <div class="metric"><div class="m-v">86</div><div class="m-l">Clics profil</div><div class="m-d down">▼ 6 % vs moyenne</div></div>
+    </div>
+
+    <div class="pp-body">
+      <!-- Le post tel que publié -->
+      <div class="pp-visual">
+        <div class="head"><span class="av">b</span><div><div class="u">bordeluche</div><div class="t">Bordeaux · il y a 3 jours</div></div></div>
+        <div class="img">Duplex Gambetta<br>avant / après</div>
+        <div class="cap">Le duplex Gambetta, du chantier au salon. 3 semaines de travaux, une seule visite. #Bordeaux #Immobilier #Gambetta</div>
+      </div>
+
+      <!-- Informations de publication -->
+      <div class="pp-info">
+        <div class="pp-card">
+          <div class="pc-t">Publication</div>
+          <div class="pp-row"><span class="k">Réseau</span><span class="v">Instagram</span></div>
+          <div class="pp-row"><span class="k">Date</span><span class="v">11 août · 18:30</span></div>
+          <div class="pp-row"><span class="k">Programmé depuis</span><span class="v">Atelier</span></div>
+          <div class="pp-row"><span class="k">Statut</span><span class="v" style="color:var(--st-valide)">Publiée ✓</span></div>
+        </div>
+        <div class="pp-card">
+          <div class="pc-t">Contenu associé</div>
+          <div class="pp-row"><span class="k">Brouillon source</span><span class="v">Duplex Gambetta v2</span></div>
+          <div class="pp-row"><span class="k">Légende</span><span class="v">148/2200</span></div>
+          <a href="detail.html?mode=reviser" class="pp-cta" style="margin-top:6px">Ouvrir le brouillon →</a>
+        </div>
+        <div class="pp-card">
+          <div class="pc-t">Ce que l'agent en tire</div>
+          <div class="pp-row"><span class="k">Apprentissage</span><span class="v" style="font-weight:400;color:var(--ink-2)">« avant/après » performe (portée +18 %) — à réutiliser</span></div>
+          <a href="activite.html" class="pp-cta" style="margin-top:6px">Voir dans l'activité IA →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/proto.js"></script>
+</body>
+</html>

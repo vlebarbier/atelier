@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Aide</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .aide { padding: 22px 26px; max-width: 900px; }
+  .aide-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .aide-head h2 { font-size: 20px; font-weight: 700; }
+  .aide-sub { font-size: 12.5px; color: var(--ink-2); margin: 8px 0 20px; }
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 800px) { .cols2 { grid-template-columns: 1fr; } }
+  .acard { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 16px; }
+  .acard .ac-t { font-size: 13px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .acard .ac-ico { width: 26px; height: 26px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .step-line { display: flex; gap: 10px; padding: 6px 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.55; }
+  .step-line .n { width: 18px; height: 18px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--ink-2); flex-shrink: 0; margin-top: 1px; }
+  .kbd { display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 6px; padding: 2px 8px; font-size: 11.5px; font-weight: 600; color: var(--ink); font-family: var(--mono, ui-monospace, monospace); }
+  .shortcut { display: flex; align-items: center; gap: 12px; padding: 7px 0; font-size: 12.5px; color: var(--ink-2); }
+  .shortcut .keys { margin-left: auto; }
+  .faq-item { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item .q { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .faq-item .a { font-size: 12px; color: var(--ink-2); line-height: 1.6; margin-top: 4px; }
+  .faq-item .a a { color: var(--accent); }
+</style>
+</head>
+<body class="theme-dark" data-page="aide">
+
+<div class="aide">
+  <div class="aide-head">
+    <h2>Aide</h2>
+  </div>
+  <div class="aide-sub">Tout pour démarrer avec Atelier — l'agent produit, vous validez, Atelier publie.</div>
+
+  <div class="cols2">
+
+    <div>
+      <div class="acard">
+        <div class="ac-t"><span class="ac-ico">🚀</span> Démarrage rapide</div>
+        <div class="step-line"><span class="n">1</span><span><b style="color:var(--ink)">Nouvelle publication</b> (ou article, ou document) — décrivez le besoin en une phrase.</span></div>
+        <div class="step-line"><span class="n">2</span><span><b style="color:var(--ink)">Discutez avec l'agent</b> dans le chat : il crée, modifie le HTML et les textes, répond à vos demandes.</span></div>
+        <div class="step-line"><span class="n">3</span><span><b style="color:var(--ink)">Réviser</b> : vérifiez les modifications surlignées (①②), le diff, puis décidez.</span></div>
+        <div class="step-line"><span class="n">4</span><span><b style="color:var(--ink)">Programmer</b> : choisissez la date et l'heure — Atelier publie via vos intégrations.</span></div>
+      </div>
+
+      <div class="acard" style="margin-top:14px">
+        <div class="ac-t"><span class="ac-ico">⌨️</span> Raccourcis clavier</div>
+        <div class="shortcut"><span>Rechercher dans Atelier</span><span class="keys"><span class="kbd">⌘ K</span></span></div>
+        <div class="shortcut"><span>Nouvelle publication</span><span class="keys"><span class="kbd">⌘ N</span></span></div>
+        <div class="shortcut"><span>Naviguer entre les visuels (carrousel)</span><span class="keys"><span class="kbd">←</span> <span class="kbd">→</span></span></div>
+        <div class="shortcut"><span>Replier / déplier un panneau</span><span class="keys"><span class="kbd">⤢</span></span></div>
+        <div class="shortcut"><span>Fermer une modale</span><span class="keys"><span class="kbd">Échap</span></span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="acard">
+        <div class="ac-t"><span class="ac-ico">❓</span> Questions fréquentes</div>
+        <div class="faq-item">
+          <div class="q">Pourquoi l'agent ne répond pas ?</div>
+          <div class="a">Vérifiez que les agents sont bien connectés dans <a href="integrations.html">Intégrations</a> (accès MCP). Un agent connecté affiche « en ligne » dans le chat.</div>
+        </div>
+        <div class="faq-item">
+          <div class="q">Comment changer la charte ou le ton ?</div>
+          <div class="a">Dans <a href="charte.html">Charte graphique</a> (couleurs, logo, typos) et dans les <a href="blog-references.html">Références</a> (règles, ton, mots-clés). L'agent s'y réfère avant chaque création.</div>
+        </div>
+        <div class="faq-item">
+          <div class="q">Où sont stockés mes fichiers et ressources ?</div>
+          <div class="a">Dans la <a href="bibliotheque.html">Bibliothèque</a> — la mémoire de la marque. Les sources connectées (GitHub, réseaux, CMS) y sont scannées chaque jour.</div>
+        </div>
+        <div class="faq-item">
+          <div class="q">Pourquoi la publication est bloquée ?</div>
+          <div class="a">Une intégration requise manque (réseau social non connecté, CMS absent). Le rappel s'affiche dans l'écran concerné avec un lien direct vers la configuration.</div>
+        </div>
+        <div class="faq-item">
+          <div class="q">Que devient un contenu une fois publié ?</div>
+          <div class="a">Il reste dans <a href="publications.html">Publications</a> avec ses métriques (portée, engagement) et le lien vers le post réel. Ces résultats nourrissent l'amélioration continue des références.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="assets/proto.js"></script>
+</body>
+</html>

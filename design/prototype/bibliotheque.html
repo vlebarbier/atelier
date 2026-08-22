@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Bibliothèque</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .lib { padding: 22px 26px; }
+  .lib-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .lib-head h2 { font-size: 20px; font-weight: 700; }
+  .lib-head .spacer { flex: 1; }
+  .filtres { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .pill { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); }
+  .pill.on { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+  .asset { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+  .asset:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .asset .thumb { height: 110px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: rgba(0,0,0,0.55); }
+  .asset .body { padding: 10px 12px; }
+  .asset .body .t { font-size: 12.5px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .asset .body .s { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+  .drop { margin-top: 18px; border: 1.5px dashed var(--line-strong); border-radius: var(--radius); padding: 26px; text-align: center; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+  .drop:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Collecte : scan des sources de la marque ── */
+  .sources { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 18px; }
+  .src { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; display: flex; flex-direction: column; gap: 9px; }
+  .src .src-head { display: flex; align-items: center; gap: 10px; }
+  .src .src-ico { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+  .src .src-t { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .src .src-d { font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+  .src .src-status { display: flex; align-items: center; gap: 8px; font-size: 11.5px; }
+  .src .src-status .ok { color: var(--st-valide); font-weight: 600; }
+  .src .src-status .todo { color: var(--ink-3); }
+  .src .src-btn { margin-top: auto; }
+  .src .src-nb { font-size: 10.5px; color: var(--ink-3); }
+  .src.connected { border-color: rgba(76,175,125,0.3); }
+</style>
+</head>
+<body class="theme-dark" data-page="bibliotheque">
+
+  <div class="lib">
+    <div class="lib-head">
+      <h2>Bibliothèque</h2>
+      <span class="count" style="color:var(--ink-3);font-size:12.5px">La mémoire de la marque</span>
+      <span class="spacer"></span>
+    </div>
+
+    <div class="filtres">
+      <span class="pill on">Tous</span>
+      <span class="pill">Visuels</span>
+      <span class="pill">Textes</span>
+      <span class="pill">Documents</span>
+      <span class="pill">Sites</span>
+    </div>
+
+    <div class="grid">
+      <div class="asset"><div class="thumb cc-bordeaux">logo-bordeluche.svg</div><div class="body"><div class="t">Logo 1 ligne</div><div class="s">SVG · 2 Ko</div></div></div>
+      <div class="asset"><div class="thumb cc-sauge">photo-muriers.jpg</div><div class="body"><div class="t">Mûriers — salon</div><div class="s">JPG · 3,2 Mo</div></div></div>
+      <div class="asset"><div class="thumb cc-ivoire">charte-graphique.pdf</div><div class="body"><div class="t">Charte graphique</div><div class="s">PDF · 4,1 Mo</div></div></div>
+      <div class="asset"><div class="thumb cc-gold">typo-cormorant.zip</div><div class="body"><div class="t">Polices Cormorant</div><div class="s">ZIP · 1,8 Mo</div></div></div>
+      <div class="asset"><div class="thumb cc-bleu">carrousel-v4.html</div><div class="body"><div class="t">Source carrousel v4</div><div class="s">HTML · 92 Ko</div></div></div>
+      <div class="asset"><div class="thumb cc-perle">photo-esplanade.jpg</div><div class="body"><div class="t">Esplanade — salon</div><div class="s">JPG · 2,9 Mo</div></div></div>
+    </div>
+
+    <div class="drop">+ Déposez un fichier ici — le logo, les photos, les sources HTML</div>
+
+    <div class="lib-head" style="margin-top:30px">
+      <h2 style="font-size:16px">Collecte de la marque</h2>
+      <span class="count" style="color:var(--ink-3);font-size:12.5px">Scannez vos sources pour enrichir la charte et la bibliothèque</span>
+      <span class="spacer"></span>
+      <!-- Contrôle du scan : automatisé 1×/jour + manuel -->
+      <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 14px">
+        <span style="font-size:11.5px;color:var(--ink-2)">🕐 Scan auto <b style="color:var(--st-valide)">chaque jour</b> · dernier : 08:00</span>
+        <button class="btn sm primary" onclick="return false">Scanner maintenant</button>
+      </div>
+    </div>
+    <p style="font-size:11.5px;color:var(--ink-3);margin:-8px 0 14px">Les sources connectées sont scannées automatiquement une fois par jour ; vous pouvez aussi lancer un scan manuel à tout moment. Les nouveautés sont signalées ci-dessous.</p>
+
+    <div class="sources">
+      <div class="src connected">
+        <div class="src-head">
+          <span class="src-ico" style="background:rgba(240,246,252,0.1);color:#9AC0E8">GH</span>
+          <span class="src-t">GitHub</span>
+          <span class="itag itag-ok" style="margin-left:auto">3 nouveautés</span>
+        </div>
+        <div class="src-d">vlebarbier/bordeluche — le repo du site : logos SVG, charte, composants.</div>
+        <div class="src-status"><span class="ok">✓ Connecté</span><span class="src-nb">· 12 assets importés · scan auto 1×/jour</span></div>
+        <button class="btn sm src-btn">Scanner à nouveau</button>
+      </div>
+      <div class="src connected">
+        <div class="src-head">
+          <span class="src-ico" style="background:rgba(225,48,108,0.12);color:#F06292">IG</span>
+          <span class="src-t">Instagram</span>
+          <span class="itag itag-ok" style="margin-left:auto">8 nouveautés</span>
+        </div>
+        <div class="src-d">Le compte de la marque : posts publiés, tons, visuels qui fonctionnent.</div>
+        <div class="src-status"><span class="ok">✓ Connecté</span><span class="src-nb">· 48 posts analysés · scan auto 1×/jour</span></div>
+        <button class="btn sm src-btn">Scanner à nouveau</button>
+      </div>
+      <div class="src">
+        <div class="src-head">
+          <span class="src-ico" style="background:rgba(10,102,194,0.12);color:#5B9BD5">LI</span>
+          <span class="src-t">LinkedIn</span>
+        </div>
+        <div class="src-d">Poster via l'API = OK. <b style="color:var(--ink-2)">Lire les posts publiés = limité</b> (lecture payante/restreinte côté API) — scan partiel possible.</div>
+        <div class="src-status"><span class="todo">Lecture limitée</span></div>
+        <button class="btn sm src-btn">Voir les options</button>
+      </div>
+      <div class="src">
+        <div class="src-head">
+          <span class="src-ico" style="background:rgba(232,201,122,0.14);color:var(--accent)">CMS</span>
+          <span class="src-t">Custom CMS</span>
+        </div>
+        <div class="src-d">CMS sur mesure (Sanity, Strapi…) : articles publiés, pages — API de lecture publique.</div>
+        <div class="src-status"><span class="todo">Non connecté</span></div>
+        <button class="btn sm src-btn">Connecter</button>
+      </div>
+      <div class="src">
+        <div class="src-head">
+          <span class="src-ico" style="background:rgba(255,255,255,0.08);color:var(--ink-2)">+</span>
+          <span class="src-t">Autre source</span>
+        </div>
+        <div class="src-d">Notion, Drive, un site vitrine… toute source qui parle de la marque.</div>
+        <div class="src-status"><span class="todo">Ajouter une source</span></div>
+        <button class="btn sm src-btn">Configurer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/proto.js"></script>
+</body>
+</html>

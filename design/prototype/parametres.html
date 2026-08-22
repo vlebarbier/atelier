@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Paramètres</title>
+<link rel="stylesheet" href="assets/atelier.css">
+</head>
+<body class="theme-dark" data-page="parametres">
+
+<div class="liste" style="padding:20px 26px;max-width:720px">
+  <div class="liste-head" style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <h2 style="font-size:20px;font-weight:700">Paramètres</h2>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px;margin-top:18px">
+    <div class="icard">
+      <div class="it">Profil</div>
+      <div class="id">Nom, avatar et rôle de l'utilisateur.</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:8px">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--accent-soft);border:1px solid var(--line);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0">V</div>
+        <input class="input" placeholder="Nom" value="Victor Le Barbier">
+      </div>
+      <input class="input" placeholder="Email" value="victor@bordeluche.com" style="margin-top:8px">
+      <select class="select-icone" style="appearance:none;padding:6px 30px 6px 12px;border-radius:9px;font-size:12.5px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);margin-top:8px"><option>Rôle : Propriétaire</option><option>Rôle : Éditeur</option><option>Rôle : Lecteur</option></select>
+    </div>
+    <div class="icard">
+      <div class="it">Préférences d'affichage</div>
+      <div class="id">Thème et vue par défaut.</div>
+      <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+        <select class="select-icone" style="appearance:none;padding:6px 30px 6px 12px;border-radius:9px;font-size:12.5px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink)"><option>Thème : sombre</option><option>Thème : clair</option><option>Thème : système</option></select>
+        <select class="select-icone" style="appearance:none;padding:6px 30px 6px 12px;border-radius:9px;font-size:12.5px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink)"><option>Vue : grille</option><option>Vue : liste</option></select>
+      </div>
+    </div>
+    <div class="icard">
+      <div class="it">État du système</div>
+      <div class="id">Tout est prêt — les services de l'atelier répondent.</div>
+      <div class="ichecks">
+        <div class="icheck"><span class="cb" style="background:var(--st-valide)"></span>API connectée</div>
+        <div class="icheck"><span class="cb" style="background:var(--st-valide)"></span>Agents IA connectés (accès MCP)</div>
+        <div class="icheck"><span class="cb" style="background:var(--st-valide)"></span>Réseaux sociaux + programmation opérationnels</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/proto.js"></script>
+</body>
+</html>

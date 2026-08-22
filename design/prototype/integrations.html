@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Intégrations</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .int-cat { margin-bottom: 22px; }
+  .int-cat-title { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .int-cat-title .n { width: 18px; height: 18px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--ink-2); }
+  .int-cat .info-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+  .icard { box-shadow: none; cursor: pointer; transition: border-color 0.15s; }
+  .icard:hover { border-color: var(--accent); }
+  .icard .itag-manquant { background: rgba(245,166,35,0.12); color: var(--st-a-valider); border: 1px solid rgba(245,166,35,0.35); }
+  .icard .itag-ok { background: rgba(52,211,153,0.12); color: var(--st-valide); border: 1px solid rgba(52,211,153,0.35); }
+  .icard .itag-neutre { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
+  .icard .id { font-size: 11.5px; color: var(--ink-2); }
+  .icard .warn-line { font-size: 11px; color: var(--st-a-valider); margin-top: 8px; display: flex; gap: 6px; align-items: flex-start; }
+  .icard .mcp { font-size: 10px; color: var(--ink-3); margin-top: 6px; }
+  .global-warn { border: 1px solid rgba(245,166,35,0.4); background: rgba(245,166,35,0.08); border-radius: 10px; padding: 10px 13px; font-size: 12px; color: var(--st-a-valider); margin-bottom: 12px; display: flex; gap: 8px; align-items: flex-start; }
+  .global-ok { border: 1px solid rgba(52,211,153,0.35); background: rgba(52,211,153,0.08); border-radius: 10px; padding: 10px 13px; font-size: 12px; color: var(--st-valide); margin-bottom: 12px; display: flex; gap: 8px; align-items: flex-start; }
+</style>
+</head>
+<body class="theme-dark" data-page="integrations">
+
+<div class="liste" style="padding:20px 26px;max-width:1000px">
+  <div class="liste-head" style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <h2 style="font-size:20px;font-weight:700">Intégrations</h2>
+  </div>
+  <div style="font-size:12.5px;color:var(--ink-2);margin:8px 0 22px">Connectez les services qui alimentent l'atelier et publient vos contenus. <b style="color:var(--st-a-valider)">⚠️ Sans l'intégration requise, la publication est bloquée</b> — un rappel s'affiche dans les écrans concernés.</div>
+
+  <!-- ── Catégorie 1 : Agents IA (via MCP) ── -->
+  <div class="int-cat">
+    <div class="int-cat-title"><span class="n">1</span> Agents IA — accès MCP</div>
+    <div class="info-cards">
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Claude <span class="itag itag-ok" style="">Connecté</span></div>
+        <div class="id">Rédaction et révision — MCP disponible</div>
+        <div class="mcp">mcp: claude@atelier · lecture + écriture</div>
+        <div class="actions"><button class="btn" style="flex:1">Gérer</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Codex <span class="itag itag-ok" style="">Connecté</span></div>
+        <div class="id">Code et intégrations — MCP disponible</div>
+        <div class="mcp">mcp: codex@atelier · lecture + écriture</div>
+        <div class="actions"><button class="btn" style="flex:1">Gérer</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Hermes <span class="itag itag-ok" style="">Connecté</span></div>
+        <div class="id">Agent principal — MCP disponible</div>
+        <div class="mcp">mcp: hermes@atelier · accès complet</div>
+        <div class="actions"><button class="btn" style="flex:1">Gérer</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">OpenClaw <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">Agent autonome — MCP à configurer</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Pi <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">Assistant conversationnel — MCP à configurer</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Gemini <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">Génération et révision — MCP à configurer</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Mistral <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">Rédaction — MCP à configurer</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">OpenAI <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">Génération et révision — MCP à configurer</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Catégorie 2 : Comptes de réseaux sociaux ── -->
+  <div class="int-cat">
+    <div class="int-cat-title"><span class="n">2</span> Comptes de réseaux sociaux</div>
+    <div class="info-cards">
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Instagram <span class="itag itag-ok" style="">Connecté</span></div>
+        <div class="id">Graph API — lecture + publication</div>
+        <div class="actions"><button class="btn" style="flex:1">Gérer</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">LinkedIn <span class="itag itag-ok" style="">Connecté</span></div>
+        <div class="id">API — publication professionnelle</div>
+        <div class="actions"><button class="btn" style="flex:1">Gérer</button></div>
+      </div>
+      <div class="icard manquant">
+        <div class="it" style="display:flex;align-items:center;gap:8px">X / Twitter <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">API — publication</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+        <div class="warn-line"><span>⚠️</span><span>Les contenus ciblant X ne pourront pas être publiés tant que ce compte n'est pas connecté.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Catégorie 3 : Outils du site ── -->
+  <div class="int-cat">
+    <div class="int-cat-title"><span class="n">3</span> Outils du site</div>
+    <div class="info-cards">
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">GitHub <span class="itag itag-ok" style="">Connecté</span></div>
+        <div class="id">Dépôt du site — assets, charte, composants</div>
+        <div class="actions"><button class="btn" style="flex:1">Gérer</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Sentry <span class="itag itag-ok" style="">Connecté</span></div>
+        <div class="id">Monitoring — erreurs et performances du site</div>
+        <div class="actions"><button class="btn" style="flex:1">Gérer</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Google Search Console <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">SEO — indexation et requêtes</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Catégorie 4 : CMS — warning global si aucun connecté ── -->
+  <div class="int-cat">
+    <div class="int-cat-title"><span class="n">4</span> CMS — blog & contenu du site</div>
+    <div id="cmsWarn" class="global-warn"><span>⚠️</span><span><b>Aucun CMS connecté.</b> Le blog ne pourra pas publier d'articles tant qu'au moins un CMS n'est pas connecté. (Un seul suffit.)</span></div>
+    <div class="info-cards">
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Custom CMS <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">CMS sur mesure (Sanity, Strapi, headless custom…)</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">WordPress <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">CMS — articles et pages</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Shopify <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">CMS e-commerce — produits et pages</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Catégorie 5 : Programmation de contenus ── -->
+  <div class="int-cat">
+    <div class="int-cat-title"><span class="n">5</span> Programmation de contenus</div>
+    <div class="info-cards">
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Postiz <span class="itag itag-ok" style="">Connecté</span></div>
+        <div class="id">Programmation et envoi multi-réseaux</div>
+        <div class="actions"><button class="btn" style="flex:1">Gérer</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Buffer <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">Programmation et envoi multi-réseaux</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Later <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">Programmation visuelle (Instagram-first)</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Hootsuite <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">Programmation et envoi multi-réseaux</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+      <div class="icard">
+        <div class="it" style="display:flex;align-items:center;gap:8px">Metricool <span class="itag itag-neutre" style="">Non connecté</span></div>
+        <div class="id">Programmation + analytics sociaux</div>
+        <div class="actions"><button class="btn primary" style="flex:1">Connecter</button></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="assets/proto.js"></script>
+<script>
+  // Toutes les cartes ouvrent la page de détail de l'intégration
+  document.querySelectorAll('.icard').forEach(function (c) {
+    c.addEventListener('click', function () { window.location.href = 'integration-detail.html'; });
+  });
+</script>
+</body>
+</html>

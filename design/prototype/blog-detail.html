@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Article de blog</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  /* Mêmes propriétés que publications : chat au centre, panneau droit contextuel,
+     rétraction CUMULATIVE en barres. Adapté au blog. */
+  body[data-mode] .only-mode { display: none; }
+  body[data-mode="creer"] .only-creer,
+  body[data-mode="reviser"] .only-reviser,
+  body[data-mode="programmer"] .only-programmer { display: block; }
+  body[data-mode="creer"] .only-creer.creer-rail,
+  body[data-mode="reviser"] .only-reviser.reviser-rail,
+  body[data-mode="programmer"] .only-programmer.programme-rail { display: flex; }
+
+  .detail-body { display: grid; grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.5fr) minmax(300px, 1fr); min-height: calc(100vh - 110px); transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  body.fold-article .detail-body { grid-template-columns: 44px minmax(0, 1.6fr) minmax(300px, 1fr); }
+  body.fold-chat .detail-body { grid-template-columns: minmax(360px, 1fr) 44px minmax(300px, 1fr); }
+  body.fold-rail .detail-body { grid-template-columns: minmax(360px, 1fr) minmax(0, 1.5fr) 44px; }
+  body.fold-article.fold-chat .detail-body { grid-template-columns: 44px 44px minmax(300px, 1fr); }
+  body.fold-article.fold-rail .detail-body { grid-template-columns: 44px minmax(0, 1.6fr) 44px; }
+  body.fold-chat.fold-rail .detail-body { grid-template-columns: minmax(360px, 1fr) 44px 44px; }
+  body.fold-article.fold-chat.fold-rail .detail-body { grid-template-columns: 44px 44px 44px; }
+  body.fold-article .article-col > *:not(.col-toggle):not(.fold-label),
+  body.fold-chat .chat-panel > *:not(.col-toggle):not(.fold-label),
+  body.fold-rail .side-col > *:not(.col-toggle):not(.fold-label) { display: none !important; }
+  body.fold-article .article-col,
+  body.fold-chat .chat-panel,
+  body.fold-rail .side-col { padding: 12px 0; align-items: flex-start; justify-content: flex-start; background: var(--surface); cursor: pointer; }
+  body.fold-article .article-col .col-toggle,
+  body.fold-chat .chat-panel .col-toggle,
+  body.fold-rail .side-col .col-toggle { position: static; margin: 0 auto; }
+  .fold-label { display: none; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); margin: 12px auto 0; }
+  body.fold-article .article-col .fold-label,
+  body.fold-chat .chat-panel .fold-label,
+  body.fold-rail .side-col .fold-label { display: block; }
+
+  .detail-tools { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .detail-tools .title { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .detail-tools .spacer { flex: 1; }
+  .col-toggle { position: absolute; top: 12px; right: 10px; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; z-index: 5; }
+  .col-toggle.rail { right: auto; left: 10px; }
+  .col-toggle.article-col { left: 10px; right: auto; }
+
+  /* Article (colonne gauche) */
+  .article-col { display: flex; flex-direction: column; background: var(--bg-2); border-right: 1px solid var(--line); padding: 22px 24px; gap: 10px; position: relative; overflow-y: auto; }
+  .article-col .paper { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px 26px; font-size: 13px; line-height: 1.7; color: var(--ink-2); }
+  .article-col .paper h3 { font-family: Georgia, serif; font-size: 21px; font-weight: 500; color: var(--ink); margin-bottom: 12px; letter-spacing: -0.01em; }
+  .article-col .paper .meta { font-size: 11px; color: var(--ink-3); margin-bottom: 16px; display: flex; gap: 12px; }
+  .article-col .paper p { margin-bottom: 12px; }
+  .article-col .paper .h2 { font-family: Georgia, serif; font-size: 16px; font-weight: 600; color: var(--ink); margin: 18px 0 8px; }
+  .article-col .paper .quote { border-left: 2px solid var(--accent); padding-left: 14px; font-style: italic; color: var(--ink); margin: 14px 0; }
+  /* Modifications marquées : visibles seulement en mode RÉVISER (surbrillance)
+     et PROGRAMMER (vert validé) — invisibles en mode créer */
+  .paper mark { background: transparent; color: inherit; padding: 1px 3px; border-radius: 4px; }
+  body[data-mode="creer"] .paper mark { background: transparent; }
+  body[data-mode="reviser"] .paper mark { background: rgba(245,166,35,0.16); border-bottom: 1.5px dashed var(--st-a-valider); }
+  body[data-mode="reviser"] .paper mark.rv { position: relative; }
+  body[data-mode="reviser"] .paper mark.rv::after { content: attr(data-n); position: absolute; top: -9px; left: -9px; width: 15px; height: 15px; border-radius: 50%; background: var(--st-a-valider); color: #1a1200; font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  body[data-mode="programmer"] .paper mark { background: rgba(52,211,153,0.14); border-bottom: 1.5px solid var(--st-valide); }
+  body[data-mode="programmer"] .paper .badge-ok { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: var(--st-valide); background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); padding: 2px 8px; border-radius: 999px; }
+  .badge-ok { display: none; }
+  body[data-mode="programmer"] .paper .badge-ok { display: inline-flex; }
+
+  .chat-panel { display: flex; flex-direction: column; background: var(--bg-2); border-right: 1px solid var(--line); position: relative; }
+  .chat-thread { flex: 1; padding: 18px; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+  .chat-inputbar { display: flex; gap: 8px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--surface); }
+  .chat-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
+  .chat-head .avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--accent); }
+  .chat-head .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--st-valide); display: inline-block; }
+
+  .creer-rail, .reviser-rail, .programme-rail { background: var(--surface); flex-direction: column; padding: 16px; gap: 14px; overflow-y: auto; position: relative; }
+  .p-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+  .checklist { display: flex; flex-direction: column; gap: 8px; }
+  .check-item { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ink-2); }
+  .check-item .cb { width: 16px; height: 16px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface-2); flex-shrink: 0; }
+  .check-item.on .cb { background: var(--st-valide); border-color: var(--st-valide); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #04140B; }
+  .check-item.on { color: var(--ink); }
+  .rail-actions { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+  .btn-ok { background: var(--st-valide); color: #04140B; border: none; font-weight: 700; padding: 10px; width: 100%; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .btn-cta { background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; padding: 10px; width: 100%; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .field { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--ink); width: 100%; }
+  .field:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .label-f { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); margin-bottom: 6px; }
+  .anno-item { display: flex; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); font-size: 12.5px; color: var(--ink-2); }
+  .anno-item .pin { color: var(--st-a-valider); font-weight: 700; flex-shrink: 0; }
+</style>
+</head>
+<body class="theme-dark" data-page="blog" data-mode="creer">
+
+  <div class="detail-tools">
+    <span class="title">Article — « Conciergerie Airbnb : le guide 2026 »</span>
+    <span class="spacer"></span>
+    <span id="proto-stepper"></span>
+    <span class="statut st-brouillon" id="proto-statut"><span class="dot"></span>Brouillon</span>
+    <a class="btn sm" href="#" onclick="return false">Exporter</a>
+  </div>
+
+  <div class="detail-body">
+
+    <!-- Colonne gauche : l'article (adapté : document texte, pas slide) -->
+    <div class="article-col" data-col="article">
+      <button class="col-toggle article-col" data-fold="article" data-split="split" title="Replier l'article">⤢</button>
+      <div class="fold-label">Article</div>
+      <div class="paper">
+        <h3>Conciergerie Airbnb : le guide complet 2026 <span class="badge-ok">✓ validé</span></h3>
+        <div class="meta"><span>SEO · 1400 mots</span><span>✏️ brouillon v2</span></div>
+        <p>Louer un logement en location courte durée demande du temps et de la rigueur : annonces optimisées, tarifs ajustés, voyageurs accueillis, avis gérés… <mark class="rv" data-n="1"><b>Trois propriétaires sur quatre confient aujourd'hui cette charge à une conciergerie.</b></mark></p>
+        <div class="h2">Pourquoi déléguer la gestion locative ?</div>
+        <p>Entre le ménage, la coordination des artisans et la messagerie 24/24, la gestion d'un logement Airbnb représente en moyenne <b>6 à 8 heures par semaine</b>.</p>
+        <div class="quote">« Je gagne du temps, et mes revenus ont augmenté de 27 % en deux mois. » — propriétaire aux Mûriers</div>
+        <div class="h2">Ce que couvre une conciergerie</div>
+        <p>Création et optimisation des annonces, revenue management, coordination des prestataires, assurance locative…</p>
+        <div class="h2">Coût d'une conciergerie</div>
+        <p><mark class="rv" data-n="2">Les formules vont de 15 % à 30 % des revenus bruts selon le niveau de service. Le plus courant : 25 % avec assurance incluse.</mark></p>
+      </div>
+    </div>
+
+    <!-- Colonne centre : le chat (identique aux publications) -->
+    <div class="chat-panel" style="position:relative" data-col="chat">
+      <button class="col-toggle chat" data-fold="chat" data-split="split" title="Replier le chat">⤢</button>
+      <div class="fold-label">Chat</div>
+      <div class="chat-head"><span class="avatar">✦</span> Agent · Atelier <span class="status-dot"></span> <span style="color:var(--ink-3)">en ligne</span></div>
+      <div class="chat-thread">
+        <div class="msg agent">
+          <div class="who">Agent</div>
+          <span class="chip">article</span> J'ai rédigé l'introduction et la section « Pourquoi déléguer » — 1400 mots au total, H1/H2 optimisés SEO.
+        </div>
+        <div class="msg agent">
+          <div class="who">Agent</div>
+          <span class="chip">meta</span> Meta title : « Conciergerie Airbnb à Bordeaux : le guide 2026 » · 58 caractères. Meta description 152 caractères.
+        </div>
+        <div class="msg user"><div class="who">Vous</div>Ajoute une section sur le coût d'une conciergerie.</div>
+        <div class="msg agent">
+          <div class="who">Agent</div>
+          <span class="chip">✓</span> Section ajoutée après « Ce que couvre » — tableau comparatif des formules. Le tout passe en <b>à valider</b>.
+          <div class="tool"><span class="ok">✓</span> 1400 mots</div>
+          <div class="tool"><span class="ok">✓</span> SEO (meta, H1-H2, liens internes)</div>
+        </div>
+      </div>
+      <div class="chat-inputbar">
+        <input class="field" placeholder="Demander une modification… (le chat modifie le texte et le SEO)">
+        <button class="btn primary">Envoyer</button>
+      </div>
+    </div>
+
+    <!-- Colonne droite : contextuelle -->
+    <!-- CRÉER : SEO + structure -->
+    <div class="creer-rail only-mode only-creer side-col" data-col="rail">
+      <button class="col-toggle rail" data-fold="rail" data-split="split" title="Replier le panneau">⤢</button>
+      <div class="fold-label">Panneau</div>
+      <!-- Rappel CMS manquant : pas de publication possible -->
+      <div style="border:1px solid rgba(245,166,35,0.35); background:rgba(245,166,35,0.08); border-radius:10px; padding:10px 12px; font-size:11.5px; color:var(--st-a-valider); display:flex; gap:8px; align-items:flex-start">
+        <span>⚠️</span>
+        <span><b>Aucun CMS connecté.</b> L'article ne pourra pas être publié sur le site. <a href="integrations.html" style="color:var(--accent);text-decoration:underline">Connecter un CMS →</a></span>
+      </div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">SEO</div>
+        <div class="checklist">
+          <div class="check-item on"><span class="cb">✓</span>Meta title (58 car.)</div>
+          <div class="check-item on"><span class="cb">✓</span>Meta description (152 car.)</div>
+          <div class="check-item on"><span class="cb">✓</span>H1 + H2 structurés</div>
+          <div class="check-item"><span class="cb"></span>Balises alt sur les images</div>
+        </div>
+      </div>
+      <div>
+        <div class="p-label" style="margin-bottom:6px">Structure</div>
+        <div class="checklist">
+          <div class="check-item on"><span class="cb">✓</span>Introduction</div>
+          <div class="check-item on"><span class="cb">✓</span>Pourquoi déléguer</div>
+          <div class="check-item on"><span class="cb">✓</span>Coût d'une conciergerie</div>
+          <div class="check-item on"><span class="cb">✓</span>Conclusion + CTA</div>
+        </div>
+      </div>
+      <div class="rail-actions">
+        <a class="btn primary" href="blog-detail.html?mode=reviser" style="text-decoration:none;text-align:center">Passer à la révision →</a>
+      </div>
+    </div>
+
+    <!-- RÉVISER : annotations + décision -->
+    <div class="reviser-rail only-mode only-reviser side-col" data-col="rail">
+      <button class="col-toggle rail" data-fold="rail" data-split="split" title="Replier le panneau">⤢</button>
+      <div class="fold-label">Panneau</div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">Révision de l'agent (2)</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="anno-item"><span class="pin">①</span><span>Introduction raccourcie — le hook cite maintenant un chiffre concret.</span></div>
+          <div class="anno-item"><span class="pin">②</span><span>Section coût ajoutée avec tableau comparatif.</span></div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--ink-3)">Un doute ? Demande une modification dans le chat — l'agent ajuste le texte ou le SEO.</p>
+      <div class="rail-actions">
+        <a class="btn-ok" href="blog-detail.html?mode=programmer" style="text-decoration:none;text-align:center">✓ Tout est bon — Programmer</a>
+      </div>
+    </div>
+
+    <!-- PROGRAMMER : publication site (CMS) -->
+    <div class="programme-rail only-mode only-programmer side-col" data-col="rail">
+      <button class="col-toggle rail" data-fold="rail" data-split="split" title="Replier le panneau">⤢</button>
+      <div class="fold-label">Panneau</div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">Publication</div>
+        <div class="checklist">
+          <div class="check-item on"><span class="cb">✓</span>Catégorie : Guides</div>
+          <div class="check-item on"><span class="cb">✓</span>Tags : conciergerie, Airbnb, Bordeaux</div>
+          <div class="check-item on"><span class="cb">✓</span>Slug : guide-conciergerie-airbnb-2026</div>
+          <div class="check-item on"><span class="cb">✓</span>Image de couverture (16:9, générée)</div>
+          <div class="check-item"><span class="cb"></span>Extrait personnalisé (meta description)</div>
+        </div>
+      </div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">Aperçu de la publication</div>
+        <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2)">
+          <div style="height:64px;background:linear-gradient(135deg,#3D4A42,#55655B);display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(255,255,255,0.7)">couverture 16:9</div>
+          <div style="padding:9px 11px">
+            <div style="font-size:12px;font-weight:600;color:var(--ink);line-height:1.35">Conciergerie Airbnb : le guide complet 2026</div>
+            <div style="font-size:10.5px;color:var(--ink-3);margin-top:3px">Guides · 21 août · 4 min de lecture</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">Diffusion</div>
+        <div class="checklist">
+          <div class="check-item on"><span class="cb">✓</span>Publier sur le site (CMS)</div>
+          <div class="check-item"><span class="cb"></span>Auto-post LinkedIn (résumé + lien)</div>
+        </div>
+      </div>
+      <div>
+        <div class="p-label" style="margin-bottom:8px">Date</div>
+        <div class="field" style="margin-bottom:8px">Jeudi 21/08 · 09:00</div>
+        <p style="font-size:11px;color:var(--ink-3)">Publication différée sur le CMS connecté.</p>
+      </div>
+      <div class="rail-actions">
+        <a class="btn-cta" href="#" onclick="return false" style="text-decoration:none;text-align:center">✓ Programmer la publication</a>
+        <p class="rail-note" style="font-size:11px;color:var(--ink-3);text-align:center">⚠️ Bloqué : aucun CMS connecté — configure d'abord une intégration CMS.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="assets/proto.js"></script>
+  <script>
+    var mode = document.body.getAttribute('data-mode');
+    var statut = document.getElementById('proto-statut');
+    if (statut) {
+      if (mode === 'reviser') { statut.className = 'statut st-a-valider'; statut.innerHTML = '<span class="dot"></span>À valider'; }
+      else if (mode === 'programmer') { statut.className = 'statut st-valide'; statut.innerHTML = '<span class="dot"></span>Validé'; }
+    }
+    document.querySelectorAll('.col-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        document.body.classList.toggle('fold-' + btn.getAttribute('data-fold'));
+      });
+    });
+    document.querySelectorAll('.article-col, .chat-panel, .side-col').forEach(function (col) {
+      col.addEventListener('click', function () {
+        var f = 'fold-' + col.getAttribute('data-col');
+        if (document.body.classList.contains(f)) document.body.classList.remove(f);
+      });
+    });
+  </script>
+</body>
+</html>

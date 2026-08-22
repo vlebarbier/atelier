@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Blog</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .liste { padding: 20px 26px; max-width: 1180px; }
+  .liste-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
+  .liste-head h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .filtres { display: flex; gap: 8px; align-items: center; margin: 12px 0 18px; }
+  .pubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .pub { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; text-decoration: none; color: var(--ink); display: block; transition: border-color 0.15s, transform 0.15s; }
+  .pub:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .pub .cover { height: 100px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .pub .cover .badge-type { position: absolute; top: 10px; right: 12px; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,0.55); color: #fff; }
+  .pub .body { padding: 12px 14px; }
+  .pub .t { font-size: 13.5px; font-weight: 700; line-height: 1.35; }
+  .pub .row { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+  .pub .maj { margin-left: auto; font-size: 11px; color: var(--ink-3); }
+  .cc-bordeaux { background: linear-gradient(150deg, #422928, #5A3733); color: rgba(255,255,255,0.7); }
+  .cc-sauge { background: linear-gradient(150deg, #3D4A42, #55655B); color: rgba(255,255,255,0.7); }
+  .cc-perle { background: linear-gradient(150deg, #F1EFEA, #E4E0D6); color: rgba(0,0,0,0.55); }
+  .cc-bleu { background: linear-gradient(150deg, #1F2A44, #2E3D63); color: rgba(255,255,255,0.7); }
+  /* Carte d'acces au setup (references) */
+  .setup-card { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px dashed var(--accent); border-radius: 12px; padding: 12px 14px; margin-top: 16px; text-decoration: none; color: var(--ink); transition: background 0.15s; }
+  .setup-card:hover { background: var(--surface-2); }
+  .setup-card .s-ico { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .setup-card .s-t { font-size: 12.5px; font-weight: 600; }
+  .setup-card .s-d { font-size: 11px; color: var(--ink-3); }
+  .setup-card .spacer { flex: 1; }
+  .setup-card .chev { color: var(--ink-3); }
+</style>
+</head>
+<body class="theme-dark" data-page="blog">
+
+<div class="liste">
+  <div class="liste-head">
+    <h2>Blog</h2>
+    <span class="badge-count"><span class="n">3</span><span class="attention">1 à valider</span></span>
+    <span class="spacer"></span>
+    <a class="btn primary" href="blog-creer.html" style="text-decoration:none">+ Nouvel article</a>
+  </div>
+  <div class="filtres">
+    <input class="search-local" placeholder="Rechercher…" style="padding:6px 12px;border-radius:9px;font-size:12.5px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);width:180px">
+    <select class="select-icone" style="appearance:none;padding:6px 30px 6px 12px;border-radius:9px;font-size:12.5px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink)"><option>Tous les statuts</option><option>Brouillons</option><option>À valider</option><option>Publiés</option></select>
+    <span class="spacer"></span>
+    <select class="select-icone" style="appearance:none;padding:6px 30px 6px 12px;border-radius:9px;font-size:12.5px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink)"><option>Récent</option><option>Titre</option></select>
+  </div>
+
+  <div class="pubs">
+    <a class="pub" href="blog-reviser.html">
+      <div class="cover cc-bordeaux"><span class="badge-type">1400 mots</span></div>
+      <div class="body">
+        <div class="t">Pourquoi une conciergerie premium à Bordeaux</div>
+        <div class="row"><span class="statut st-a-valider"><span class="dot"></span>À valider</span><span class="maj">il y a 3 h</span></div>
+      </div>
+    </a>
+    <a class="pub" href="blog-creer.html">
+      <div class="cover cc-sauge"><span class="badge-type">1200 mots</span></div>
+      <div class="body">
+        <div class="t">Le vrai coût d'une gestion locative</div>
+        <div class="row"><span class="statut st-brouillon"><span class="dot"></span>Brouillon</span><span class="maj">il y a 1 j</span></div>
+      </div>
+    </a>
+    <a class="pub" href="post-publie.html">
+      <div class="cover cc-perle"><span class="badge-type">1500 mots</span></div>
+      <div class="body">
+        <div class="t">Rentabilité Airbnb : les chiffres 2026</div>
+        <div class="row"><span class="statut st-publie"><span class="dot"></span>Publié</span><span class="maj">10 août</span></div>
+      </div>
+    </a>
+    <a class="pub" href="blog-creer.html">
+      <div class="cover cc-bleu"><span class="badge-type">1800 mots</span></div>
+      <div class="body">
+        <div class="t">Conciergerie Airbnb : le guide 2026</div>
+        <div class="row"><span class="statut st-brouillon"><span class="dot"></span>Brouillon</span><span class="maj">il y a 2 j</span></div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Accès au setup : les références (règles, ton, mots-clés GSC) -->
+  <a class="setup-card" href="blog-references.html">
+    <span class="s-ico">⚙️</span>
+    <div>
+      <div class="s-t">Références du blog</div>
+      <div class="s-d">Règles de rédaction, ton de voix, DA des images, mots-clés GSC — configurés une fois, améliorés en continu.</div>
+    </div>
+    <span class="spacer"></span>
+    <span class="chev">→</span>
+  </a>
+</div>
+
+<script src="assets/proto.js"></script>
+</body>
+</html>

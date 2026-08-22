@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Calendrier</title>
+<link rel="stylesheet" href="assets/atelier.css">
+<style>
+  .cal-wrap { padding: 22px 26px; }
+  .cal-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .cal-head h2 { font-size: 20px; font-weight: 700; }
+  .cal-head .mois { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+  .cal-head .spacer { flex: 1; }
+  .cal-body { display: grid; grid-template-columns: 1fr 260px; gap: 18px; }
+  .cal-grid { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line); }
+  .cal-dow span { padding: 9px 6px; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
+  .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .cal-day { min-height: 96px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px; position: relative; }
+  .cal-day:nth-child(7n) { border-right: none; }
+  .cal-day .dnum { font-size: 11px; color: var(--ink-3); margin-bottom: 4px; }
+  .cal-day.today { background: var(--accent-soft); }
+  .cal-day.today .dnum { color: var(--accent); font-weight: 700; }
+  .cal-day.other { opacity: 0.35; }
+  .ev { font-size: 10.5px; font-weight: 600; padding: 3px 7px; border-radius: 6px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; display: block; text-decoration: none; }
+  .ev-ig { background: rgba(225,48,108,0.18); color: #F06292; }
+  .ev-li { background: rgba(10,102,194,0.18); color: #5B9BD5; }
+  .ev-both { background: var(--accent-soft); color: var(--accent); }
+  .ev-pub { background: rgba(76,175,125,0.16); color: #4CAF7D; }
+  .ev-pub::after { content: ' ✓'; }
+  .a-programmer { padding: 0 2px; }
+  .a-programmer h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 10px; }
+  .ap-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); margin-bottom: 8px; cursor: pointer; text-decoration: none; color: var(--ink); }
+  .ap-item:hover { border-color: var(--accent); }
+  .ap-item .ap-thumb { width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0; }
+  .ap-item .ap-meta { min-width: 0; }
+  .ap-item .ap-t { font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ap-item .ap-s { font-size: 11px; color: var(--ink-3); }
+  .ap-empty { font-size: 12px; color: var(--ink-3); padding: 6px 2px; }
+</style>
+</head>
+<body class="theme-dark" data-page="calendrier">
+
+  <div class="cal-wrap">
+    <div class="cal-head">
+      <h2>Calendrier</h2>
+      <span class="mois">Août 2026</span>
+      <span class="spacer"></span>
+      <button class="btn sm">‹</button>
+      <button class="btn sm">Aujourd'hui</button>
+      <button class="btn sm">›</button>
+      <button class="btn sm">Mois</button>
+      <button class="btn sm">Semaine</button>
+    </div>
+
+    <div class="cal-body">
+      <div>
+        <div class="cal-grid">
+          <div class="cal-dow">
+            <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
+          </div>
+          <div class="cal-days">
+            <div class="cal-day other"><span class="dnum">27</span></div>
+            <div class="cal-day other"><span class="dnum">28</span></div>
+            <div class="cal-day other"><span class="dnum">29</span></div>
+            <div class="cal-day other"><span class="dnum">30</span></div>
+            <div class="cal-day other"><span class="dnum">31</span></div>
+            <div class="cal-day"><span class="dnum">1</span></div>
+            <div class="cal-day"><span class="dnum">2</span></div>
+            <div class="cal-day"><span class="dnum">3</span></div>
+            <div class="cal-day"><span class="dnum">4</span></div>
+            <div class="cal-day"><span class="dnum">5</span></div>
+            <div class="cal-day"><span class="dnum">6</span></div>
+            <div class="cal-day"><span class="dnum">7</span></div>
+            <div class="cal-day"><span class="dnum">8</span></div>
+            <div class="cal-day"><span class="dnum">9</span></div>
+            <div class="cal-day"><span class="dnum">10</span></div>
+            <div class="cal-day"><span class="dnum">11</span>
+              <a class="ev ev-pub" href="post-publie.html">Duplex Gambetta</a>
+            </div>
+            <div class="cal-day"><span class="dnum">12</span>
+              <a class="ev ev-pub" href="post-publie.html">Rentabilité</a>
+            </div>
+            <div class="cal-day"><span class="dnum">13</span>
+              <a class="ev ev-both" href="detail.html?mode=programmer">Carrousel Bordeluche</a>
+            </div>
+            <div class="cal-day"><span class="dnum">14</span></div>
+            <div class="cal-day"><span class="dnum">15</span></div>
+            <div class="cal-day"><span class="dnum">16</span></div>
+            <div class="cal-day"><span class="dnum">17</span></div>
+            <div class="cal-day"><span class="dnum">18</span>
+              <a class="ev ev-ig" href="detail.html?mode=programmer">Bienvenue</a>
+            </div>
+            <div class="cal-day"><span class="dnum">19</span></div>
+            <div class="cal-day"><span class="dnum">20</span></div>
+            <div class="cal-day"><span class="dnum">21</span>
+              <a class="ev ev-li" href="detail.html?mode=programmer">Rentabilité</a>
+            </div>
+            <div class="cal-day"><span class="dnum">22</span></div>
+            <div class="cal-day"><span class="dnum">23</span></div>
+            <div class="cal-day"><span class="dnum">24</span></div>
+            <div class="cal-day"><span class="dnum">25</span></div>
+            <div class="cal-day"><span class="dnum">26</span></div>
+            <div class="cal-day"><span class="dnum">27</span></div>
+            <div class="cal-day"><span class="dnum">28</span></div>
+            <div class="cal-day"><span class="dnum">29</span></div>
+            <div class="cal-day"><span class="dnum">30</span></div>
+            <div class="cal-day"><span class="dnum">31</span></div>
+            <div class="cal-day other"><span class="dnum">1</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="a-programmer">
+        <h4>À programmer</h4>
+        <a class="ap-item" href="detail.html?mode=programmer">
+          <div class="ap-thumb cc-bordeaux" style="background:linear-gradient(150deg,#422928,#5A3733)"></div>
+          <div class="ap-meta"><div class="ap-t">Pourquoi Bordeluche existe</div><div class="ap-s">Validée · 2 réseaux</div></div>
+        </a>
+        <a class="ap-item" href="detail.html?mode=reviser">
+          <div class="ap-thumb cc-ivoire" style="background:linear-gradient(150deg,#F1EFEA,#E4E0D6)"></div>
+          <div class="ap-meta"><div class="ap-t">Bienvenue chez Bordeluche</div><div class="ap-s">À valider · 1 réseau</div></div>
+        </a>
+        <div class="ap-empty">Glissez une publication sur une date pour la programmer.</div>
+
+        <h4 style="margin-top:18px">Publiés récemment</h4>
+        <a class="ap-item" href="post-publie.html" style="border-color:rgba(76,175,125,0.35)">
+          <div class="ap-thumb cc-bleu" style="background:linear-gradient(150deg,#1F2A44,#2E3D63)"></div>
+          <div class="ap-meta"><div class="ap-t">Duplex Gambetta — avant/après</div><div class="ap-s" style="color:var(--st-valide)">✓ Publié · 11 août · 2 148 portée</div></div>
+        </a>
+        <a class="ap-item" href="post-publie.html" style="border-color:rgba(76,175,125,0.35)">
+          <div class="ap-thumb cc-gold" style="background:linear-gradient(150deg,#B99A4E,#D4B463)"></div>
+          <div class="ap-meta"><div class="ap-t">Rentabilité : le chiffre qui compte</div><div class="ap-s" style="color:var(--st-valide)">✓ Publié · 12 août · LinkedIn</div></div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/proto.js"></script>
+</body>
+</html>

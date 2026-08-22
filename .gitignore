@@ -35,3 +35,8 @@ moodboard-*.png
 atelier-*.png
 .vercel
 .env*
+
+.wt-confirm/
+.freebuff/
+
+file:*
