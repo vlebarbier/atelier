@@ -1,3 +1,13 @@
+import {
+  Star,
+  Megaphone,
+  PresentationChart,
+  House,
+  Sparkle,
+  Lightbulb,
+  type Icon
+} from '@phosphor-icons/react';
+
 export const RESEAUX: readonly string[] = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok', 'gmb'];
 
 /** Types de contenu reseaux sociaux (programmables, publics). Ordre de la maquette. */
@@ -61,7 +71,8 @@ export interface TemplateCreation {
   id: string;
   nom: string;
   type: string;
-  emoji?: string;
+  /** Icone Phosphor du template (zero emoji dans l'UI produit, DA v3). */
+  icone?: Icon;
   description: string;
   titreDefaut: string;
   /** true si le template demande un champ « precise ton sujet ». */
@@ -77,7 +88,7 @@ export const TEMPLATES_CREATION: TemplateCreation[] = [
     id: 'carrousel-temoignage',
     nom: 'Carrousel témoignage',
     type: 'carrousel',
-    emoji: '⭐',
+    icone: Star,
     description: 'Avis clients en carrousel : un guest par slide',
     titreDefaut: 'Carrousel témoignage',
     demandeChamp: true,
@@ -92,7 +103,7 @@ export const TEMPLATES_CREATION: TemplateCreation[] = [
     id: 'post-annonce',
     nom: 'Post annonce',
     type: 'post',
-    emoji: '📣',
+    icone: Megaphone,
     description: 'Annoncer un produit, service, logement ou événement',
     titreDefaut: 'Post annonce',
     demandeChamp: true,
@@ -108,7 +119,7 @@ export const TEMPLATES_CREATION: TemplateCreation[] = [
     id: 'pitch-deck',
     nom: 'Pitch deck',
     type: 'pitch-deck',
-    emoji: '📊',
+    icone: PresentationChart,
     description: 'Deck de présentation : cover, problème, solution, preuves, CTA',
     titreDefaut: 'Pitch deck',
     messageInitial: `[Demande] Crée un pitch deck.\n\n${TEMPLATE_GROUPE(
@@ -124,7 +135,7 @@ export const TEMPLATES_CREATION: TemplateCreation[] = [
     id: 'carrousel-produit',
     nom: 'Carrousel produit',
     type: 'carrousel',
-    emoji: '🏠',
+    icone: House,
     description: 'Présenter un bien ou produit : accroche, caractéristiques, photos',
     titreDefaut: 'Carrousel produit',
     demandeChamp: true,
@@ -140,7 +151,7 @@ export const TEMPLATES_CREATION: TemplateCreation[] = [
     id: 'story-promo',
     nom: 'Story promo',
     type: 'story',
-    emoji: '✨',
+    icone: Sparkle,
     description: 'Story verticale : un message, un CTA',
     titreDefaut: 'Story promo',
     demandeChamp: true,
@@ -156,7 +167,7 @@ export const TEMPLATES_CREATION: TemplateCreation[] = [
     id: 'idee-vague',
     nom: 'Idée vague',
     type: 'carrousel',
-    emoji: '💡',
+    icone: Lightbulb,
     description: 'Une intention floue ? L\'agent propose 2-3 directions',
     titreDefaut: 'Idée vague',
     messageInitial: `[Demande] J'ai une intention encore floue.
