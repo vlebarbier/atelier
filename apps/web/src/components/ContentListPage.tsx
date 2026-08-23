@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FileText, Plus, SquaresFour, List } from '@phosphor-icons/react';
-import type { Brouillon, Statut } from '../api';
+import type { Brouillon, Statut, StatutConformite } from '../api';
 import { TYPE_LABELS } from '../format';
 import { Page, PageHeader, EmptyState } from './ui';
 import { DraftGrid, GridSkeleton } from './DraftGrid';
@@ -48,6 +48,8 @@ interface ContentListPageProps {
   onFiltreChange: (filtre: Statut | 'tous') => void;
   /** Nombre de contenus a valider (affiche "N · X a valider" pres du titre). */
   aValider?: number;
+  /** Verdicts de conformite a la charte par brouillon (F-33) : badge sur les covers. */
+  conformite?: Record<string, StatutConformite>;
   emptyTitle: string;
   emptySub?: string;
 }
@@ -77,6 +79,7 @@ export function ContentListPage({
   filtre,
   onFiltreChange,
   aValider = 0,
+  conformite,
   emptyTitle,
   emptySub
 }: ContentListPageProps) {
@@ -203,7 +206,7 @@ export function ContentListPage({
         <EmptyState title={emptyTitle} sub={emptySub} />
       )}
       {!error && !loading && brouillons.length > 0 && (
-        <DraftGrid brouillons={filtered} vue={vue} onOpen={onOpen} onNew={onCreate} onDuplicate={onDuplicate} onDelete={onDelete} />
+        <DraftGrid brouillons={filtered} vue={vue} onOpen={onOpen} onNew={onCreate} onDuplicate={onDuplicate} onDelete={onDelete} conformite={conformite} />
       )}
     </Page>
   );
