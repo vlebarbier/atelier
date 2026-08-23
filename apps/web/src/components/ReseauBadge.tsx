@@ -1,5 +1,6 @@
 import type { Reseau } from '../api';
 import { RESEAUX_LABELS } from '../format';
+import { Square } from '@phosphor-icons/react';
 
 /**
  * Logos officiels des reseaux sociaux en SVG inline (copies de la maquette
@@ -52,7 +53,7 @@ export function ReseauBadge({ reseau }: { reseau: Reseau }) {
   const label = RESEAUX_LABELS[reseau] ?? reseau;
   return (
     <span className={`net ${NET_CLASS[reseau] ?? 'net-x'}`}>
-      {svg ? <ReseauIcon reseau={reseau} /> : <span className="net-glyph" aria-hidden="true">◆</span>}
+      {svg ? <ReseauIcon reseau={reseau} /> : <span className="net-glyph" aria-hidden="true"><Square size={14} weight="bold" /></span>}
       {label}
     </span>
   );

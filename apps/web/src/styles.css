@@ -286,7 +286,7 @@ main {
 .toolbar-quiet .count { margin-left: auto; font-size: 11.5px; color: var(--color-ink-tertiary); }
 .toolbar button.on[data-f="a-valider"]   { background: var(--color-status-warn-soft); color: var(--color-status-warn); border-color: transparent; font-weight: 600; }
 .toolbar button.on[data-f="valide"]      { background: var(--color-status-validated-soft); color: var(--color-status-validated); border-color: transparent; font-weight: 600; }
-.toolbar button.on[data-f="publie"]      { background: var(--color-status-ok); color: #04140B; border-color: transparent; font-weight: 600; }
+.toolbar button.on[data-f="publie"]      { background: var(--color-status-ok); color: var(--color-status-ok-on); border-color: transparent; font-weight: 600; }
 
 /* Surcharge pour les filtres silencieux (spécificité attribut > classe simple) */
 .toolbar-quiet button.on[data-f] { background: transparent; color: var(--color-ink-primary); border-bottom-color: var(--color-accent-base); }
@@ -1529,7 +1529,7 @@ main {
 /* ── Decision maker/checker (UX A3) : Approuver / Demander des modifs ── */
 .decide-group { display: inline-flex; gap: 6px; align-items: center; }
 .decide-group button { height: 30px; }
-.decide-ok { background: var(--color-status-ok); border-color: var(--color-status-ok); color: #050505; }
+.decide-ok { background: var(--color-status-ok); border-color: var(--color-status-ok); }
 .decide-ok:hover { background: color-mix(in srgb, var(--color-status-ok) 88%, #000); border-color: var(--color-status-ok); }
 .decide-note {
   position: absolute; left: 0; top: calc(100% + 6px); z-index: 40;
@@ -2187,65 +2187,9 @@ button.danger:hover {
 
 /* ═══════════════════════════════════════════════════════════════════════
    THEME MANUEL — toggle sombre/clair (barre du haut)
-   Les tokens sont dark-first (tokens.css) avec un fallback light via
-   prefers-color-scheme. On ajoute un override explicite par data-theme :
-   - data-theme="light"  → force le clair (meme si l'OS est sombre)
-   - data-theme="dark"   → force le sombre (meme si l'OS est clair)
+   Les tokens sont maintenant la source unique pour dark/light via
+   @import '@atelier/tokens/css' ; on ne redéfinit plus les tokens ici.
    ═══════════════════════════════════════════════════════════════════════ */
-:root[data-theme='light'] {
-  color-scheme: light;
-  --color-bg-deepest: #F6F6F4;
-  --color-bg-level-1: #FFFFFF;
-  --color-bg-level-2: #EFEFEC;
-  --color-bg-level-3: #E7E7E2;
-  --color-ink-primary: #1C1C1A;
-  --color-ink-secondary: #5A5A55;
-  --color-ink-tertiary: rgba(28, 28, 26, 0.52);
-  --color-line-default: rgba(28, 28, 26, 0.10);
-  --color-line-hover: rgba(28, 28, 26, 0.18);
-  --color-line-strong: rgba(28, 28, 26, 0.26);
-  --color-accent-base: #B45309;
-  --color-accent-hover: #9A4507;
-  --color-accent-soft: rgba(180, 83, 9, 0.10);
-  --color-accent-on-accent: #FFFFFF;
-  --color-status-warn: #D97706;
-  --color-status-warn-soft: rgba(217, 164, 65, 0.15);
-  --color-status-ok: #16A34A;
-  --color-status-ok-soft: rgba(22, 163, 74, 0.12);
-  --color-status-err: #DC2626;
-  --color-status-err-soft: rgba(220, 38, 38, 0.10);
-  --color-status-neutral: rgba(28, 28, 26, 0.06);
-  --color-shadow-sm: 0 1px 3px rgba(23, 22, 20, 0.08), 0 1px 2px rgba(23, 22, 20, 0.04);
-  --color-shadow-md: 0 4px 16px rgba(23, 22, 20, 0.10), 0 2px 4px rgba(23, 22, 20, 0.06);
-  --color-shadow-lg: 0 12px 40px rgba(23, 22, 20, 0.12), 0 4px 12px rgba(23, 22, 20, 0.06);
-}
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --color-bg-deepest: #050505;
-  --color-bg-level-1: #0A0A0A;
-  --color-bg-level-2: #131313;
-  --color-bg-level-3: #1B1B1B;
-  --color-ink-primary: #F5F5F4;
-  --color-ink-secondary: #A1A1A1;
-  --color-ink-tertiary: #6E6E6E;
-  --color-line-default: rgba(255, 255, 255, 0.08);
-  --color-line-hover: rgba(255, 255, 255, 0.15);
-  --color-line-strong: rgba(255, 255, 255, 0.22);
-  --color-accent-base: #E8C97A;
-  --color-accent-hover: #F0D88F;
-  --color-accent-soft: rgba(232, 201, 122, 0.12);
-  --color-accent-on-accent: #0A0A0A;
-  --color-status-warn: #D9A441;
-  --color-status-warn-soft: rgba(217, 164, 65, 0.12);
-  --color-status-ok: #4CAF7D;
-  --color-status-ok-soft: rgba(76, 175, 125, 0.12);
-  --color-status-err: #FF5252;
-  --color-status-err-soft: rgba(255, 82, 82, 0.14);
-  --color-status-neutral: rgba(255, 255, 255, 0.08);
-  --color-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
-  --color-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
-  --color-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
-}
 
 /* ── Tunnel de creation : stepper du workflow (SPEC-TUNNEL.md US-03) ── */
 /* Monochrome (zero couleur de statut) : le check blanc marque l'etape faite,
