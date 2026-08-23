@@ -1,5 +1,5 @@
 import type { Vue } from './ContentListPage';
-import type { Brouillon } from '../api';
+import type { Brouillon, StatutConformite } from '../api';
 import { DraftCard } from './DraftCard';
 import { DraftList } from './DraftList';
 import { Plus, Stack } from '@phosphor-icons/react';
@@ -28,9 +28,11 @@ interface DraftGridProps {
   onNew: () => void;
   onDuplicate: (id: string) => void;
   onDelete?: (id: string) => void;
+  /** Verdicts de conformite a la charte par brouillon (F-33) : badge sur les covers. */
+  conformite?: Record<string, StatutConformite>;
 }
 
-export function DraftGrid({ brouillons, vue, onOpen, onNew, onDuplicate, onDelete }: DraftGridProps) {
+export function DraftGrid({ brouillons, vue, onOpen, onNew, onDuplicate, onDelete, conformite }: DraftGridProps) {
   if (brouillons.length === 0) {
     return (
       <div className="empty-guide">
@@ -58,13 +60,13 @@ export function DraftGrid({ brouillons, vue, onOpen, onNew, onDuplicate, onDelet
   }
 
   if (vue === 'liste') {
-    return <DraftList brouillons={brouillons} onOpen={onOpen} onDuplicate={onDuplicate} onDelete={onDelete} />;
+    return <DraftList brouillons={brouillons} onOpen={onOpen} onDuplicate={onDuplicate} onDelete={onDelete} conformite={conformite} />;
   }
 
   return (
     <div className="projects">
       {brouillons.map((b) => (
-        <DraftCard key={b.id} brouillon={b} onOpen={onOpen} onDuplicate={onDuplicate} onDelete={onDelete ?? (() => {})} />
+        <DraftCard key={b.id} brouillon={b} onOpen={onOpen} onDuplicate={onDuplicate} onDelete={onDelete ?? (() => {})} conformite={conformite?.[b.id]} />
       ))}
     </div>
   );
