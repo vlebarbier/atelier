@@ -131,3 +131,9 @@
     border-bottom: 1px solid var(--color-line-default);
   }
 }
+
+/* Correctif revue #108 : le token --color-status-ok-on etait reference par la
+   pill « publié » de la toolbar sans exister, et .decide-ok a perdu sa couleur
+   de texte. Texte sombre sur fond vert, valable dans les deux themes. */
+:root { --color-status-ok-on: #04140B; }
+.decide-ok { color: var(--color-status-ok-on); }
