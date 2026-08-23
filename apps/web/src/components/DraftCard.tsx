@@ -1,5 +1,5 @@
-import { ImageSquare, Copy, X } from '@phosphor-icons/react';
-import type { Brouillon, Reseau, Statut } from '../api';
+import { ImageSquare, Copy, X, CheckCircle, Warning } from '@phosphor-icons/react';
+import type { Brouillon, Reseau, Statut, StatutConformite } from '../api';
 import { slideUrl } from '../api';
 import { STATUT_LABELS, badgeType, relTime } from '../format';
 import { ReseauBadge } from './ReseauBadge';
@@ -9,9 +9,11 @@ interface DraftCardProps {
   onOpen: (id: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
+  /** Verdict de conformite a la charte (F-33) : chip sur la cover, en bas a gauche. */
+  conformite?: StatutConformite;
 }
 
-export function DraftCard({ brouillon, onOpen, onDuplicate, onDelete }: DraftCardProps) {
+export function DraftCard({ brouillon, onOpen, onDuplicate, onDelete, conformite }: DraftCardProps) {
   const cover = brouillon.slides[0] ? slideUrl(brouillon.id, brouillon.slides[0]) : null;
   const reseaux = brouillon.reseaux ?? [];
   const badge = badgeType(brouillon.type, brouillon.slideCount);
@@ -35,6 +37,16 @@ export function DraftCard({ brouillon, onOpen, onDuplicate, onDelete }: DraftCar
           </div>
         )}
         <span className="badge-type">{badge}</span>
+        {conformite === 'conforme' && (
+          <span className="conf-badge ok" title="Conforme à la charte">
+            <CheckCircle size={11} weight="bold" /> Conforme
+          </span>
+        )}
+        {conformite === 'hors-charte' && (
+          <span className="conf-badge warn" title="Écarts avec la charte — le detail est dans la vue de revision">
+            <Warning size={11} weight="bold" /> Hors charte
+          </span>
+        )}
       </div>
       <div className="body">
         <div className="titre">{brouillon.titre}</div>
