@@ -35,7 +35,7 @@ const RESEAU_CONTRAINTES: Record<string, { maxChars: number; maxHashtags: number
   gmb: { maxChars: 1500, maxHashtags: 0, maxImages: 10, format: 'Carré 1080×1080 (min 250×250)' }
 };
 
-type OngletPanneau = 'agent' | 'reseaux' | 'slides' | 'source' | 'annotations' | 'planif';
+type OngletPanneau = 'reseaux' | 'slides' | 'source' | 'annotations' | 'planif';
 
 /**
  * Tunnel de creation (SPEC-TUNNEL.md) : les 4 etapes visibles dans le header
@@ -76,36 +76,40 @@ function modeDetail(brouillon: BrouillonDetail): ModeDetail {
 
 /** Configuration du panneau droit par mode : onglets visibles, onglet par
  *  defaut, sections affichees. « Une action primaire par mode, le reste en
- *  progressive disclosure » (UX-RESEARCH.md §4). Le chat (onglet Agent) reste
- *  accessible dans TOUS les modes : « le chat est le cœur, jamais caché » (§1). */
+ *  progressive disclosure » (UX-RESEARCH.md §4). Le chat n'est plus un onglet :
+ *  il a sa colonne a gauche, toujours visible (portage maquette v3). */
 const MODE_UI: Record<
   ModeDetail,
   { onglets: OngletPanneau[]; ongletDefaut: OngletPanneau | null; checklist: boolean; planif: boolean }
 > = {
-  // CRÉER : uniquement les outils de creation (chat agent + source).
-  creer: { onglets: ['agent', 'source'], ongletDefaut: 'agent', checklist: false, planif: false },
-  // RÉVISER : tous les onglets (dont les annotations A2), le chat en appui
-  // (la slide est le heros du stage). L'onglet initial est calcule a part
-  // (ongletDefautPour) : annotations quand il y a des slides.
-  reviser: { onglets: ['annotations', 'agent', 'reseaux', 'slides', 'source'], ongletDefaut: 'agent', checklist: true, planif: false },
+  // CRÉER : uniquement l'outil de creation restant (source).
+  creer: { onglets: ['source'], ongletDefaut: 'source', checklist: false, planif: false },
+  // RÉVISER : les onglets d'edition (dont les annotations A2), le chat vit dans
+  // sa colonne a gauche. L'onglet initial est calcule a part (ongletDefautPour) :
+  // annotations quand il y a des slides.
+  reviser: { onglets: ['annotations', 'reseaux', 'slides', 'source'], ongletDefaut: 'annotations', checklist: true, planif: false },
   // VALIDER : la checklist seule dans le panneau (le diff est dans le stage),
-  // le chat reste accessible via son onglet.
-  valider: { onglets: ['agent'], ongletDefaut: null, checklist: true, planif: false },
+  // le chat reste visible dans sa colonne.
+  valider: { onglets: [], ongletDefaut: null, checklist: true, planif: false },
   // PROGRAMMER (A4) : le calendrier integre domine (creneaux intelligents +
   // apercu du post), les reseaux (legende) et slides restent en appui, le chat
-  // reste accessible via son onglet.
-  programmer: { onglets: ['planif', 'agent', 'reseaux', 'slides'], ongletDefaut: 'planif', checklist: false, planif: true }
+  // reste visible dans sa colonne.
+  programmer: { onglets: ['planif', 'reseaux', 'slides'], ongletDefaut: 'planif', checklist: false, planif: true }
 };
 
-/** Onglet initial d'un brouillon : le defaut de son mode courant, sauf en
- *  revision ou les slides ouvrent sur les annotations (A2, feedback ancre au
- *  visuel). Le chat reste accessible en onglet dans tous les modes. */
+/** Onglet initial du panneau droit : le defaut du mode courant. En revision,
+ *  les slides ouvrent sur les annotations (A2, feedback ancre au visuel) ;
+ *  les documents ouvrent sur les slides. Le chat n'est plus un onglet : il a
+ *  sa colonne a gauche, toujours visible (portage maquette v3). */
 function ongletDefautPour(b: BrouillonDetail): OngletPanneau {
   const mode = modeDetail(b);
-  if (mode === 'reviser' && !TYPES_DOCUMENTS.includes(b.type) && b.slides.length > 0) return 'annotations';
+  if (mode === 'reviser') {
+    if (TYPES_DOCUMENTS.includes(b.type)) return 'slides';
+    return b.slides.length > 0 ? 'annotations' : 'source';
+  }
   const defaut = MODE_UI[mode].ongletDefaut;
   if (defaut) return defaut;
-  return TYPES_DOCUMENTS.includes(b.type) ? 'slides' : 'agent';
+  return TYPES_DOCUMENTS.includes(b.type) ? 'slides' : 'reseaux';
 }
 
 /** Date locale au format YYYY-MM-DD (attendu par <input type="date"> et par le
@@ -232,7 +236,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   // Direction de transition du carrousel (spec Apollon) : 'next' | 'prev' | null
   const [slideDir, setSlideDir] = useState<'next' | 'prev' | null>(null);
   const [reseauActif, setReseauActif] = useState<string>('instagram');
-  const [onglet, setOnglet] = useState<OngletPanneau>('agent');
+  const [onglet, setOnglet] = useState<OngletPanneau>('reseaux');
   const [statutOpen, setStatutOpen] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -303,7 +307,8 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
       setReseauActif('instagram');
       // A1 : l'onglet initial vient du mode contextuel ; A2 : en revision avec
       // des slides, le panneau s'ouvre sur les annotations (le feedback est
-      // ancre au visuel), pas sur le chat. Le chat reste accessible en onglet.
+      // ancre au visuel), pas sur le chat. Le chat a sa colonne a gauche,
+      // toujours visible.
       setOnglet(ongletDefautPour(data));
       setAgentEnTravail(false);
       try {
@@ -341,7 +346,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   useEffect(() => {
     if (!mode || !modeOnglets || modeOnglets.length === 0) return;
     if (!modeOnglets.includes(onglet)) {
-      setOnglet(MODE_UI[mode].ongletDefaut ?? modeOnglets[0] ?? 'agent');
+      setOnglet(MODE_UI[mode].ongletDefaut ?? modeOnglets[0] ?? 'reseaux');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, brouillon?.statut, brouillon?.slides.length, brouillon?.type]);
@@ -431,7 +436,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   /** Action du CTA de la suggestion courante (SPEC-TUNNEL §4.2-4.4). */
   function actionSuggestion(s: Suggestion) {
     if (s === 'S0') {
-      setOnglet('agent');
       const ta = document.querySelector<HTMLTextAreaElement>('.chat-input textarea');
       ta?.focus();
     } else if (s === 'S1') {
@@ -1240,6 +1244,69 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
       </header>
 
       <div className="detail-body">
+        <aside className="chat-col" aria-label="Discussion avec l'agent">
+          <div className="chat-col-head">
+            <Sparkle size={12} weight="regular" />
+            <span>Agent</span>
+            {agentEnTravail && <span className="chat-col-live">· travaille...</span>}
+          </div>
+          <div className="chat-panel">
+            <div className="chat-feed">
+              {conversation.length === 0 ? (
+                <div className="chat-empty">
+                  <Sparkle size={18} className="chat-empty-ico" />
+                  <p>Demandez a votre agent de modifier ce contenu.</p>
+                  <p className="chat-empty-sub">
+                    « Change le texte de la slide 3 », « Ajoute une slide sur le duplex »...
+                    L'agent execute et repond ici. Ne fonctionne que si votre agent est
+                    connecte a Atelier (MCP ou API).
+                  </p>
+                </div>
+              ) : (
+                conversation.map((m, i) => (
+                  <div key={i} className={`chat-msg ${m.role}`}>
+                    <div className="chat-msg-head">
+                      {m.role === 'agent' ? <Sparkle size={11} /> : <span className="chat-you">Vous</span>}
+                      <span className="chat-role">{m.role === 'agent' ? 'Agent' : ''}</span>
+                    </div>
+                    <div className="chat-msg-text">{m.texte}</div>
+                  </div>
+                ))
+              )}
+              {agentEnTravail && (
+                <div className="chat-msg agent">
+                  <div className="chat-msg-head">
+                    <Sparkle size={11} />
+                    <span className="chat-role">Agent</span>
+                  </div>
+                  <div className="chat-msg-text chat-typing">
+                    <span className="eq-bounce"><span /><span /><span /></span>
+                    <span className="stream-caret" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="chat-input">
+              <textarea
+                value={chatDraft}
+                onChange={(e) => setChatDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    onEnvoyerChat();
+                  }
+                }}
+                placeholder="Demander une modification a votre agent..."
+                rows={2}
+                aria-label="Message a l'agent"
+              />
+              <button className="primary" type="button" onClick={onEnvoyerChat} disabled={chatEnvoi || !chatDraft.trim()}>
+                <PaperPlaneTilt size={13} weight="bold" /> {chatEnvoi ? 'Envoi...' : 'Envoyer'}
+              </button>
+            </div>
+          </div>
+        </aside>
+
         <div className="detail-stage">
           {brouillon.slides.length > 0 && currentSlideFichier ? (
             <>
@@ -1493,7 +1560,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   type="button"
                   className="primary"
                   onClick={() => {
-                    setOnglet('agent');
                     const ta = document.querySelector<HTMLTextAreaElement>('.chat-input textarea');
                     ta?.focus();
                   }}
@@ -1606,11 +1672,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               <button type="button" className={onglet === 'annotations' ? 'on' : ''} onClick={() => setOnglet('annotations')}>
                 <MapPin size={12} /> Annotations
                 {annotations.length > 0 && <span className="panel-tab-count">{annotations.length}</span>}
-              </button>
-              )}
-              {(!modeOnglets || modeOnglets.includes('agent')) && (
-              <button type="button" className={onglet === 'agent' ? 'on' : ''} onClick={() => setOnglet('agent')}>
-                <Sparkle size={12} /> Agent
               </button>
               )}
               {(!modeOnglets || modeOnglets.includes('reseaux')) && (
@@ -1804,62 +1865,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     })}
                   </div>
                 )}
-              </div>
-            ) : onglet === 'agent' ? (
-              <div className="chat-panel">
-                <div className="chat-feed">
-                  {conversation.length === 0 ? (
-                    <div className="chat-empty">
-                      <Sparkle size={18} className="chat-empty-ico" />
-                      <p>Demandez a votre agent de modifier ce contenu.</p>
-                      <p className="chat-empty-sub">
-                        « Change le texte de la slide 3 », « Ajoute une slide sur le duplex »...
-                        L'agent execute et repond ici. Ne fonctionne que si votre agent est
-                        connecte a Atelier (MCP ou API).
-                      </p>
-                    </div>
-                  ) : (
-                    conversation.map((m, i) => (
-                      <div key={i} className={`chat-msg ${m.role}`}>
-                        <div className="chat-msg-head">
-                          {m.role === 'agent' ? <Sparkle size={11} /> : <span className="chat-you">Vous</span>}
-                          <span className="chat-role">{m.role === 'agent' ? 'Agent' : ''}</span>
-                        </div>
-                        <div className="chat-msg-text">{m.texte}</div>
-                      </div>
-                    ))
-                  )}
-                  {agentEnTravail && (
-                    <div className="chat-msg agent">
-                      <div className="chat-msg-head">
-                        <Sparkle size={11} />
-                        <span className="chat-role">Agent</span>
-                      </div>
-                      <div className="chat-msg-text chat-typing">
-                        <span className="eq-bounce"><span /><span /><span /></span>
-                        <span className="stream-caret" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="chat-input">
-                  <textarea
-                    value={chatDraft}
-                    onChange={(e) => setChatDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        onEnvoyerChat();
-                      }
-                    }}
-                    placeholder="Demander une modification a votre agent..."
-                    rows={2}
-                    aria-label="Message a l'agent"
-                  />
-                  <button className="primary" type="button" onClick={onEnvoyerChat} disabled={chatEnvoi || !chatDraft.trim()}>
-                    <PaperPlaneTilt size={13} weight="bold" /> {chatEnvoi ? 'Envoi...' : 'Envoyer'}
-                  </button>
-                </div>
               </div>
             ) : onglet === 'source' ? (
               <div className="source-panel">
