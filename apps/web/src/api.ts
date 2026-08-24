@@ -515,3 +515,32 @@ export async function fetchJournal(limit = 100): Promise<JournalEntry[]> {
   const res = await fetch(apiUrl(`/api/journal?limit=${limit}`));
   return handle<JournalEntry[]>(res);
 }
+
+// ── Conformité à la charte (F-33 badge, F-34 détail des écarts) ──────────
+
+export type StatutConformite = 'conforme' | 'hors-charte' | 'sans-charte' | 'sans-source';
+
+export interface EcartConformite {
+  nature: 'couleur' | 'police';
+  /** La valeur hors charte, telle qu'écrite dans la source. */
+  valeur: string;
+  /** Explication lisible (ex. « couleur utilisée absente de la charte »). */
+  detail: string;
+}
+
+export interface VerdictConformite {
+  statut: StatutConformite;
+  ecarts: EcartConformite[];
+}
+
+/** GET /api/conformite → { [brouillonId]: statut } pour les badges de la grille. */
+export async function fetchConformite(): Promise<Record<string, StatutConformite>> {
+  const res = await fetch(apiUrl('/api/conformite'));
+  return handle<Record<string, StatutConformite>>(res);
+}
+
+/** GET /api/brouillon/:id/conformite → verdict + détail des écarts. */
+export async function fetchConformiteBrouillon(id: string): Promise<VerdictConformite> {
+  const res = await fetch(apiUrl(`/api/brouillon/${encodeURIComponent(id)}/conformite`));
+  return handle<VerdictConformite>(res);
+}

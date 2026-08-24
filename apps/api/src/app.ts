@@ -141,6 +141,15 @@ async function slideFichiersDe(repo: Repo, brouillonId: string): Promise<string[
   return rows.sort((a, b) => a.position - b.position).map((s) => s.fichier);
 }
 
+/** Lit la data JSON de la charte sans jamais faire echouer la route. */
+function lireCharteData(raw: string | undefined | null): Record<string, unknown> {
+  try {
+    return JSON.parse(raw || '{}') as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Cree l'app Hono. Prend le repository (couche d'acces donnees, SQLite ou
  * Postgres) + options en parametres pour rester testable en memoire et
@@ -517,6 +526,29 @@ export function createApp(repo: Repo, options: AppOptions) {
       slideCount: fichiers.length,
       slides: fichiers
     });
+  });
+
+  // GET /api/brouillon/:id/conformite → verdict + detail des ecarts (F-34).
+  // F-35 : le web relance le controle apres chaque regeneration de la source.
+  app.get('/api/brouillon/:id/conformite', async (c) => {
+    const row = await repo.getBrouillon(c.req.param('id'));
+    if (!row) return c.json({ error: 'Inconnu' }, 404);
+    const charte = await repo.getCharte(row.charteId || 'principale');
+    const { analyserConformite } = await import('./conformite.js');
+    return c.json(analyserConformite(row.sourceHtml || '', lireCharteData(charte?.data)));
+  });
+
+  // GET /api/conformite → badges de la grille : { [brouillonId]: statut } (F-33).
+  app.get('/api/conformite', async (c) => {
+    const rows = await repo.listBrouillons();
+    const charte = await repo.getCharte('principale');
+    const data = lireCharteData(charte?.data);
+    const { analyserConformite } = await import('./conformite.js');
+    const out: Record<string, string> = {};
+    for (const row of rows) {
+      out[row.id] = analyserConformite(row.sourceHtml || '', data).statut;
+    }
+    return c.json(out);
   });
 
   app.post('/api/brouillon/:id', async (c) => {

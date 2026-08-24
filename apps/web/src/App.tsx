@@ -19,7 +19,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { HelpPage } from './pages/HelpPage';
 import { ArticleEditor } from './components/ArticleEditor';
 import { RESEAUX_LABELS, TYPE_ARTICLE, TYPES_CONTENUS, TYPES_DOCUMENTS } from './format';
-import { fetchBrouillons, createBrouillon, deleteBrouillon, dupliquerBrouillon, parseProgramme, type Brouillon, type Statut } from './api';
+import { fetchBrouillons, createBrouillon, deleteBrouillon, dupliquerBrouillon, fetchConformite, parseProgramme, type Brouillon, type Statut, type StatutConformite } from './api';
 import type { NotifEvent } from './components/NotificationBell';
 
 const PAGE_LABELS: Record<string, string> = {
@@ -60,6 +60,9 @@ export default function App() {
   // Suppression en attente de confirmation in-app (id du brouillon/document).
   const [suppressionId, setSuppressionId] = useState<string | null>(null);
   const [panneauReplie, setPanneauReplie] = useState(false);
+  // Conformite a la charte par brouillon (F-33) : la grille affiche le badge
+  // conforme / hors charte. Best-effort : sans verdict, pas de badge.
+  const [conformite, setConformite] = useState<Record<string, StatutConformite>>({});
   // Sidebar repliee : le bouton vit dans la barre du haut (pattern PushRank).
   const [sidebarRepliee, setSidebarRepliee] = useState(() => localStorage.getItem('atelier.sidebar.collapsed') === '1');
   useEffect(() => {
@@ -77,28 +80,40 @@ export default function App() {
     localStorage.setItem('atelier-theme', theme);
   }, [theme]);
 
+  // Rafraichit les verdicts de conformite (F-35 : toujours a jour, apres chaque
+  // chargement de la liste). Best-effort : une erreur ne bloque pas la grille.
+  const loadConformite = useCallback(() => {
+    fetchConformite()
+      .then(setConformite)
+      .catch(() => {
+        /* silencieux : sans verdict, pas de badge */
+      });
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await fetchBrouillons();
       setBrouillons(data);
+      loadConformite();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadConformite]);
 
   // Recharge sans toucher au state loading : pour le polling silencieux.
   const loadSilencieux = useCallback(async () => {
     try {
       const data = await fetchBrouillons();
       setBrouillons(data);
+      loadConformite();
     } catch {
       /* silencieux : on garde l'etat courant */
     }
-  }, []);
+  }, [loadConformite]);
 
   useEffect(() => {
     load();
@@ -342,6 +357,7 @@ export default function App() {
               filtre={filtre}
               onFiltreChange={setFiltre}
               aValider={aValiderContenus}
+              conformite={conformite}
               emptyTitle="Pas encore de contenu."
               emptySub="Creez votre premiere publication avec votre agent : il utilisera vos elements de marque."
             />
@@ -366,6 +382,7 @@ export default function App() {
               onCreateType={(type) => createDocument(type)}
               filtre={filtre}
               onFiltreChange={setFiltre}
+              conformite={conformite}
               emptyTitle="Pas encore de document de communication."
               emptySub="Pitch deck, flyer, affiche, carte de visite, plaquette : creez le premier livrable avec votre agent."
             />

@@ -137,3 +137,76 @@
    de texte. Texte sombre sur fond vert, valable dans les deux themes. */
 :root { --color-status-ok-on: #04140B; }
 .decide-ok { color: var(--color-status-ok-on); }
+
+/* Badge de conformité charte (F-33) : chip sur la cover (en bas a gauche),
+   point discret dans les lignes de la vue liste. Chip sombre translucide
+   lisible sur n'importe quelle cover, dans les deux themes. */
+.conf-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--radius-btn);
+  padding: 3px 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: rgba(10, 10, 10, 0.72);
+  color: var(--color-ink-primary);
+  backdrop-filter: blur(6px);
+}
+.conf-badge.ok { color: #4CAF7D; }
+.conf-badge.warn { color: #E8C97A; }
+.conf-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.conf-dot.ok { background: var(--color-status-ok); }
+.conf-dot.warn { background: var(--color-status-warn); }
+
+/* Section conformité du panneau de revision (F-34) : verdict + detail des
+   ecarts (couleurs et polices hors charte). */
+.conf-section .conf-verdict {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.conf-section .conf-verdict.ok { color: var(--color-status-ok); }
+.conf-section .conf-verdict.warn { color: var(--color-status-warn); }
+.conf-section .conf-ecarts {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.conf-section .conf-ecarts li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-ink-secondary);
+}
+.conf-section .conf-ecarts code {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--color-bg-level-2);
+  color: var(--color-ink-primary);
+}
+.conf-section .conf-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--color-ink-tertiary);
+}
+.conf-section .conf-refresh {
+  margin-top: 8px;
+}

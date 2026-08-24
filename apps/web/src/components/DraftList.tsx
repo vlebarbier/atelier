@@ -1,90 +1,77 @@
-import { Copy, X } from '@phosphor-icons/react';
-import type { Brouillon, Reseau, Statut } from '../api';
-import { slideUrl } from '../api';
+import type { Brouillon, Reseau, Statut, StatutConformite } from '../api';
 import { STATUT_LABELS, badgeType, relTime } from '../format';
+import { slideUrl } from '../api';
 import { ReseauBadge } from './ReseauBadge';
+import { Copy, Trash, Video } from '@phosphor-icons/react';
 
 interface DraftListProps {
   brouillons: Brouillon[];
   onOpen: (id: string) => void;
   onDuplicate: (id: string) => void;
   onDelete?: (id: string) => void;
+  /** Verdicts de conformite a la charte par brouillon (F-33) : point dans la ligne. */
+  conformite?: Record<string, StatutConformite>;
 }
 
-/** Les couleurs de statut : points discrets, pas de pilules (direction "atelier, pas dashboard"). */
-const STATUT_DOT: Record<string, string> = {
-  brouillon: 'var(--color-ink-tertiary)',
-  'a-valider': 'var(--color-status-warn)',
-  valide: 'var(--color-status-validated)',
-  publie: 'var(--color-status-ok)'
-};
-
-export function DraftList({ brouillons, onOpen, onDuplicate, onDelete }: DraftListProps) {
+export function DraftList({ brouillons, onOpen, onDuplicate, onDelete, conformite }: DraftListProps) {
   return (
-    <div className="list-view">
+    <div className="pub-liste">
       {brouillons.map((b) => {
-        const reseaux = b.reseaux ?? [];
-        const badge = badgeType(b.type, b.slideCount);
+        const conf = conformite?.[b.id];
         return (
-          <div
-            key={b.id}
-            className="list-row"
-            role="button"
-            tabIndex={0}
-            onClick={() => onOpen(b.id)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onOpen(b.id);
-            }}
-          >
-            {b.slides[0] ? (
-              <img className="thumb" src={slideUrl(b.id, b.slides[0])} alt={b.titre} loading="lazy" />
-            ) : (
-              <div className="thumb thumb-empty" />
-            )}
-            <div className="info">
-              <div className="titre">
-                {b.titre}
-                <span className="badge-type-liste">{badge}</span>
-              </div>
-              <div className="meta">
-                {reseaux.map((r) => (
+        <div key={b.id} className="pub-row" role="button" tabIndex={0} onClick={() => onOpen(b.id)} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(b.id); }}>
+          <div className="thumb">
+            {b.slides[0] ? <img src={slideUrl(b.id, b.slides[0])} alt="" /> : <div className="thumb-empty" />}
+          </div>
+          <div className="infos">
+            <div className="titre">{b.titre}</div>
+            <div className="meta">
+              <span className="badge-type-liste">{badgeType(b.type, b.slideCount)}</span>
+              {b.slideCount > 0 && <span className="slides-count">{b.slideCount} visuel{b.slideCount > 1 ? 's' : ''}</span>}
+              <span className="reseaux-inline">
+                {(b.reseaux ?? []).map((r) => (
                   <ReseauBadge key={r} reseau={r as Reseau} />
                 ))}
-                <span className="meta-dot">·</span>
-                {relTime(b.updated)}
-              </div>
-            </div>
-            <div className="status-dot" title={STATUT_LABELS[b.statut as Statut] ?? b.statut}>
-              <span className="dot status-pop" style={{ background: STATUT_DOT[b.statut] ?? 'var(--color-ink-tertiary)' }} />
-              {STATUT_LABELS[b.statut as Statut] ?? b.statut}
-            </div>
-            <div className="row-actions">
-              <button
-                type="button"
-                className="mini"
-                title="Dupliquer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDuplicate(b.id);
-                }}
-              >
-                <Copy size={13} />
-              </button>
-              {onDelete && (
-                <button
-                  type="button"
-                  className="mini danger"
-                  title="Supprimer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(b.id);
-                  }}
-                >
-                  <X size={14} />
-                </button>
+              </span>
+              <span>{relTime(b.updated)}</span>
+              {(conf === 'conforme' || conf === 'hors-charte') && (
+                <span
+                  className={`conf-dot ${conf === 'conforme' ? 'ok' : 'warn'}`}
+                  title={conf === 'conforme' ? 'Conforme à la charte' : 'Écarts avec la charte'}
+                />
               )}
             </div>
           </div>
+          {onDelete && (
+            <div className="pub-actions">
+              <button type="button" className="mini" title="Dupliquer"
+                onClick={(e) => { e.stopPropagation(); onDuplicate(b.id); }}>
+                <Copy size={13} />
+              </button>
+              <button type="button" className="mini" title="Supprimer"
+                onClick={(e) => { e.stopPropagation(); onDelete(b.id); }}>
+                <Trash size={14} />
+              </button>
+            </div>
+          )}
+          {b.type === 'video' && (
+            <span className="status-dot" style={{ color: 'var(--color-status-ok)' }} title="Video">
+              <Video size={12} />
+            </span>
+          )}
+          <span
+            className={`status-dot ${
+              b.statut === 'a-valider'
+                ? 'a-valider'
+                : b.statut === 'valide'
+                  ? 'valide'
+                  : b.statut === 'publie'
+                    ? 'publie'
+                    : ''
+            }`}
+            title={STATUT_LABELS[b.statut as Statut]}
+          />
+        </div>
         );
       })}
     </div>
