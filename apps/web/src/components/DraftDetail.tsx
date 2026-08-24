@@ -12,6 +12,7 @@ import { buildCharteCss, buildCharteFallbackCss, buildCharteFontLink, parseChart
 import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABELS, STATUTS_ORDRE, STATUT_LABELS, TYPE_LABELS, TYPES_CONTENUS, TYPES_DOCUMENTS, formatDate, relTime, type Creneau } from '../format';
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerFichier, telechargerHTML } from '../export';
 import { ConfirmModal } from './ConfirmModal';
+import { ConformiteSection } from './ConformiteSection';
 
 const RESEAU_ICONES: Record<string, Icon> = {
   instagram: InstagramLogo,
@@ -257,6 +258,9 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourceMsg, setSourceMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [rendering, setRendering] = useState(false);
+  // Re-contrôle de conformité (F-35) : la clé remonte à chaque régénération
+  // réussie, la section du panneau relance le contrôle charte.
+  const [confRefreshKey, setConfRefreshKey] = useState(0);
   const [checklist, setChecklist] = useState<{ id: string; label: string; checked: boolean }[]>([]);
   // Mode « Apercu publie » (SPEC-TUNNEL.md US-05) : la slide courante + la
   // legende assemblee du reseau actif, comme le post apparaitra publie.
@@ -653,6 +657,7 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
 
       const res = await replaceSlides(id, datas);
       setSourceMsg({ type: 'ok', text: `${res.slideCount} slides régénérées depuis la source.` });
+      setConfRefreshKey((k) => k + 1);
       // Le diff visuel s'ouvre automatiquement : montrer ce que l'agent a change.
       if (res.diff) {
         setDiffPos(55);
@@ -1658,6 +1663,8 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
               )}
           </div>
           )}
+
+          <ConformiteSection brouillonId={id} refreshKey={confRefreshKey} />
 
           {(!mode || modeOnglets === null || modeOnglets.length > 0) && (
           <div className="sp-section">

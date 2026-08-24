@@ -1,7 +1,7 @@
-import type { Brouillon, Statut, StatutConformite } from '../api';
+import type { Brouillon, Reseau, Statut, StatutConformite } from '../api';
 import { STATUT_LABELS, badgeType, relTime } from '../format';
 import { slideUrl } from '../api';
-import { ReseauBadges } from './ReseauBadge';
+import { ReseauBadge } from './ReseauBadge';
 import { Copy, Trash, Video } from '@phosphor-icons/react';
 
 interface DraftListProps {
@@ -28,7 +28,11 @@ export function DraftList({ brouillons, onOpen, onDuplicate, onDelete, conformit
             <div className="meta">
               <span className="badge-type-liste">{badgeType(b.type, b.slideCount)}</span>
               {b.slideCount > 0 && <span className="slides-count">{b.slideCount} visuel{b.slideCount > 1 ? 's' : ''}</span>}
-              <ReseauBadges reseaux={b.reseaux ?? []} />
+              <span className="reseaux-inline">
+                {(b.reseaux ?? []).map((r) => (
+                  <ReseauBadge key={r} reseau={r as Reseau} />
+                ))}
+              </span>
               <span>{relTime(b.updated)}</span>
               {(conf === 'conforme' || conf === 'hors-charte') && (
                 <span

@@ -120,7 +120,11 @@ function extrairePolices(sourceHtml: string): string[] {
     const brut = m[1];
     if (!brut) continue;
     const premiere = (brut.split(',')[0] ?? '').trim().replace(/^['"]|['"]$/g, '');
-    if (premiere && !familles.includes(premiere)) familles.push(premiere);
+    // Les références aux tokens CSS (var(--...)) sont conformes par
+    // construction : ce ne sont pas des familles littérales.
+    if (!premiere || premiere.startsWith('var(')) continue;
+    if (familles.includes(premiere)) continue;
+    familles.push(premiere);
   }
   return familles;
 }
