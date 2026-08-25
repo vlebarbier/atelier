@@ -7,6 +7,7 @@ import { storeSlide, storeRessource } from './storage/blob.js';
 import { snapshotSlidesAvant } from './diff.js';
 import { snapshotSource, lireVersion, parseVersions } from './versions.js';
 import { isPostgres } from './db/client.js';
+import { notifierAgent } from './integrations/hook.js';
 import type { Repo } from './db/repo.js';
 
 const RESEAUX_DEFAUT = ['instagram', 'linkedin', 'facebook', 'x', 'tiktok', 'gmb'];
@@ -697,6 +698,8 @@ export function createApp(repo: Repo, options: AppOptions) {
         message: `a envoye un message a l'agent (${texte.length} caracteres)`,
         details: { apercu: texte.slice(0, 120) }
       });
+      // Réveil instantané de l'agent (fire-and-forget, jamais bloquant).
+      notifierAgent({ event: 'message_user', brouillon_id: id, titre: row.titre });
     }
     return c.json({ ok: true, conversation: garde });
   });
