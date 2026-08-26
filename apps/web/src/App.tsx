@@ -76,7 +76,8 @@ export default function App() {
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    // Convention shadcn (SPEC-SHADCN D5) : la classe .dark porte le theme.
+    document.documentElement.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('atelier-theme', theme);
   }, [theme]);
 
@@ -425,16 +426,15 @@ export default function App() {
         vue={vue}
       />
 
-      {creationOpen && (
-        <CreationModal
+      <CreationModal
+          open={creationOpen}
           onClose={() => setCreationOpen(false)}
           onPhrase={creerDepuisPhrase}
           onTemplate={creerDepuisTemplate}
         />
-      )}
 
-      {suppressionId && (
-        <ConfirmModal
+      <ConfirmModal
+          open={suppressionId !== null}
           titre="Supprimer ce contenu ?"
           description={
             <>
@@ -445,11 +445,10 @@ export default function App() {
           onConfirm={() => {
             const id = suppressionId;
             setSuppressionId(null);
-            handleDelete(id);
+            if (id) handleDelete(id);
           }}
           onClose={() => setSuppressionId(null)}
         />
-      )}
     </div>
   );
 }

@@ -305,8 +305,8 @@ export function ArticleEditor({ id, onClose, onDelete, onPublished }: ArticleEdi
         </div>
       </div>
 
-      {suppression && (
-        <ConfirmModal
+      <ConfirmModal
+          open={suppression}
           titre="Supprimer cet article ?"
           description={
             <>
@@ -320,7 +320,6 @@ export function ArticleEditor({ id, onClose, onDelete, onPublished }: ArticleEdi
           }}
           onClose={() => setSuppression(false)}
         />
-      )}
     </div>
   );
 }

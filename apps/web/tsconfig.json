@@ -10,6 +10,8 @@
     "jsx": "react-jsx",
     "resolveJsonModule": true,
     "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] },
     "noEmit": true
   },
   "include": ["src"]

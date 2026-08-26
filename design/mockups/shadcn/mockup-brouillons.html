@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+<meta charset="UTF-8">
+<title>Atelier — Mockup shadcn : Brouillons (liste + détail Sheet)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══ Tokens shadcn Atelier — générés depuis packages/tokens/tokens.json ══
+   Convention :root = light / .dark = dark (SPEC-SHADCN.md §3). Hex/rgba only. */
+:root {
+  --background:#FFFFFF; --foreground:#1C1C1A;
+  --card:#E9E9E5;       --card-foreground:#1C1C1A;
+  --popover:#E9E9E5;    --popover-foreground:#1C1C1A;
+  --primary:#E8C97A;    --primary-foreground:#1C1C1A;
+  --secondary:#F2F2F0;  --secondary-foreground:#1C1C1A;
+  --muted:#F2F2F0;      --muted-foreground:#5A5A55;
+  --accent:rgba(28,28,26,.18); --accent-foreground:#1C1C1A;
+  --destructive:#DC2626;
+  --border:rgba(28,28,26,.10); --input:rgba(28,28,26,.26); --ring:#E8C97A;
+  --bg-deepest:#FAFAF9; --bg-2:#F2F2F0; --bg-3:#E9E9E5;
+  --ink-1:#1C1C1A; --ink-2:#5A5A55; --ink-3:rgba(28,28,26,.52);
+  --line-1:rgba(28,28,26,.10); --line-2:rgba(28,28,26,.18); --line-3:rgba(28,28,26,.26);
+  --st-warn:#D97706;   --st-warn-soft:rgba(217,164,65,.15);
+  --st-ok:#16A34A;     --st-ok-soft:rgba(22,163,74,.12);
+  --st-val:#2563A8;    --st-val-soft:rgba(37,99,168,.12);
+  --st-err:#DC2626;    --st-neutral:rgba(28,28,26,.06);
+  --shadow-sm:0 1px 3px rgba(23,22,20,.08),0 1px 2px rgba(23,22,20,.04);
+  --shadow-md:0 4px 16px rgba(23,22,20,.10),0 2px 4px rgba(23,22,20,.06);
+  --shadow-lg:0 16px 40px rgba(23,22,20,.14),0 4px 12px rgba(23,22,20,.08);
+}
+.dark {
+  --background:#141210; --foreground:#F2EEE7;
+  --card:#26221E;       --card-foreground:#F2EEE7;
+  --popover:#26221E;    --popover-foreground:#F2EEE7;
+  --primary:#E8C97A;    --primary-foreground:#0A0A0A;
+  --secondary:#1C1916;  --secondary-foreground:#F2EEE7;
+  --muted:#1C1916;      --muted-foreground:#A89F92;
+  --accent:rgba(240,232,218,.15); --accent-foreground:#F2EEE7;
+  --destructive:#FF5252;
+  --border:rgba(240,232,218,.09); --input:rgba(240,232,218,.22); --ring:#E8C97A;
+  --bg-deepest:#100E0C; --bg-2:#1C1916; --bg-3:#26221E;
+  --ink-1:#F2EEE7; --ink-2:#A89F92; --ink-3:#6E675C;
+  --line-1:rgba(240,232,218,.09); --line-2:rgba(240,232,218,.15); --line-3:rgba(240,232,218,.22);
+  --st-warn:#D9A441;   --st-warn-soft:rgba(217,164,65,.12);
+  --st-ok:#4CAF7D;     --st-ok-soft:rgba(76,175,125,.12);
+  --st-val:#4A8FD4;    --st-val-soft:rgba(74,143,212,.12);
+  --st-err:#FF5252;    --st-neutral:rgba(240,232,218,.09);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.25);
+  --shadow-md:0 4px 20px rgba(0,0,0,.35);
+  --shadow-lg:0 16px 48px rgba(0,0,0,.45);
+}
+* { margin:0; padding:0; box-sizing:border-box; border-color:var(--border); }
+body { background:var(--bg-deepest); color:var(--foreground);
+  font-family:'Plus Jakarta Sans',-apple-system,sans-serif; font-size:13px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; }
+.font-display { font-family:'Fraunces',Georgia,serif; }
+kbd { font-family:inherit; font-size:10px; }
+
+/* ═══ Squelette app : sidebar + header (framework Page conservé) ═══ */
+.screen-label { padding:20px 28px 8px; font-size:11px; text-transform:uppercase;
+  letter-spacing:.12em; color:var(--ink-3); }
+.app { display:flex; min-height:560px; }
+.sidebar { width:220px; flex-shrink:0; background:var(--bg-deepest);
+  border-right:1px solid var(--line-1); padding:14px 12px; display:flex; flex-direction:column; gap:2px; }
+.brand { display:flex; align-items:center; gap:9px; padding:6px 8px 16px;
+  font-family:'Fraunces',serif; font-size:15.5px; font-weight:600; letter-spacing:-.01em; }
+.brand .mark { width:13px; height:13px; background:var(--primary); border-radius:4px; transform:rotate(45deg); flex-shrink:0; }
+.nav-item { display:flex; align-items:center; gap:9px; padding:7px 9px; border-radius:8px;
+  color:var(--muted-foreground); cursor:pointer; font-size:13px; font-weight:500; transition:all 150ms cubic-bezier(.32,.72,0,1); }
+.nav-item:hover { background:var(--secondary); color:var(--foreground); }
+.nav-item.active { background:var(--accent); color:var(--accent-foreground); }
+.nav-item .ico { width:16px; text-align:center; opacity:.75; font-style:normal; }
+.nav-sep { height:1px; background:var(--line-1); margin:8px 4px; }
+.nav-foot { margin-top:auto; display:flex; align-items:center; gap:9px; padding:8px 9px;
+  border-radius:8px; background:var(--secondary); font-size:12px; color:var(--muted-foreground); }
+.nav-foot .av { width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,#B45309,#E8C97A);
+  display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#0A0A0A; flex-shrink:0; }
+
+.main { flex:1; min-width:0; display:flex; flex-direction:column; }
+.header { height:52px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 24px; border-bottom:1px solid var(--line-1); background:var(--background); }
+.header .actions { display:flex; gap:8px; align-items:center; }
+
+/* ═══ Button (shadcn, forme pill — §3.4) ═══ */
+.btn { border:1px solid var(--line-1); border-radius:999px; padding:5px 14px; font-size:12.5px;
+  font-weight:500; color:var(--foreground); background:transparent; cursor:pointer;
+  display:inline-flex; align-items:center; gap:6px; font-family:inherit;
+  transition:all 150ms cubic-bezier(.32,.72,0,1); }
+.btn:hover { background:var(--accent); }
+.btn.outline { border-color:var(--input); }
+.btn.secondary { background:var(--secondary); border-color:transparent; }
+.btn.secondary:hover { background:var(--accent); }
+.btn.primary { background:var(--primary); border-color:var(--primary); color:var(--primary-foreground); font-weight:600; }
+.btn.primary:hover { filter:brightness(1.05); box-shadow:var(--shadow-md); }
+.btn.ghost { border-color:transparent; color:var(--muted-foreground); }
+.btn.ghost:hover { background:var(--accent); color:var(--foreground); }
+.btn.danger { color:var(--destructive); border-color:transparent; }
+.btn.danger:hover { background:color-mix(in srgb,var(--destructive) 12%, transparent); }
+.btn.icon { padding:5px 9px; }
+.hint-kbd { font-size:11.5px; color:var(--muted-foreground); border:1px solid var(--line-1);
+  border-radius:999px; padding:4px 11px; display:inline-flex; align-items:center; gap:7px; cursor:pointer; }
+.hint-kbd kbd { background:var(--secondary); border-radius:4px; padding:1px 5px; }
+
+/* ═══ Filtres silencieux → ToggleGroup stylé (texte + point, actif souligné doré) ═══ */
+.filters { display:flex; gap:18px; padding:16px 24px 10px; align-items:center; }
+.filter { font-size:12.5px; color:var(--muted-foreground); cursor:pointer; display:inline-flex;
+  align-items:center; gap:7px; padding:4px 2px; border-bottom:1.5px solid transparent; }
+.filter .dot { width:6px; height:6px; border-radius:50%; background:var(--ink-3); flex-shrink:0; }
+.filter.active { color:var(--foreground); border-bottom-color:var(--primary); font-weight:500; }
+.filter.active .dot { background:var(--primary); }
+.filter .count { font-size:11px; color:var(--ink-3); }
+
+/* ═══ Liste dense : DraftList rows ═══ */
+.list { padding:6px 24px 30px; display:flex; flex-direction:column; }
+.row { display:flex; align-items:center; gap:14px; padding:10px 12px; border-radius:10px;
+  cursor:pointer; transition:background 150ms cubic-bezier(.32,.72,0,1); }
+.row:hover { background:var(--secondary); }
+.row.selected { background:var(--accent); box-shadow:inset 2px 0 0 var(--primary); }
+.thumb { width:36px; height:36px; border-radius:8px; overflow:hidden; background:var(--bg-3);
+  flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  color:var(--ink-3); font-size:13px; box-shadow:var(--shadow-sm); }
+.row-body { flex:1; min-width:0; }
+.row-title { font-size:13px; color:var(--foreground); font-weight:600; letter-spacing:-.005em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row-sub { font-size:11.5px; color:var(--ink-3); margin-top:1px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* ═══ Badge statut (shadcn Badge, soft token) ═══ */
+.badge { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600;
+  border-radius:999px; padding:3px 9px; letter-spacing:.01em; flex-shrink:0; }
+.badge .dot { width:5px; height:5px; border-radius:50%; }
+.b-warn  { background:var(--st-warn-soft); color:var(--st-warn); }   .b-warn .dot { background:var(--st-warn); }
+.b-ok    { background:var(--st-ok-soft);   color:var(--st-ok); }     .b-ok .dot { background:var(--st-ok); }
+.b-val   { background:var(--st-val-soft);  color:var(--st-val); }    .b-val .dot { background:var(--st-val); }
+.b-neut  { background:var(--st-neutral);   color:var(--muted-foreground); } .b-neut .dot { background:var(--ink-3); }
+.agent { font-size:11px; color:var(--ink-3); display:inline-flex; align-items:center; gap:5px; flex-shrink:0; }
+.agent .sparkle { color:var(--primary); font-style:normal; }
+.when { font-size:11.5px; color:var(--ink-3); width:70px; text-align:right; flex-shrink:0; }
+.row-actions { display:none; gap:4px; flex-shrink:0; }
+.row:hover .row-actions, .row.selected .row-actions { display:inline-flex; }
+
+/* ═══ Vue détail : header + stage héros ═══ */
+.detail-main { flex:1; min-width:0; display:flex; flex-direction:column; background:var(--bg-deepest); }
+.detail-header { height:52px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 24px; border-bottom:1px solid var(--line-1); background:var(--background); }
+.dh-l { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; min-width:0; }
+.dh-back { color:var(--muted-foreground); cursor:pointer; display:inline-flex; align-items:center;
+  gap:6px; font-weight:500; padding:4px 8px; border-radius:8px; }
+.dh-back:hover { background:var(--accent); color:var(--foreground); }
+.dh-sep { color:var(--ink-3); font-weight:400; }
+.dh-title { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dh-r { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+
+/* Statut → DropdownMenu (bouton trigger + menu popover ouvert) */
+.statut-trigger { display:inline-flex; align-items:center; gap:7px; background:var(--secondary);
+  border:1px solid var(--line-1); border-radius:999px; padding:5px 12px; font-size:12px;
+  font-weight:500; cursor:pointer; color:var(--foreground); font-family:inherit; }
+.statut-trigger .dot { width:6px; height:6px; border-radius:50%; background:var(--st-warn); }
+.statut-trigger .chev { font-size:9px; color:var(--muted-foreground); }
+.ddm { position:absolute; z-index:30; width:190px; background:var(--popover);
+  border:1px solid var(--line-2); border-radius:12px; box-shadow:var(--shadow-lg);
+  padding:4px; margin-top:-6px; }
+.ddm-label { font-size:10.5px; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--ink-3); padding:7px 9px 3px; }
+.ddm-item { display:flex; align-items:center; gap:8px; padding:6px 9px; border-radius:8px;
+  font-size:12.5px; color:var(--foreground); cursor:pointer; }
+.ddm-item:hover { background:var(--accent); }
+.ddm-item.on { background:var(--accent); font-weight:600; }
+.ddm-item .check { margin-left:auto; color:var(--primary); visibility:hidden; }
+.ddm-item.on .check { visibility:visible; }
+.ddm-sep { height:1px; background:var(--line-1); margin:4px 6px; }
+
+/* Stage : la slide est le héros (double-bezel shell) */
+.stage { flex:1; display:flex; align-items:center; justify-content:center; padding:32px; position:relative; overflow:hidden; }
+.slide-frame { width:min(480px,58vh); aspect-ratio:1/1; border-radius:18px; overflow:hidden;
+  box-shadow:0 0 0 1px var(--line-1), var(--shadow-lg); position:relative; }
+.stage-nav { position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:14px; background:color-mix(in srgb, var(--card) 88%, transparent);
+  border:1px solid var(--line-1); border-radius:999px; padding:6px 14px; backdrop-filter:blur(8px);
+  box-shadow:var(--shadow-md); }
+.stage-nav .n { font-size:12px; color:var(--muted-foreground); cursor:pointer; width:20px; height:20px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%; }
+.stage-nav .n:hover { background:var(--accent); color:var(--foreground); }
+.stage-nav .cnt { font-size:11.5px; color:var(--foreground); min-width:34px; text-align:center; font-weight:600; }
+
+/* ═══ Sheet panneau droit (shadcn Sheet side=right, Tabs Agent/Réseaux/Slides) ═══ */
+.sheet { width:340px; flex-shrink:0; background:var(--card); border-left:1px solid var(--line-1);
+  padding:16px 18px 28px; display:flex; flex-direction:column; gap:18px; overflow-y:auto; }
+.sheet-grip { width:36px; height:4px; border-radius:999px; background:var(--line-3);
+  margin:-4px auto 0; flex-shrink:0; }
+.tabs { display:flex; gap:2px; background:var(--secondary); border:1px solid var(--line-1);
+  border-radius:10px; padding:3px; }
+.tab { flex:1; text-align:center; padding:5px 4px; border-radius:7px; font-size:11.5px;
+  color:var(--muted-foreground); cursor:pointer; font-weight:500; }
+.tab.on { background:var(--card); color:var(--foreground); font-weight:600; box-shadow:var(--shadow-sm); }
+.sp-section { display:flex; flex-direction:column; gap:8px; }
+.sp-label { font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3);
+  display:flex; align-items:center; justify-content:space-between; font-weight:600; }
+.chip { font-size:10px; letter-spacing:.02em; border:1px solid var(--line-2); border-radius:999px;
+  padding:1px 8px; color:var(--muted-foreground); text-transform:none; font-weight:500; }
+.sp-textarea { background:var(--background); border:1px solid var(--border); border-radius:10px;
+  padding:10px 12px; color:var(--foreground); font-size:12px; font-family:inherit; min-height:120px; resize:none;
+  line-height:1.6; }
+.checklist { display:flex; flex-direction:column; gap:2px; }
+.check-item { display:flex; align-items:center; gap:9px; padding:5px 7px; border-radius:8px;
+  font-size:12.5px; color:var(--muted-foreground); cursor:pointer; }
+.check-item:hover { background:var(--accent); }
+.checkbox { width:15px; height:15px; border-radius:5px; border:1.5px solid var(--input); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:9px; color:#0A0A0A; }
+.check-item.done .checkbox { background:var(--primary); border-color:var(--primary); color:var(--primary-foreground); }
+.check-item.done { color:var(--foreground); }
+.check-item.done .txt { text-decoration:line-through; opacity:.55; }
+.chat { display:flex; flex-direction:column; gap:8px; }
+.msg { max-width:92%; padding:8px 11px; border-radius:12px; font-size:12px; line-height:1.5; }
+.msg.agent-m { background:var(--secondary); border-bottom-left-radius:4px; color:var(--foreground); }
+.msg.user-m { background:var(--st-warn-soft); border-bottom-right-radius:4px; margin-left:auto; color:var(--foreground); }
+.msg .who { font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3);
+  margin-bottom:3px; display:block; }
+.field label { font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3);
+  display:block; margin-bottom:5px; font-weight:600; }
+.input-f { background:var(--background); border:1px solid var(--border); border-radius:10px;
+  padding:7px 10px; color:var(--foreground); font-size:12px; font-family:inherit; width:100%; resize:none; }
+.count-r { font-size:10.5px; color:var(--ink-3); text-align:right; margin-top:3px; }
+</style>
+</head>
+<body>
+<!-- ═══════════ ÉCRAN 1 · BROUILLONS — LISTE DENSE ═══════════ -->
+<div class="screen">
+  <div class="screen-label">01 · Brouillons — liste dense, filtres ToggleGroup</div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="mark"></span>Atelier</div>
+      <div class="nav-item active"><span class="ico">▦</span>Brouillons</div>
+      <div class="nav-item"><span class="ico">▤</span>Calendrier</div>
+      <div class="nav-item"><span class="ico">⬒</span>Documents</div>
+      <div class="nav-sep"></div>
+      <div class="nav-item"><span class="ico">◫</span>Bibliothèque</div>
+      <div class="nav-item"><span class="ico">◈</span>Charte</div>
+      <div class="nav-item"><span class="ico">✦</span>Activité IA</div>
+      <div class="nav-foot"><span class="av">VL</span>victor@bordeluche.com</div>
+    </aside>
+    <div class="main">
+      <div class="header">
+        <div style="font-family:'Fraunces',serif; font-size:17px; font-weight:600;">Brouillons</div>
+        <div class="actions">
+          <span class="hint-kbd">Rechercher <kbd>⌘K</kbd></span>
+          <span class="btn icon" title="Vue liste / grille">▦ ☰</span>
+          <span class="btn primary">＋ Nouveau brouillon</span>
+          <span class="btn ghost icon" title="Notifications">🔔<span style="position:relative; top:-4px; left:-6px; background:var(--st-warn); color:#0A0A0A; border-radius:999px; font-size:9px; font-weight:700; padding:0 5px;">2</span></span>
+        </div>
+      </div>
+      <div class="filters">
+        <span class="filter active"><span class="dot"></span>Tous <span class="count">3</span></span>
+        <span class="filter"><span class="dot"></span>Brouillon <span class="count">1</span></span>
+        <span class="filter"><span class="dot" style="background:var(--st-warn)"></span>À valider <span class="count">1</span></span>
+        <span class="filter"><span class="dot" style="background:var(--st-val)"></span>Validé <span class="count">1</span></span>
+        <span class="filter"><span class="dot" style="background:var(--st-ok)"></span>Publié <span class="count">0</span></span>
+        <span style="margin-left:auto; font-size:11.5px; color:var(--ink-3)">3 brouillons</span>
+      </div>
+      <div class="list">
+        <div class="row selected">
+          <div class="thumb" style="background:#f1efea; color:#422928;">◆</div>
+          <div class="row-body">
+            <div class="row-title">Carrousel — Pourquoi Bordeluche existe (v7)</div>
+            <div class="row-sub">9 slides · 3 logements · Mûriers, Esplanade, Échappée</div>
+          </div>
+          <span class="agent"><i class="sparkle">✦</i> généré par Hermes</span>
+          <span class="badge b-warn"><span class="dot"></span>À valider</span>
+          <span class="when">il y a 19 min</span>
+          <span class="row-actions">
+            <span class="btn secondary">Ouvrir</span>
+            <span class="btn danger">Suppr.</span>
+          </span>
+        </div>
+        <div class="row">
+          <div class="thumb">⟨/⟩</div>
+          <div class="row-body">
+            <div class="row-title">Post — Visite du duplex Gambetta</div>
+            <div class="row-sub">3 slides · format story · charte Bordeluche</div>
+          </div>
+          <span class="agent"><i class="sparkle">✦</i> généré par Hermes</span>
+          <span class="badge b-neut"><span class="dot"></span>Brouillon</span>
+          <span class="when">hier</span>
+          <span class="row-actions">
+            <span class="btn secondary">Ouvrir</span>
+            <span class="btn danger">Suppr.</span>
+          </span>
+        </div>
+        <div class="row">
+          <div class="thumb">◉</div>
+          <div class="row-body">
+            <div class="row-title">Carrousel — Témoignages propriétaires</div>
+            <div class="row-sub">5 slides · charte Bordeluche</div>
+          </div>
+          <span class="agent"><i class="sparkle">✦</i> généré par Hermes</span>
+          <span class="badge b-val"><span class="dot"></span>Validé</span>
+          <span class="when">3 août</span>
+          <span class="row-actions">
+            <span class="btn secondary">Ouvrir</span>
+            <span class="btn danger">Suppr.</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ ÉCRAN 2 · BROUILLON — DÉTAIL (héros + Sheet) ═══════════ -->
+<div class="screen" style="min-height:660px;">
+  <div class="screen-label">02 · Détail brouillon — document héros + panneau Sheet (DropdownMenu statut ouvert)</div>
+  <div class="app" style="min-height:640px;">
+    <aside class="sidebar">
+      <div class="brand"><span class="mark"></span>Atelier</div>
+      <div class="nav-item active"><span class="ico">▦</span>Brouillons</div>
+      <div class="nav-item"><span class="ico">▤</span>Calendrier</div>
+      <div class="nav-item"><span class="ico">⬒</span>Documents</div>
+      <div class="nav-sep"></div>
+      <div class="nav-item"><span class="ico">◫</span>Bibliothèque</div>
+      <div class="nav-item"><span class="ico">◈</span>Charte</div>
+      <div class="nav-item"><span class="ico">✦</span>Activité IA</div>
+      <div class="nav-foot"><span class="av">VL</span>victor@bordeluche.com</div>
+    </aside>
+    <div class="detail-main">
+      <div class="detail-header">
+        <div class="dh-l">
+          <span class="dh-back">← Brouillons</span>
+          <span class="dh-sep">/</span>
+          <span class="dh-title">Carrousel — Pourquoi Bordeluche existe (v7)</span>
+        </div>
+        <div class="dh-r">
+          <button class="statut-trigger"><span class="dot"></span>À valider<span class="chev">▾</span></button>
+          <span class="btn ghost icon" title="Source">⟨/⟩</span>
+          <span class="btn danger">Supprimer</span>
+        </div>
+      </div>
+      <!-- DropdownMenu statut, rendu ouvert pour le mockup -->
+      <div style="display:flex; justify-content:flex-end; padding:0 24px; position:relative;">
+        <div class="ddm">
+          <div class="ddm-label">Changer le statut</div>
+          <div class="ddm-item"><span class="dot" style="width:6px; height:6px; border-radius:50%; background:var(--ink-3);"></span>Brouillon<span class="check">✓</span></div>
+          <div class="ddm-item on"><span class="dot" style="width:6px; height:6px; border-radius:50%; background:var(--st-warn);"></span>À valider<span class="check">✓</span></div>
+          <div class="ddm-item"><span class="dot" style="width:6px; height:6px; border-radius:50%; background:var(--st-val);"></span>Validé<span class="check">✓</span></div>
+          <div class="ddm-item"><span class="dot" style="width:6px; height:6px; border-radius:50%; background:var(--st-ok);"></span>Publié<span class="check">✓</span></div>
+          <div class="ddm-sep"></div>
+          <div class="ddm-item" style="color:var(--destructive)">Archiver…</div>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="slide-frame">
+          <div style="width:100%; height:100%; background:#f1efea; color:#422928; padding:32px;
+            display:flex; flex-direction:column; justify-content:space-between;
+            font-family:'Cormorant Garamond',Georgia,serif;">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;">
+              <span style="font-weight:600; display:flex; align-items:center; gap:6px;"><span style="width:9px; height:9px; background:#422928; border-radius:3px; transform:rotate(45deg); display:inline-block;"></span>BORDELUCHE</span>
+              <span style="opacity:.6;">01 / 09</span>
+            </div>
+            <div style="font-size:31px; line-height:1.12; font-weight:500; max-width:92%;">« J'ai vécu ce que vivent les propriétaires. Je gère leurs logements comme les miens. »</div>
+            <div style="font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.7;">Bordeaux · Conciergerie</div>
+          </div>
+        </div>
+        <div class="stage-nav">
+          <span class="n">‹</span><span class="cnt">1 / 9</span><span class="n">›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sheet side=right -->
+    <aside class="sheet">
+      <div class="sheet-grip"></div>
+      <div class="tabs">
+        <span class="tab on">Agent</span>
+        <span class="tab">Réseaux</span>
+        <span class="tab">Slides</span>
+        <span class="tab">Source</span>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-label">Chat agent <span class="chip">polling 8 s</span></div>
+        <div class="chat">
+          <div class="msg agent-m"><span class="who">Hermes</span>J'ai régénéré les slides 2 et 5 avec la nouvelle charte. Dis-moi si la typo te va.</div>
+          <div class="msg user-m"><span class="who">Victor</span>La 5 est bonne, resserre le titre de la 2.</div>
+          <div class="msg agent-m"><span class="who">Hermes</span>C'est fait — slide 2 resserrée. Je passe le brouillon « À valider » ?</div>
+        </div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-label">Notes de révision <span class="chip">enregistré</span></div>
+        <textarea class="sp-textarea">9 slides, 3 logements (Mûriers 3, Esplanade 5, Échappée 7), slide 8 = piliers du site, slide 9 = notes temps réel.</textarea>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-label">Checklist de validation <span class="chip">1/4</span></div>
+        <div class="checklist">
+          <div class="check-item done"><span class="checkbox">✓</span><span class="txt">Charte respectée</span></div>
+          <div class="check-item"><span class="checkbox"></span><span class="txt">Textes relus</span></div>
+          <div class="check-item"><span class="checkbox"></span><span class="txt">Liens vérifiés</span></div>
+          <div class="check-item"><span class="checkbox"></span><span class="txt">Formats par réseau</span></div>
+        </div>
+      </div>
+
+      <div class="sp-section">
+        <div class="sp-label">Programmation</div>
+        <div class="field">
+          <label>Créneau suggéré — Instagram</label>
+          <input class="input-f" value="mar. 27 août · 18h30" readonly>
+        </div>
+        <span class="btn secondary" style="justify-content:center;">Programmer via Postiz</span>
+      </div>
+    </aside>
+  </div>
+</div>
+
+
+</body>
+</html>

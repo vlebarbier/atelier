@@ -7,13 +7,14 @@
   <meta name="color-scheme" content="dark light" />
   <script>
     // Applique le theme avant le premier rendu (evite le flash dark→light).
+    // Convention shadcn (SPEC-SHADCN D5) : la classe .dark porte le theme.
     (function () {
       try {
         var t = localStorage.getItem('atelier-theme');
         if (t !== 'light' && t !== 'dark') {
           t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
         }
-        document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.classList.toggle('dark', t === 'dark');
       } catch (e) {}
     })();
   </script>

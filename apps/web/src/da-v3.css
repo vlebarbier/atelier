@@ -9,7 +9,9 @@
    Suivi : supprimer les deux blocs manuels devenus morts dans styles.css.
 */
 
-:root[data-theme='dark'] {
+/* Convention shadcn (SPEC-SHADCN D5) : le theme est porte par la classe .dark
+   sur <html>, posee avant le premier rendu par index.html. */
+html.dark {
   color-scheme: dark;
   --color-bg-deepest: #100E0C;
   --color-bg-level-1: #141210;
@@ -39,7 +41,7 @@
   --color-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
 }
 
-:root[data-theme='light'] {
+html:not(.dark) {
   color-scheme: light;
   --color-bg-deepest: #FAFAF9;
   --color-bg-level-1: #FFFFFF;

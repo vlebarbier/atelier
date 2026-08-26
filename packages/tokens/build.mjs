@@ -39,6 +39,67 @@ StyleDictionary.registerFormat({
   }
 });
 
+// Table de mapping DTCG -> variables shadcn (SPEC-SHADCN.md §3). La valeur est
+// lue depuis le token source, jamais codee en dur : changer tokens.json propage
+// partout, y compris shadcn.
+const MAPPING_SHADCN = [
+  ['background', 'color', 'bg', 'level-1'],
+  ['foreground', 'color', 'ink', 'primary'],
+  ['card', 'color', 'bg', 'level-3'],
+  ['card-foreground', 'color', 'ink', 'primary'],
+  ['popover', 'color', 'bg', 'level-3'],
+  ['popover-foreground', 'color', 'ink', 'primary'],
+  ['primary', 'color', 'accent', 'base'],
+  ['primary-foreground', 'color', 'accent', 'on-accent'],
+  ['secondary', 'color', 'bg', 'level-2'],
+  ['secondary-foreground', 'color', 'ink', 'primary'],
+  ['muted', 'color', 'bg', 'level-2'],
+  ['muted-foreground', 'color', 'ink', 'secondary'],
+  ['accent', 'color', 'line', 'hover'],
+  ['accent-foreground', 'color', 'ink', 'primary'],
+  ['destructive', 'color', 'status', 'err'],
+  ['border', 'color', 'line', 'default'],
+  ['input', 'color', 'line', 'strong'],
+  ['ring', 'color', 'accent', 'base']
+];
+
+StyleDictionary.registerFormat({
+  name: 'css/atelier-shadcn',
+  format: async ({ dictionary }) => {
+    // Index chemin DTCG normalise -> { value, light } pour la resolution du mapping.
+    const parChemin = new Map();
+    for (const token of dictionary.allTokens) {
+      const value = token.$value ?? token.value;
+      parChemin.set(token.path.join('.'), {
+        value,
+        light: token.$extensions && token.$extensions.light
+      });
+    }
+    const resoudre = (chemin) => parChemin.get(chemin);
+    const lignes = (cleLight) =>
+      MAPPING_SHADCN.map(([nomVar, ...chemin]) => {
+        const t = resoudre(chemin.join('.'));
+        if (!t) return null;
+        const v = cleLight ? t.light : t.value;
+        return v ? `  --${nomVar}: ${v};` : null;
+      })
+        .filter(Boolean)
+        .join('\n');
+    return [
+      '/* Genere par packages/tokens/build.mjs, ne pas editer a la main. */',
+      '/* Mapping shadcn/ui : SPEC-SHADCN.md §3. Convention shadcn : :root = light, .dark = dark. */',
+      ':root {',
+      lignes(true),
+      '}',
+      '',
+      '.dark {',
+      lignes(false),
+      '}',
+      ''
+    ].join('\n');
+  }
+});
+
 StyleDictionary.registerFormat({
   name: 'json/atelier-flat',
   format: async ({ dictionary }) => {
@@ -65,6 +126,11 @@ const sd = new StyleDictionary({
       buildPath: path.join(here, 'dist/'),
       files: [{ destination: 'tokens.css', format: 'css/atelier-vars' }]
     },
+    shadcn: {
+      transformGroup: 'css',
+      buildPath: path.join(here, 'dist/'),
+      files: [{ destination: 'tokens.shadcn.css', format: 'css/atelier-shadcn' }]
+    },
     json: {
       transformGroup: 'js',
       buildPath: path.join(here, 'dist/'),
@@ -74,4 +140,4 @@ const sd = new StyleDictionary({
 });
 
 await sd.buildAllPlatforms();
-console.log('Tokens Atelier : dist/tokens.css + dist/tokens.json generes.');
+console.log('Tokens Atelier : dist/tokens.css + dist/tokens.shadcn.css + dist/tokens.json generes.');
