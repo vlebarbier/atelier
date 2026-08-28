@@ -8,7 +8,8 @@
   "main": "dist/tokens.json",
   "exports": {
     ".": "./dist/tokens.json",
-    "./css": "./dist/tokens.css"
+    "./css": "./dist/tokens.css",
+    "./shadcn.css": "./dist/tokens.shadcn.css"
   },
   "scripts": {
     "build": "node build.mjs",

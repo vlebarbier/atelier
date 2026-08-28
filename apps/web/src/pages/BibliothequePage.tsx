@@ -333,23 +333,22 @@ export function BibliothequePage() {
         )}
       </Page>
 
-      {suppression && (
-        <ConfirmModal
+      <ConfirmModal
+          open={suppression !== null}
           titre="Supprimer de la bibliothèque ?"
           description={
             <>
-              <strong>{suppression.nom}</strong> sera définitivement supprimé de la bibliothèque.
+              <strong>{suppression?.nom}</strong> sera définitivement supprimé de la bibliothèque.
               Cette action est irréversible.
             </>
           }
           onConfirm={() => {
-            const id = suppression.id;
+            const id = suppression?.id;
             setSuppression(null);
-            void executerSuppression(id);
+            if (id) void executerSuppression(id);
           }}
           onClose={() => setSuppression(null)}
         />
-      )}
     </div>
   );
 }

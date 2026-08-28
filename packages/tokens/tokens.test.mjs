@@ -66,4 +66,26 @@ describe('build Style Dictionary', () => {
     expect(built['color.status.validated'].dark).toBe('#4A8FD4');
     expect(built['font.family.display'].dark).toContain('Fraunces');
   });
+
+  it('genere dist/tokens.shadcn.css (mapping shadcn) en hex/rgba, jamais oklch (SPEC-SHADCN R1)', () => {
+    execSync('node build.mjs', { cwd: root });
+    const shadcnPath = path.join(root, 'dist', 'tokens.shadcn.css');
+    expect(existsSync(shadcnPath)).toBe(true);
+
+    const css = readFileSync(shadcnPath, 'utf8');
+    // R1 : html-to-image serialise mal oklch/color-mix -> interdits partout.
+    for (const fichier of ['tokens.css', 'tokens.shadcn.css']) {
+      const contenu = readFileSync(path.join(root, 'dist', fichier), 'utf8');
+      expect(contenu).not.toContain('oklch(');
+      expect(contenu).not.toContain('color-mix(');
+    }
+    // Convention shadcn : :root = light, .dark = dark.
+    expect(css).toContain('.dark {');
+    expect(css.indexOf(':root {')).toBeLessThan(css.indexOf('.dark {'));
+    // Le mapping passe par les tokens, pas des valeurs inventees.
+    expect(css).toContain('--primary: #E8C97A');           // accent.base
+    expect(css).toContain('--background: #141210');        // bg.level-1 dark
+    expect(css).toContain('--destructive: #FF5252');       // status.err
+    expect(css).toContain('--muted-foreground: #5A5A55');  // ink.secondary light
+  });
 });

@@ -1,7 +1,17 @@
-import { useEffect, useRef } from 'react';
 import { X, Warning } from '@phosphor-icons/react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from './ui/alert-dialog';
 
 interface ConfirmModalProps {
+  open: boolean;
   titre: string;
   description?: React.ReactNode;
   labelConfirmer?: string;
@@ -13,12 +23,14 @@ interface ConfirmModalProps {
 }
 
 /**
- * Confirmation in-app (remplace window.confirm) : modale alignee sur la DA
- * (tokens --color-*), avec le pattern de confiance du produit : l'agent dit
- * ce qu'il va faire AVANT. Focus sur Annuler (le geste le plus sur evite
- * l'activation accidentelle par Entree), fermeture par Echap ou click overlay.
+ * Confirmation in-app (remplace window.confirm), socle shadcn (SPEC-SHADCN
+ * V1 : ConfirmModal -> AlertDialog Radix). Pattern de confiance du produit :
+ * l'agent dit ce qu'il va faire AVANT. Focus sur Annuler (le geste le plus
+ * sur evite l'activation accidentelle par Entree), fermeture par Echap ou
+ * click overlay offertes par la primitive.
  */
 export function ConfirmModal({
+  open,
   titre,
   description,
   labelConfirmer = 'Supprimer',
@@ -27,53 +39,41 @@ export function ConfirmModal({
   onConfirm,
   onClose
 }: ConfirmModalProps) {
-  const annulerRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    }
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
-
-  useEffect(() => {
-    annulerRef.current?.focus();
-  }, []);
-
   return (
-    <div className="modal-overlay modal-overlay-in" onClick={onClose}>
-      <div
-        className="modal confirm-modal modal-panel-in"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-titre"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-head">
-          <h3 id="confirm-titre" className="confirm-titre">
-            {danger && <Warning size={14} weight="fill" className="confirm-warn" />}
+    <AlertDialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
+    >
+      <AlertDialogContent data-testid="confirm-dialog">
+        <AlertDialogClose className="absolute top-4 right-4 flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring/60">
+          <X size={14} />
+          <span className="sr-only">Fermer</span>
+        </AlertDialogClose>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {danger && <Warning size={14} weight="fill" className="mr-1.5 inline text-status-warn" />}
             {titre}
-          </h3>
-          <button className="modal-x" type="button" onClick={onClose} aria-label="Fermer">
-            <X size={14} />
-          </button>
-        </div>
-        <div className="modal-body">
-          {description && <p className="confirm-desc">{description}</p>}
-        </div>
-        <div className="modal-foot">
-          <button ref={annulerRef} type="button" className="ghost" onClick={onClose}>
-            {labelAnnuler}
-          </button>
-          <button type="button" className={danger ? 'danger' : 'primary'} onClick={onConfirm}>
+          </AlertDialogTitle>
+          {description && <AlertDialogDescription asChild><div>{description}</div></AlertDialogDescription>}
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{labelAnnuler}</AlertDialogCancel>
+          <AlertDialogAction variant={danger ? 'destructive' : 'default'} onClick={onConfirm}>
             {labelConfirmer}
-          </button>
-        </div>
-      </div>
-    </div>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+/** Close sans etre un enfant direct du Content (portail Radix). */
+function AlertDialogClose({ children, ...props }: React.ComponentProps<'button'>) {
+  return (
+    <button type="button" {...props}>
+      {children}
+    </button>
   );
 }

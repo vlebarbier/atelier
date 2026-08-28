@@ -3,24 +3,24 @@ import { FileText, Plus, SquaresFour, List } from '@phosphor-icons/react';
 import type { Brouillon, Statut, StatutConformite } from '../api';
 import { TYPE_LABELS } from '../format';
 import { Page, PageHeader, EmptyState } from './ui';
+import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from './ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { DraftGrid, GridSkeleton } from './DraftGrid';
 import { useListeFiltres, type Tri } from './useListeFiltres';
 
 export type Vue = 'grille' | 'liste';
 
-/** Pills de statut (maquette publications.html) : Toutes / Brouillon / ... */
-const STATUTS: { id: Statut | 'tous'; label: string }[] = [
-  { id: 'tous', label: 'Toutes' },
-  { id: 'brouillon', label: 'Brouillon' },
-  { id: 'a-valider', label: 'À valider' },
-  { id: 'valide', label: 'Validées' },
-  { id: 'publie', label: 'Publiées' }
-];
-
 const TRIS: { id: Tri; label: string }[] = [
-  { id: 'recent', label: 'Trier : recent' },
-  { id: 'statut', label: 'Trier : statut' },
-  { id: 'titre', label: 'Trier : titre' }
+  { id: 'recent', label: 'Plus recents' },
+  { id: 'statut', label: 'Par statut' },
+  { id: 'titre', label: 'Par titre' }
 ];
 
 interface ContentListPageProps {
@@ -42,7 +42,7 @@ interface ContentListPageProps {
   /** Si defini, le bouton "Nouveau" ouvre un menu de choix de type (documents). */
   typesNouveau?: readonly string[];
   onCreateType?: (type: string) => void;
-  /** Types filtrables affiches dans le volet deroulant (ex: les 5 documents). */
+  /** Types filtrables affiches dans le select (ex: les 5 documents). */
   typesFiltrables?: readonly string[];
   filtre: Statut | 'tous';
   onFiltreChange: (filtre: Statut | 'tous') => void;
@@ -55,10 +55,10 @@ interface ContentListPageProps {
 }
 
 /**
- * Ecran de liste des publications (page Publications ET page Documents) :
- * PageHeader (titre/compteur/actions) + rangée de filtres séparés (pills statut
- * + volet type + tri + toggle vue) + DraftGrid. Reproduction de la maquette
- * publications.html validee Victor 13/08.
+ * Ecran de liste des publications (page Contenus ET page Documents), socle
+ * shadcn (SPEC-SHADCN V1) : PageHeader + filtres statut en ToggleGroup
+ * (texte + point, actif souligne dore), selects Radix, toggle vue et bouton
+ * Nouveau (DropdownMenu si plusieurs types).
  */
 export function ContentListPage({
   titre,
@@ -83,7 +83,7 @@ export function ContentListPage({
   emptyTitle,
   emptySub
 }: ContentListPageProps) {
-  const [choixOuvert, setChoixOuvert] = useState(false);
+  const [_, setChoixOuvert] = useState(false);
   const { filtered, filtreType, setFiltreType, tri, setTri } = useListeFiltres(brouillons, filtre);
 
   // Le compteur du header reflete ce qui est visible : le total quand aucun
@@ -110,94 +110,96 @@ export function ContentListPage({
         count={count}
         sub={sub}
         actions={
-          <div className="page-actions">
-            {typesNouveau ? (
-              <div className="page-actions-group">
-                {choixOuvert && (
-                  <div className="page-choix">
-                    {typesNouveau.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => {
-                          setChoixOuvert(false);
-                          onCreateType?.(t);
-                        }}
-                      >
-                        <FileText size={12} /> {TYPE_LABELS[t] ?? t}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <button
-                  className="primary"
-                  type="button"
-                  onClick={() => setChoixOuvert((o) => !o)}
-                >
+          typesNouveau ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button data-testid="nouveau-menu">
                   <Plus size={13} weight="bold" /> Nouveau
-                </button>
-              </div>
-            ) : (
-              <button className="primary" type="button" onClick={onCreate}>
-                <Plus size={13} weight="bold" /> {labelNouveau}
-              </button>
-            )}
-          </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {typesNouveau.map((t) => (
+                  <DropdownMenuItem key={t} onSelect={() => onCreateType?.(t)}>
+                    <FileText size={12} /> {TYPE_LABELS[t] ?? t}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button type="button" onClick={onCreate}>
+              <Plus size={13} weight="bold" /> {labelNouveau}
+            </Button>
+          )
         }
       />
-      <div className="filtres">
-        <div className="filtre-pills">
-          {STATUTS.map((s) => (
-            <span
-              key={s.id}
-              className={`pill${filtre === s.id ? ' on' : ''}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => onFiltreChange(s.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') onFiltreChange(s.id);
-              }}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* Filtres silencieux : texte + point colore, actif souligne dore. */}
+        <ToggleGroup
+          type="single"
+          value={filtre}
+          onValueChange={(v) => {
+            if (v) onFiltreChange(v as Statut | 'tous');
+          }}
+          aria-label="Filtrer par statut"
+        >
+          {([
+            ['tous', 'Toutes'],
+            ['brouillon', 'Brouillon'],
+            ['a-valider', 'À valider'],
+            ['valide', 'Validées'],
+            ['publie', 'Publiées']
+          ] as [Statut | 'tous', string][]).map(([id, label]) => (
+            <ToggleGroupItem
+              key={id}
+              value={id}
+              variant="quiet"
+              data-testid={`filtre-statut-${id}`}
             >
-              {s.label}
-            </span>
+              {label}
+            </ToggleGroupItem>
           ))}
-        </div>
-        <span className="filtre-sep" aria-hidden="true" />
+        </ToggleGroup>
+        <span className="h-4 w-px bg-border" aria-hidden="true" />
         {typesEffectifs && typesEffectifs.length > 0 && (
-          <div className="filtre-type">
-            <select
-              className="select"
-              value={filtreType}
-              onChange={(e) => setFiltreType(e.target.value)}
-              aria-label="Filtrer par type"
-            >
-              <option value="tous">Tous les types</option>
+          <Select value={filtreType} onValueChange={(v) => setFiltreType(v)} >
+            <SelectTrigger className="w-[170px]" aria-label="Filtrer par type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tous">Tous les types</SelectItem>
               {typesEffectifs.map((t) => (
-                <option key={t} value={t}>{TYPE_LABELS[t] ?? t}</option>
+                <SelectItem key={t} value={t}>{TYPE_LABELS[t] ?? t}</SelectItem>
               ))}
-            </select>
-          </div>
+            </SelectContent>
+          </Select>
         )}
-        <span className="spacer" />
-        <div className="liste-tools">
-          <select
-            className="select"
-            value={tri}
-            onChange={(e) => setTri(e.target.value as Tri)}
-            aria-label="Trier"
+        <span className="flex-1" />
+        <div className="flex items-center gap-3">
+          <Select value={tri} onValueChange={(v) => setTri(v as Tri)}>
+            <SelectTrigger className="w-[130px]" aria-label="Trier">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TRIS.map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <ToggleGroup
+            type="single"
+            value={vue}
+            onValueChange={(v) => {
+              if (v) onVueChange(v as Vue);
+            }}
+            aria-label="Mode d'affichage"
           >
-            {TRIS.map((t) => (
-              <option key={t.id} value={t.id}>{t.label}</option>
-            ))}
-          </select>
-          <div className="view-toggle">
-            <button className={vue === 'grille' ? 'on' : ''} onClick={() => onVueChange('grille')} title="Grille">
+            <ToggleGroupItem value="grille" variant="quiet" data-testid="vue-grille" title="Grille">
               <SquaresFour size={15} />
-            </button>
-            <button className={vue === 'liste' ? 'on' : ''} onClick={() => onVueChange('liste')} title="Liste">
+            </ToggleGroupItem>
+            <ToggleGroupItem value="liste" variant="quiet" data-testid="vue-liste" title="Liste">
               <List size={15} />
-            </button>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
       </div>
       {error && <div className="empty">Erreur, {error}</div>}

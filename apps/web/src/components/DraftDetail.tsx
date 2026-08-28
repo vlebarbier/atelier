@@ -13,6 +13,15 @@ import { CRENEAUX_PAR_RESEAU, JOURS_COURTS, prochainJour, RESEAUX, RESEAUX_LABEL
 import { ecrireDansApercu, exporterHTMLAutonome, ouvrirApercuPDF, slugifier, telechargerFichier, telechargerHTML } from '../export';
 import { ConfirmModal } from './ConfirmModal';
 import { ConformiteSection } from './ConformiteSection';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from './ui/dropdown-menu';
+import { Checkbox } from './ui/checkbox';
 
 const RESEAU_ICONES: Record<string, Icon> = {
   instagram: InstagramLogo,
@@ -1112,65 +1121,62 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                 )}
               </div>
             ) : (
-              <>
-                <button
-                  type="button"
-                  className={`statut-btn on--${brouillon.statut}`}
-                  onClick={() => setStatutOpen((o) => !o)}
-                  aria-haspopup="listbox"
-                  aria-expanded={statutOpen}
-                >
-                  <span className={`dot dot--${brouillon.statut}`} />
-                  <span className="statut-label">{STATUT_LABELS[brouillon.statut] ?? brouillon.statut}</span>
-                  <CaretDown size={12} className="statut-caret" />
-                </button>
-                {statutOpen && (
-                  <div className="statut-menu" role="listbox">
-                    <div className="statut-menu-label">Changer le statut</div>
-                    {STATUTS_ORDRE.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        role="option"
-                        aria-selected={brouillon.statut === s}
-                        className={brouillon.statut === s ? 'on' : ''}
-                        onClick={() => {
-                          setStatut(s as Statut);
-                          setStatutOpen(false);
-                        }}
-                      >
-                        <span className={`dot dot--${s}`} />
-                        {STATUT_LABELS[s]}
-                        {brouillon.statut === s && <Check size={12} className="statut-check" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
+              <DropdownMenu open={statutOpen} onOpenChange={setStatutOpen}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={`statut-btn on--${brouillon.statut}`}
+                    data-testid="statut-bouton"
+                    aria-haspopup="listbox"
+                    aria-expanded={statutOpen}
+                  >
+                    <span className={`dot dot--${brouillon.statut}`} />
+                    <span className="statut-label">{STATUT_LABELS[brouillon.statut] ?? brouillon.statut}</span>
+                    <CaretDown size={12} className="statut-caret" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[11rem]" data-testid="statut-menu">
+                  <DropdownMenuLabel>Changer le statut</DropdownMenuLabel>
+                  {STATUTS_ORDRE.map((s) => (
+                    <DropdownMenuItem
+                      key={s}
+                      role="option"
+                      aria-selected={brouillon.statut === s}
+                      data-testid={`statut-option-${s}`}
+                      onSelect={() => {
+                        setStatut(s as Statut);
+                        setStatutOpen(false);
+                      }}
+                    >
+                      <span className={`dot dot--${s}`} />
+                      {STATUT_LABELS[s]}
+                      {brouillon.statut === s && <Check size={12} className="ml-auto" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
           <div className="overflow-control">
-            <button
-              type="button"
-              className="more-btn"
-              onClick={() => setOverflowOpen((o) => !o)}
-              aria-haspopup="menu"
-              aria-expanded={overflowOpen}
-              title="Plus d'actions"
-            >
-              <DotsThreeVertical size={16} weight="bold" />
-            </button>
-            {overflowOpen && (
-              <div className="statut-menu more-menu" role="menu">
-                <div className="statut-menu-label">Type de contenu</div>
+            <DropdownMenu open={overflowOpen} onOpenChange={setOverflowOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="more-btn"
+                  data-testid="more-actions"
+                  aria-haspopup="menu"
+                  aria-expanded={overflowOpen}
+                  title="Plus d'actions"
+                >
+                  <DotsThreeVertical size={16} weight="bold" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[15rem]">
+                <DropdownMenuLabel>Type de contenu</DropdownMenuLabel>
                 {TYPES_CONTENUS.map((t) => (
-                  <button
+                  <DropdownMenuItem
                     key={t}
-                    type="button"
-                    role="menuitem"
-                    aria-selected={brouillon.type === t}
-                    className={brouillon.type === t ? 'on' : ''}
-                    onClick={() => {
+                    onSelect={() => {
                       setBrouillon({ ...brouillon, type: t });
                       updateBrouillon(id, { type: t });
                       setOverflowOpen(false);
@@ -1178,19 +1184,15 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   >
                     {t === 'video' ? <VideoCamera size={13} /> : <Stack size={13} />}
                     {TYPE_LABELS[t] ?? t}
-                    {brouillon.type === t && <Check size={12} className="statut-check" />}
-                  </button>
+                    {brouillon.type === t && <Check size={12} className="ml-auto" />}
+                  </DropdownMenuItem>
                 ))}
-                <div className="statut-menu-sep" />
-                <div className="statut-menu-label">Documents</div>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Documents</DropdownMenuLabel>
                 {TYPES_DOCUMENTS.map((t) => (
-                  <button
+                  <DropdownMenuItem
                     key={t}
-                    type="button"
-                    role="menuitem"
-                    aria-selected={brouillon.type === t}
-                    className={brouillon.type === t ? 'on' : ''}
-                    onClick={() => {
+                    onSelect={() => {
                       setBrouillon({ ...brouillon, type: t });
                       updateBrouillon(id, { type: t });
                       setOverflowOpen(false);
@@ -1198,15 +1200,13 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                   >
                     <FileText size={13} />
                     {TYPE_LABELS[t] ?? t}
-                    {brouillon.type === t && <Check size={12} className="statut-check" />}
-                  </button>
+                    {brouillon.type === t && <Check size={12} className="ml-auto" />}
+                  </DropdownMenuItem>
                 ))}
-                <div className="statut-menu-sep" />
-                <div className="statut-menu-label">Exporter le livrable</div>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => onExporter('png')}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Exporter le livrable</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onSelect={() => onExporter('png')}
                   disabled={exporting || estVideoSlide || brouillon.slides.length === 0}
                   title={estVideoSlide ? 'Export PNG indisponible sur une slide video' : 'Exporter la slide courante en PNG'}
                 >
@@ -1215,35 +1215,33 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
                     <span className="mi-t">PNG</span>
                     <span className="mi-s">{estVideoSlide ? 'Slide video : non disponible' : 'Slide courante en image'}</span>
                   </span>
-                </button>
-                <button type="button" role="menuitem" onClick={() => onExporter('pdf')} disabled={exporting}>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onExporter('pdf')} disabled={exporting}>
                   <FilePdf size={14} />
                   <span className="mi">
                     <span className="mi-t">PDF</span>
                     <span className="mi-s">Aperçu impression, une slide par page</span>
                   </span>
-                </button>
-                <button type="button" role="menuitem" onClick={() => onExporter('html')} disabled={exporting}>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onExporter('html')} disabled={exporting}>
                   <DownloadSimple size={14} />
                   <span className="mi">
                     <span className="mi-t">HTML autonome</span>
                     <span className="mi-s">Slides + légendes, tout-en-un</span>
                   </span>
-                </button>
-                <div className="statut-menu-sep" />
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="more-delete"
-                  onClick={() => {
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-status-err focus:bg-status-err/10 focus:text-status-err"
+                  onSelect={() => {
                     setOverflowOpen(false);
                     setConfirmation({ type: 'supprimer-brouillon' });
                   }}
                 >
                   <Trash size={14} /> Supprimer
-                </button>
-              </div>
-            )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -2130,24 +2128,24 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
         </aside>
       </div>
 
-      {confirmation && (
-        <ConfirmModal
-          titre={
-            confirmation.type === 'restaurer'
+      <ConfirmModal
+        open={confirmation !== null}
+        titre={
+            confirmation?.type === 'restaurer'
               ? `Restaurer la version v${confirmation.numero} ?`
-              : confirmation.type === 'supprimer-slide'
-                ? `Supprimer la slide ${confirmation.index + 1} ?`
+              : confirmation?.type === 'supprimer-slide'
+                ? `Supprimer la slide ${(confirmation.index ?? 0) + 1} ?`
                 : 'Supprimer ce brouillon ?'
           }
           description={
-            confirmation.type === 'restaurer' ? (
+            confirmation?.type === 'restaurer' ? (
               <>
                 Les slides seront régénérées depuis ce contenu. La version v{confirmation.numero}{' '}
                 remplace la source actuelle.
               </>
-            ) : confirmation.type === 'supprimer-slide' ? (
+            ) : confirmation?.type === 'supprimer-slide' ? (
               <>
-                La slide {confirmation.index + 1} de <strong>{brouillon?.titre ?? 'ce brouillon'}</strong>{' '}
+                La slide {(confirmation.index ?? 0) + 1} de <strong>{brouillon?.titre ?? 'ce brouillon'}</strong>{' '}
                 sera définitivement supprimée.
               </>
             ) : (
@@ -2158,10 +2156,11 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
             )
           }
           labelConfirmer={
-            confirmation.type === 'restaurer' ? 'Restaurer' : 'Supprimer'
+            confirmation?.type === 'restaurer' ? 'Restaurer' : 'Supprimer'
           }
-          danger={confirmation.type !== 'restaurer'}
+          danger={confirmation?.type !== 'restaurer'}
           onConfirm={() => {
+            if (!confirmation) return;
             if (confirmation.type === 'restaurer') void executerRestaurerVersion(confirmation.numero);
             else if (confirmation.type === 'supprimer-slide') void executerSupprimerSlide(confirmation.index);
             else onDelete();
@@ -2169,7 +2168,6 @@ export function DraftDetail({ id, onClose, onDelete, panneauReplie = false }: Dr
           }}
           onClose={() => setConfirmation(null)}
         />
-      )}
     </div>
   );
 }

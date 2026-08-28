@@ -4,24 +4,24 @@ import { test, expect } from 'playwright/test';
 
 test('filtre statut persiste apres reload', async ({ page }) => {
   await page.goto('/');
-  await page.waitForSelector('.filtre-pills .pill', { timeout: 15_000 });
+  await page.getByTestId('filtre-statut-tous').waitFor({ timeout: 15_000 });
 
   // 1. Le filtre par defaut est 'tous' (la cle peut etre absente ou 'tous' apres mount).
-  await expect(page.locator('.filtre-pills .pill', { hasText: 'Toutes' })).toHaveClass(/on/);
+  await expect(page.getByTestId('filtre-statut-tous')).toHaveAttribute('data-state', 'on');
 
   // 2. Cliquer 'A valider' ecrit la preference (useEffect apres rendu).
-  await page.locator('.filtre-pills .pill', { hasText: 'À valider' }).click();
-  await expect(page.locator('.filtre-pills .pill', { hasText: 'À valider' })).toHaveClass(/on/);
+  await page.getByTestId('filtre-statut-a-valider').click();
+  await expect(page.getByTestId('filtre-statut-a-valider')).toHaveAttribute('data-state', 'on');
   await page.waitForFunction(() => localStorage.getItem('atelier.filtre.defaut') === 'a-valider');
 
   // 3. Reload : le filtre est re-applique depuis localStorage.
   await page.reload();
-  await page.waitForSelector('.filtre-pills .pill', { timeout: 15_000 });
-  await expect(page.locator('.filtre-pills .pill', { hasText: 'À valider' })).toHaveClass(/on/);
+  await page.getByTestId('filtre-statut-a-valider').waitFor({ timeout: 15_000 });
+  await expect(page.getByTestId('filtre-statut-a-valider')).toHaveAttribute('data-state', 'on');
 
   // 4. Une valeur invalide est ignoree (retour 'tous').
   await page.evaluate(() => localStorage.setItem('atelier.filtre.defaut', 'nimporte-quoi'));
   await page.reload();
-  await page.waitForSelector('.filtre-pills .pill', { timeout: 15_000 });
-  await expect(page.locator('.filtre-pills .pill', { hasText: 'Toutes' })).toHaveClass(/on/);
+  await page.getByTestId('filtre-statut-tous').waitFor({ timeout: 15_000 });
+  await expect(page.getByTestId('filtre-statut-tous')).toHaveAttribute('data-state', 'on');
 });

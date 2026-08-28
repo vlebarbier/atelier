@@ -80,7 +80,8 @@ export function SettingsPage() {
   function changerTheme(t: 'dark' | 'light') {
     setTheme(t);
     localStorage.setItem(CLEF_THEME, t);
-    document.documentElement.setAttribute('data-theme', t);
+    // Convention shadcn (SPEC-SHADCN D5) : la classe .dark porte le theme.
+    document.documentElement.classList.toggle('dark', t === 'dark');
   }
 
   function changerVue(v: 'grille' | 'liste') {

@@ -346,7 +346,7 @@ main {
   background: rgba(0, 0, 0, 0.55); color: #fff; white-space: nowrap; vertical-align: middle;
   margin-left: 8px;
 }
-[data-theme='light'] .badge-type-liste { background: rgba(28, 28, 26, 0.08); color: var(--color-ink-secondary); }
+[data-theme='light'] .badge-type-liste, html:not(.dark) .badge-type-liste { background: rgba(28, 28, 26, 0.08); color: var(--color-ink-secondary); }
 
 .nets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
 .net {
